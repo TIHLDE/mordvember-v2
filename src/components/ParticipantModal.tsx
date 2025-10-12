@@ -40,11 +40,12 @@ export default function ParticipantModal({
         <br />
         Klassetrinn: {participant.class}
         <br />
-        Hårfarge: {participant.hairColor}
+        Hårfarge: {participant.hairColor || "Ikke oppgitt"}
         <br />
-        Øyenfarge: {participant.eyeColor}
+        Øyenfarge: {participant.eyeColor || "Ikke oppgitt"}
         <br />
-        Høyde: {participant.height}
+        Høyde:{" "}
+        {participant.height ? `${participant.height} cm` : "Ikke oppgitt"}
       </div>
       <div className="flex justify-end mt-4">
         <button

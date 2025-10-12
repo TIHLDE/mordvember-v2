@@ -25,6 +25,9 @@ export default function AdminPage() {
     name: "",
     study: "",
     class: "",
+    hairColor: "",
+    eyeColor: "",
+    height: "",
     imageUrl: "",
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -123,7 +126,15 @@ export default function AdminPage() {
         const data = await response.json();
         setMessage(`${data.participant.name} ble lagt til!`);
         // Reset form
-        setNewParticipant({ name: "", study: "", class: "", imageUrl: "" });
+        setNewParticipant({
+          name: "",
+          study: "",
+          class: "",
+          hairColor: "",
+          eyeColor: "",
+          height: "",
+          imageUrl: "",
+        });
         setSelectedImage(null);
         setShowAddForm(false);
         // Refresh participants
@@ -259,6 +270,57 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Hårfarge
+                  </label>
+                  <input
+                    type="text"
+                    value={newParticipant.hairColor}
+                    onChange={(e) =>
+                      setNewParticipant({
+                        ...newParticipant,
+                        hairColor: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    placeholder="Brun"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Øyenfarge
+                  </label>
+                  <input
+                    type="text"
+                    value={newParticipant.eyeColor}
+                    onChange={(e) =>
+                      setNewParticipant({
+                        ...newParticipant,
+                        eyeColor: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    placeholder="Grønn"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Høyde (cm)
+                  </label>
+                  <input
+                    type="number"
+                    value={newParticipant.height}
+                    onChange={(e) =>
+                      setNewParticipant({
+                        ...newParticipant,
+                        height: e.target.value,
+                      })
+                    }
+                    className="w-full p-2 border border-gray-300 rounded text-black"
+                    placeholder="180"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Last opp bilde *
                   </label>
                   <input
@@ -297,6 +359,9 @@ export default function AdminPage() {
                       name: "",
                       study: "",
                       class: "",
+                      hairColor: "",
+                      eyeColor: "",
+                      height: "",
                       imageUrl: "",
                     });
                     setSelectedImage(null);
@@ -351,6 +416,21 @@ export default function AdminPage() {
                 <p className="truncate">
                   <strong>Klasse:</strong> {participant.class}
                 </p>
+                {participant.hairColor && (
+                  <p className="truncate">
+                    <strong>Hår:</strong> {participant.hairColor}
+                  </p>
+                )}
+                {participant.eyeColor && (
+                  <p className="truncate">
+                    <strong>Øyne:</strong> {participant.eyeColor}
+                  </p>
+                )}
+                {participant.height && (
+                  <p>
+                    <strong>Høyde:</strong> {participant.height} cm
+                  </p>
+                )}
               </div>
             </div>
           ))}

@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS participants (
   study VARCHAR(255) NOT NULL,
   class VARCHAR(255) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'alive' CHECK (status IN ('alive', 'dead')),
+  hair_color VARCHAR(50),
+  eye_color VARCHAR(50),
+  height INTEGER,
   image_url VARCHAR(500),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -19,6 +22,11 @@ CREATE INDEX IF NOT EXISTS idx_participants_player ON participants(player);
 
 -- Create index on status for filtering
 CREATE INDEX IF NOT EXISTS idx_participants_status ON participants(status);
+
+-- Create indexes on new detail columns
+CREATE INDEX IF NOT EXISTS idx_participants_hair_color ON participants(hair_color);
+CREATE INDEX IF NOT EXISTS idx_participants_eye_color ON participants(eye_color);
+CREATE INDEX IF NOT EXISTS idx_participants_height ON participants(height);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE participants ENABLE ROW LEVEL SECURITY;

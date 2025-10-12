@@ -30,6 +30,9 @@ export async function GET() {
       study: p.study,
       class: p.class,
       status: p.status,
+      hairColor: p.hair_color,
+      eyeColor: p.eye_color,
+      height: p.height,
       imageUrl: p.image_url,
     }));
 
@@ -57,7 +60,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, study, class: participantClass, imageUrl } = body;
+    const {
+      name,
+      study,
+      class: participantClass,
+      imageUrl,
+      hairColor,
+      eyeColor,
+      height,
+    } = body;
 
     // Validate required fields
     if (!name || !study || !participantClass) {
@@ -93,6 +104,9 @@ export async function POST(request: NextRequest) {
       study: study.trim(),
       class: participantClass.trim(),
       status: "alive" as const,
+      hair_color: hairColor?.trim() || null,
+      eye_color: eyeColor?.trim() || null,
+      height: height ? parseInt(height, 10) : null,
       image_url: imageUrl || "/user-photos/default.jpg",
     };
 
@@ -118,6 +132,9 @@ export async function POST(request: NextRequest) {
       study: insertedData.study,
       class: insertedData.class,
       status: insertedData.status,
+      hairColor: insertedData.hair_color,
+      eyeColor: insertedData.eye_color,
+      height: insertedData.height,
       imageUrl: insertedData.image_url,
     };
 
@@ -194,6 +211,9 @@ export async function PUT(request: NextRequest) {
       study: updatedData.study,
       class: updatedData.class,
       status: updatedData.status,
+      hairColor: updatedData.hair_color,
+      eyeColor: updatedData.eye_color,
+      height: updatedData.height,
       imageUrl: updatedData.image_url,
     };
 
