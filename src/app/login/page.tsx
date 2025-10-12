@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser } from "@/api/auth";
 import { Suspense } from "react";
+import { useAuthQuery } from "@/hooks/auth";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/admin";
+  const { data: auth, isLoading: isCheckingAuth } = useAuthQuery();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect to admin if already authenticated
+  useEffect(() => {
+    if (auth) {
+      router.push(redirectTo);
+    }
+  }, [auth, router, redirectTo]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -32,6 +41,15 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-950 via-gray-900 to-black">
+        <div className="text-white text-xl">Laster...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-950 via-gray-900 to-black p-4">

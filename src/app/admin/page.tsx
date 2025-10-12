@@ -285,7 +285,7 @@ export default function AdminPage() {
                   alt={participant.name}
                   width={80}
                   height={80}
-                  className={`rounded-full w-16 h-16 sm:w-20 sm:h-20 ${
+                  className={`rounded-full w-16 h-16 sm:w-20 sm:h-20 object-cover ${
                     participant.status === "dead" ? "blood-red" : ""
                   }`}
                 />
@@ -335,7 +335,11 @@ export default function AdminPage() {
           setShowConfirm(false);
           setSelectedParticipant(null);
         }}
-        confirmText="Ja, DREEEP"
+        confirmText={
+          selectedParticipant?.status === "dead"
+            ? "Gjør levende igjen"
+            : "Ja, DREEEP"
+        }
         cancelText="Avbryt"
       />
     </div>
