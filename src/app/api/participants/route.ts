@@ -1,19 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync, writeFileSync } from "fs";
-import { join } from "path";
 import { cookies } from "next/headers";
+import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
-const dataPath = join(process.cwd(), "src", "data", "participants.json");
 const ACCESS_TOKEN = "MORDVEMBER-AccessToken";
 
 export async function GET() {
   try {
-    const data = readFileSync(dataPath, "utf-8");
-    const participants = JSON.parse(data);
-    return NextResponse.json(participants);
+    // Use public client for read operations
+    const { data: participants, error } = await supabase
+      .from("participants")
+      .select("*")
+      .order("player");
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch participants" },
+        { status: 500 }
+      );
+    }
+
+    // Transform database records to match frontend format (snake_case -> camelCase)
+    const transformedParticipants = participants.map((p) => ({
+      player: p.player,
+      name: p.name,
+      study: p.study,
+      class: p.class,
+      status: p.status,
+      imageUrl: p.image_url,
+    }));
+
+    return NextResponse.json(transformedParticipants);
   } catch (error) {
+    console.error("Error fetching participants:", error);
     return NextResponse.json(
       { error: "Failed to read participants" },
       { status: 500 }
@@ -45,32 +67,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Read current data
-    const data = readFileSync(dataPath, "utf-8");
-    const participants = JSON.parse(data);
+    // Find highest player ID and increment using Supabase
+    const { data: maxPlayerData, error: maxError } = await supabaseAdmin
+      .from("participants")
+      .select("player")
+      .order("player", { ascending: false })
+      .limit(1);
 
-    // Find highest player ID and increment
-    const maxPlayerId = participants.reduce(
-      (max: number, p: any) => Math.max(max, p.player),
-      0
-    );
+    if (maxError) {
+      console.error("Error getting max player ID:", maxError);
+      return NextResponse.json(
+        { error: "Failed to generate player ID" },
+        { status: 500 }
+      );
+    }
+
+    const maxPlayerId =
+      maxPlayerData && maxPlayerData.length > 0 ? maxPlayerData[0].player : 0;
     const newPlayerId = maxPlayerId + 1;
 
     // Create new participant
-    const newParticipant = {
+    const newParticipantData = {
       player: newPlayerId,
       name: name.trim(),
       study: study.trim(),
       class: participantClass.trim(),
-      status: "alive",
-      imageUrl: imageUrl || "/user-photos/default.jpg",
+      status: "alive" as const,
+      image_url: imageUrl || "/user-photos/default.jpg",
     };
 
-    // Add to participants array
-    participants.push(newParticipant);
+    // Insert into database using admin client
+    const { data: insertedData, error: insertError } = await supabaseAdmin
+      .from("participants")
+      .insert(newParticipantData)
+      .select()
+      .single();
 
-    // Write back to file
-    writeFileSync(dataPath, JSON.stringify(participants, null, 2));
+    if (insertError) {
+      console.error("Error inserting participant:", insertError);
+      return NextResponse.json(
+        { error: "Failed to add participant" },
+        { status: 500 }
+      );
+    }
+
+    // Transform back to camelCase for response
+    const newParticipant = {
+      player: insertedData.player,
+      name: insertedData.name,
+      study: insertedData.study,
+      class: insertedData.class,
+      status: insertedData.status,
+      imageUrl: insertedData.image_url,
+    };
 
     return NextResponse.json({ success: true, participant: newParticipant });
   } catch (error) {
@@ -98,26 +147,59 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { playerId, status } = body;
 
-    // Read current data
-    const data = readFileSync(dataPath, "utf-8");
-    const participants = JSON.parse(data);
+    // Validate status
+    if (status !== "alive" && status !== "dead") {
+      return NextResponse.json(
+        { error: "Invalid status value" },
+        { status: 400 }
+      );
+    }
 
-    // Find and update participant
-    const participant = participants.find((p: any) => p.player === playerId);
-    if (!participant) {
+    // Update participant in database using admin client
+    const { data: updatedData, error: updateError } = await supabaseAdmin
+      .from("participants")
+      .update({ status })
+      .eq("player", playerId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Error updating participant:", updateError);
+
+      // Check if participant doesn't exist
+      if (updateError.code === "PGRST116") {
+        return NextResponse.json(
+          { error: "Participant not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Failed to update participant" },
+        { status: 500 }
+      );
+    }
+
+    if (!updatedData) {
       return NextResponse.json(
         { error: "Participant not found" },
         { status: 404 }
       );
     }
 
-    participant.status = status;
-
-    // Write back to file
-    writeFileSync(dataPath, JSON.stringify(participants, null, 2));
+    // Transform back to camelCase for response
+    const participant = {
+      player: updatedData.player,
+      name: updatedData.name,
+      study: updatedData.study,
+      class: updatedData.class,
+      status: updatedData.status,
+      imageUrl: updatedData.image_url,
+    };
 
     return NextResponse.json({ success: true, participant });
   } catch (error) {
+    console.error("Error in PUT /api/participants:", error);
     return NextResponse.json(
       { error: "Failed to update participant" },
       { status: 500 }

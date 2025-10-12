@@ -25,13 +25,19 @@ pnpm install
 
 ### 2. Environment Configuration
 
-The app is pre-configured with TIHLDE API authentication. The `.env.local` file contains:
+Create a `.env` file in the project root:
 
 ```env
+# TIHLDE API for authentication
 NEXT_PUBLIC_TIHLDE_API_URL=https://api.tihlde.org
+
+# Supabase Database Configuration
+NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-This connects to the production TIHLDE API for authentication and user data.
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed setup instructions.
 
 ### 3. Run the development server
 
@@ -56,7 +62,7 @@ Use your **TIHLDE credentials** (same as you use for tihlde.org).
 - You must be a **leader of Index** to access the admin panel
 - OR have the username **'astaskj'** (special admin access)
 - The system checks your TIHLDE memberships via the API
-- Only Index leaders with `membership_type: "LEADER"` OR the user 'astaskj' will be granted access
+- Only Index leaders with `membership_type: "LEADER"` OR the user 'aastaks' will be granted access
 - All other users will receive an "Access denied" message
 
 ## Authentication System
@@ -70,6 +76,24 @@ Key features:
 - Next.js middleware for route protection
 - Permission-based access control
 - Automatic token attachment to API requests
+
+## Database Setup
+
+This project uses **Supabase** (PostgreSQL) for data storage. This ensures:
+
+- ✅ **Production compatibility** - works on serverless platforms (Vercel, Netlify, etc.)
+- ✅ **Persistent storage** - no more read-only filesystem issues
+- ✅ **Scalability** - handles any number of participants
+- ✅ **Real-time queries** - fast database operations with indexes
+
+**To set up the database, follow the guide in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md).**
+
+Quick steps:
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Run the schema from `supabase-schema.sql` in the SQL Editor
+3. Add environment variables to `.env`
+4. Run `node migrate-to-supabase.js` to migrate existing data
 
 ## Git Workflow
 
@@ -111,14 +135,14 @@ src/
 
 ## How It Works
 
-- Participant data is stored in `src/data/participants.json`
-- Authentication uses cookies and React Query
+- Participant data is stored in **Supabase (PostgreSQL database)**
+- Authentication uses cookies and React Query with TIHLDE API
 - The API routes handle authentication and participant updates
 - Middleware protects the admin routes
-- Changes made in the admin panel persist across sessions
+- Changes made in the admin panel persist in the database
 - **Real-time updates:** The home page auto-refreshes every 5 seconds using React Query
 - Changes appear for all viewers within 5 seconds
-- No database needed - everything is stored in JSON
+- Production-ready with proper database storage
 
 ### Live Updates
 
@@ -131,6 +155,17 @@ The app uses **React Query with automatic polling** for real-time updates:
 
 ## Development Notes
 
-- Mock API endpoints are provided for authentication (see `src/app/api/auth/`)
-- To integrate with a real backend, set `NEXT_PUBLIC_TIHLDE_API_URL` and update the auth endpoints
-- See [AUTH_SETUP.md](./AUTH_SETUP.md) for detailed authentication documentation
+- Authentication uses the TIHLDE API (see `src/app/api/auth/`)
+- Participant data is stored in Supabase (PostgreSQL)
+- The app uses server-side API routes (`/api/participants`) to interact with the database
+- See [AUTH_SETUP.md](./AUTH_SETUP.md) for authentication documentation
+- See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for database setup
+
+## Deployment Notes
+
+When deploying to production (Vercel, Netlify, etc.):
+
+1. ✅ **Set environment variables** - Add all Supabase and TIHLDE API variables
+2. ✅ **Run database migration** - Use `node migrate-to-supabase.js` to populate the database
+3. ✅ **Test the deployment** - Verify read/write operations work
+4. ℹ️ **The old `participants.json` file is kept for reference** but no longer used in production

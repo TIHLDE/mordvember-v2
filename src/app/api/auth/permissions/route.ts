@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is an Index leader OR specific admin user - only they get permissions
-    const hasAccess = (user && isIndexLeader(user)) || user?.id === "astaskj";
+    const hasAccess = (user && isIndexLeader(user)) || user?.id === "aastaks";
 
     if (hasAccess) {
       return NextResponse.json(FULL_PERMISSIONS);

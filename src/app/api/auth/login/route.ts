@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is Index leader OR specific admin user
     const hasAccess =
-      isIndexLeader(memberships) || userData.user_id === "astaskj";
+      isIndexLeader(memberships) || userData.user_id === "aastaks";
 
     if (!hasAccess) {
       return NextResponse.json(
