@@ -123,6 +123,7 @@ src/
 ### Live Updates
 
 The app uses **React Query with automatic polling** for real-time updates:
+
 - Home page refreshes every 5 seconds
 - Admin changes appear instantly in admin panel
 - All viewers see updates within 5 seconds

@@ -13,7 +13,11 @@ export default function Home() {
   const [showAlert, setShowAlert] = useState(false);
 
   // Use React Query hook for smart auto-refreshing
-  const { data: participants = [], isLoading, error } = useParticipants(REFRESH_INTERVAL);
+  const {
+    data: participants = [],
+    isLoading,
+    error,
+  } = useParticipants(REFRESH_INTERVAL);
 
   const handleImageClick = (participant: Participant) => {
     setSelectedParticipant(participant);
@@ -32,7 +36,9 @@ export default function Home() {
           <h1>MORDVEMBER deltakeroversikt</h1>
         </header>
         <div className="flex items-center justify-center min-h-screen">
-          <p className="text-red-600">Kunne ikke laste deltakere. Prøv igjen senere.</p>
+          <p className="text-red-600">
+            Kunne ikke laste deltakere. Prøv igjen senere.
+          </p>
         </div>
       </>
     );
