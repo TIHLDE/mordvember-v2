@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { tokenUserMap } from "../tokenStore";
 
 const TIHLDE_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.tihlde.org";
+  process.env.NEXT_PUBLIC_TIHLDE_API_URL || "https://api.tihlde.org";
 
 // Helper function to check if user is an Index leader
 function isIndexLeader(memberships: any[]): boolean {

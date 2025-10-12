@@ -4,7 +4,7 @@ import { tokenUserMap } from "../tokenStore";
 
 const ACCESS_TOKEN = "MORDVEMBER-AccessToken";
 const TIHLDE_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.tihlde.org";
+  process.env.NEXT_PUBLIC_TIHLDE_API_URL || "https://api.tihlde.org";
 
 // Full permissions for Index leaders
 const FULL_PERMISSIONS = {

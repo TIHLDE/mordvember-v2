@@ -28,7 +28,7 @@ pnpm install
 The app is pre-configured with TIHLDE API authentication. The `.env.local` file contains:
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.tihlde.org
+NEXT_PUBLIC_TIHLDE_API_URL=https://api.tihlde.org
 ```
 
 This connects to the production TIHLDE API for authentication and user data.
@@ -132,5 +132,5 @@ The app uses **React Query with automatic polling** for real-time updates:
 ## Development Notes
 
 - Mock API endpoints are provided for authentication (see `src/app/api/auth/`)
-- To integrate with a real backend, set `NEXT_PUBLIC_API_URL` and update the auth endpoints
+- To integrate with a real backend, set `NEXT_PUBLIC_TIHLDE_API_URL` and update the auth endpoints
 - See [AUTH_SETUP.md](./AUTH_SETUP.md) for detailed authentication documentation

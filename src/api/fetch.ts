@@ -21,9 +21,9 @@ export async function IFetch<T = unknown>(
   const fullUrl = url.startsWith("http") ? url : `${API_URL}${url}`;
 
   // Add authentication header if needed
-  const fetchHeaders: HeadersInit = {
+  const fetchHeaders: Record<string, string> = {
     "Content-Type": "application/json",
-    ...headers,
+    ...(headers as Record<string, string>),
   };
 
   if (withAuth) {
