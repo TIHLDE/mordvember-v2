@@ -3,6 +3,8 @@ import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 const dataPath = join(process.cwd(), "src", "data", "participants.json");
 const ACCESS_TOKEN = "MORDVEMBER-AccessToken";
 

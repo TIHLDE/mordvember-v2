@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { tokenUserMap } from "../tokenStore";
 
+export const dynamic = "force-dynamic";
+
 const ACCESS_TOKEN = "MORDVEMBER-AccessToken";
 const TIHLDE_API_URL =
   process.env.NEXT_PUBLIC_TIHLDE_API_URL || "https://api.tihlde.org";
