@@ -9,7 +9,8 @@ A participant tracking application for the Mordvember 2025 event with secure aut
   - Login with username and password
   - View all participants in a grid layout
   - Click any participant to toggle their status between alive/dead
-  - Changes are persisted to the JSON file
+  - Add new participants with image upload to Supabase Storage
+  - All changes are persisted to the database
 - **Authentication System**: React Query-based cookie authentication
   - Protected routes with middleware
   - Permission-based access control
@@ -92,8 +93,9 @@ Quick steps:
 
 1. Create a Supabase project at [supabase.com](https://supabase.com)
 2. Run the schema from `supabase-schema.sql` in the SQL Editor
-3. Add environment variables to `.env`
-4. Run `node migrate-to-supabase.js` to migrate existing data
+3. Create a public storage bucket named `participant-images` (see [STORAGE_SETUP.md](./STORAGE_SETUP.md))
+4. Add environment variables to `.env`
+5. Deploy and test!
 
 ## Git Workflow
 

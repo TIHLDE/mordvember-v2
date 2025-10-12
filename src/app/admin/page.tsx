@@ -27,6 +27,8 @@ export default function AdminPage() {
     class: "",
     imageUrl: "",
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleLogout = async () => {
     await logoutUser();
@@ -78,14 +80,43 @@ export default function AdminPage() {
 
   const handleAddParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUploading(true);
 
     try {
+      let imageUrl = newParticipant.imageUrl;
+
+      // If an image file is selected, upload it first
+      if (selectedImage) {
+        const formData = new FormData();
+        formData.append("file", selectedImage);
+        formData.append("participantName", newParticipant.name);
+
+        const uploadResponse = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          imageUrl = uploadData.url;
+        } else {
+          const uploadError = await uploadResponse.json();
+          setMessage(`Feil ved opplasting av bilde: ${uploadError.error}`);
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // Create participant with the image URL
       const response = await fetch("/api/participants", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newParticipant),
+        body: JSON.stringify({
+          ...newParticipant,
+          imageUrl,
+        }),
       });
 
       if (response.ok) {
@@ -93,6 +124,7 @@ export default function AdminPage() {
         setMessage(`${data.participant.name} ble lagt til!`);
         // Reset form
         setNewParticipant({ name: "", study: "", class: "", imageUrl: "" });
+        setSelectedImage(null);
         setShowAddForm(false);
         // Refresh participants
         queryClient.invalidateQueries({ queryKey: ["participants"] });
@@ -103,6 +135,8 @@ export default function AdminPage() {
     } catch (error) {
       setMessage("Feil ved å legge til deltaker");
       console.error("Failed to add participant:", error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -225,31 +259,38 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bilde URL (valgfritt)
+                    Last opp bilde *
                   </label>
                   <input
-                    type="text"
-                    value={newParticipant.imageUrl}
-                    onChange={(e) =>
-                      setNewParticipant({
-                        ...newParticipant,
-                        imageUrl: e.target.value,
-                      })
-                    }
-                    className="w-full p-2 border border-gray-300 rounded text-black"
-                    placeholder="/user-photos/navn.jpg"
+                    type="file"
+                    accept="image/*"
+                    required
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedImage(file);
+                      }
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded text-black bg-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
+                  {selectedImage && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      Valgt: {selectedImage.name}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
                 <button
                   type="submit"
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-medium"
+                  disabled={isUploading}
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Legg til
+                  {isUploading ? "Laster opp..." : "Legg til"}
                 </button>
                 <button
                   type="button"
+                  disabled={isUploading}
                   onClick={() => {
                     setShowAddForm(false);
                     setNewParticipant({
@@ -258,8 +299,9 @@ export default function AdminPage() {
                       class: "",
                       imageUrl: "",
                     });
+                    setSelectedImage(null);
                   }}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition font-medium"
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Avbryt
                 </button>
