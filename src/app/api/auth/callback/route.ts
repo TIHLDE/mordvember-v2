@@ -24,7 +24,8 @@ function deny(request: NextRequest, reason: string) {
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
-  const expectedState = request.cookies.get(OAUTH_STATE)?.value;
+  const stored = request.cookies.get(OAUTH_STATE)?.value;
+  const [expectedState, verifier] = (stored ?? "").split("|");
 
   if (!code) return deny(request, "missing_code");
 
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
       redirect_uri: redirectUri,
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
+      code_verifier: verifier ?? "",
     }).toString(),
   });
 
