@@ -104,3 +104,35 @@ export async function fetchUser(token: string): Promise<AppUser | null> {
     })),
   };
 }
+
+/**
+ * PKCE. Photon avviser autorisasjon uten det — «pkce is required for this
+ * client» — også for konfidensielle klienter som denne, der hemmeligheten
+ * ligger trygt på serveren.
+ *
+ * Verifieren lagres i en httpOnly-cookie sammen med state og sendes først ved
+ * kodevekslingen. Utfordringen som går til Photon er en SHA-256 av den, så
+ * autorisasjonskoden alene er ubrukelig.
+ */
+export function createVerifier(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return base64url(bytes);
+}
+
+export async function challengeFor(verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier)
+  );
+  return base64url(new Uint8Array(digest));
+}
+
+function base64url(bytes: Uint8Array): string {
+  // Indeksert løkke framfor for-of: tsconfig her har target under es2015, og
+  // iterasjon over Uint8Array krever downlevelIteration.
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i] as number);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}

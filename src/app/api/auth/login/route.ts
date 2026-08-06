@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { CLIENT_ID, ISSUER, OAUTH_STATE } from "../photon";
+import { challengeFor, CLIENT_ID, createVerifier, ISSUER, OAUTH_STATE } from "../photon";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   // en angriper lokke brukeren gjennom en callback med sin egen kode, og appen
   // ville logget inn som feil person.
   const state = crypto.randomUUID();
+  const verifier = createVerifier();
 
   const authorizeUrl = new URL(`${ISSUER}/oauth2/authorize`);
   authorizeUrl.searchParams.set("response_type", "code");
@@ -30,9 +31,13 @@ export async function GET(request: NextRequest) {
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("scope", "openid profile email");
   authorizeUrl.searchParams.set("state", state);
+  authorizeUrl.searchParams.set("code_challenge", await challengeFor(verifier));
+  authorizeUrl.searchParams.set("code_challenge_method", "S256");
 
   const response = NextResponse.redirect(authorizeUrl.toString());
-  response.cookies.set(OAUTH_STATE, state, {
+  // Verifieren følger state i samme cookie: begge hører til denne ene
+  // innloggingen, og de må leses sammen i callbacken.
+  response.cookies.set(OAUTH_STATE, `${state}|${verifier}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
