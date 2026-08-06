@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loginUser } from "@/api/auth";
 import { Suspense } from "react";
 import { useAuthQuery } from "@/hooks/auth";
+
+const ERROR_MESSAGES: Record<string, string> = {
+  not_index_leader: "Du må være leder i Index for å bruke admin-panelet.",
+  invalid_state: "Innloggingen ble avbrutt. Prøv igjen.",
+  missing_code: "Innloggingen ble avbrutt. Prøv igjen.",
+  token_exchange_failed: "Kunne ikke fullføre innloggingen. Prøv igjen senere.",
+};
 
 function LoginForm() {
   const router = useRouter();
@@ -12,37 +18,28 @@ function LoginForm() {
   const redirectTo = searchParams.get("redirectTo") || "/admin";
   const { data: auth, isLoading: isCheckingAuth } = useAuthQuery();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect to admin if already authenticated
+  // Callbacken sender hit med ?error= når den avviser — blant annet når
+  // brukeren logget inn riktig, men ikke er leder i Index.
+  const error = searchParams.get("error");
+  const errorMessage = error
+    ? (ERROR_MESSAGES[error] ?? "Innloggingen feilet. Prøv igjen.")
+    : "";
+
   useEffect(() => {
     if (auth) {
       router.push(redirectTo);
     }
   }, [auth, router, redirectTo]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const handleSignIn = () => {
     setIsLoading(true);
-
-    try {
-      await loginUser(username, password);
-      // Redirect to the intended page or admin
-      router.push(redirectTo);
-      router.refresh();
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Feil brukernavn eller passord");
-    } finally {
-      setIsLoading(false);
-    }
+    // Full sideveksling, ikke fetch: autorisasjonsflyten er en navigasjon, og
+    // brukeren skal se tihlde.org i adresselinjen når passordet skrives inn.
+    window.location.href = "/api/auth/login";
   };
 
-  // Show loading state while checking auth
   if (isCheckingAuth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-950 via-gray-900 to-black">
@@ -59,59 +56,26 @@ function LoginForm() {
           <p className="text-gray-600">Admin Login</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="username"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Brukernavn
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={isLoading}
-              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:ring focus:ring-red-200 focus:ring-opacity-50 text-black text-base transition disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="Skriv inn brukernavn"
-            />
-          </div>
+        <div className="space-y-6">
+          <p className="text-gray-600 text-center text-sm">
+            Du sendes til tihlde.org for å logge inn.
+          </p>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Passord
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:ring focus:ring-red-200 focus:ring-opacity-50 text-black text-base transition disabled:opacity-50 disabled:cursor-not-allowed"
-              placeholder="Skriv inn passord"
-            />
-          </div>
-
-          {error && (
+          {errorMessage && (
             <div className="bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+              {errorMessage}
             </div>
           )}
 
           <button
-            type="submit"
+            type="button"
+            onClick={handleSignIn}
             disabled={isLoading}
             className="w-full bg-gradient-to-r from-red-900 to-red-700 text-white p-4 rounded-lg hover:from-red-800 hover:to-red-600 transition font-bold text-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
           >
-            {isLoading ? "Logger inn..." : "Logg inn"}
+            {isLoading ? "Logger inn..." : "Logg inn med TIHLDE"}
           </button>
-        </form>
+        </div>
 
         <div className="mt-6 text-center">
           <button
