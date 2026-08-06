@@ -16,15 +16,23 @@ export const UserSchema = z.object({
   groups: z.array(GroupSchema),
 });
 
-export const PermissionSchema = z.record(
-  z.string(),
-  z.object({
-    write: z.boolean(),
-    read: z.boolean(),
-    write_all: z.boolean().optional(),
-    destroy: z.boolean().optional(),
-  })
-);
+/**
+ * Photon svarer med det ene appen faktisk bruker: er brukeren leder i Index?
+ *
+ * Lepton svarte med en tabell over alle Django-modeller og read/write per
+ * modell. Photons rettigheter er navngitte strenger med scope, og ingenting
+ * her brukte tabellen til annet enn Index-sjekken.
+ */
+export const PermissionSchema = z.object({
+  isIndexLeader: z.boolean(),
+  groups: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      isLeader: z.boolean(),
+    })
+  ),
+});
 
 export const AuthSchema = z.object({
   user: UserSchema,
