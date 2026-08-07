@@ -47,6 +47,11 @@ export async function GET(request: NextRequest) {
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
       code_verifier: verifier ?? "",
+      // Uten `resource` utsteder Photon et ugjennomsiktig token, og
+      // requireAuth i API-et godtar bare trepart-JWT — hvert datakall ville
+      // gitt 401. Verdien må være API-ets egen baseURL, som er den eneste
+      // gyldige audience når Photon ikke har satt validAudiences.
+      resource: ISSUER,
     }).toString(),
   });
 
