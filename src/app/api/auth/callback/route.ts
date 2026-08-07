@@ -57,7 +57,16 @@ export async function GET(request: NextRequest) {
     expires_in?: number;
   };
 
-  const groups = await fetchGroups(tokens.access_token);
+  let groups;
+  try {
+    groups = await fetchGroups(tokens.access_token);
+  } catch (e) {
+    // Skilles fra «ikke leder»: et avvist token eller en nede-tjeneste er en
+    // helt annen feil, og å vise dem som samme melding gjør feilsøking umulig.
+    console.error("Photon-gruppeoppslag feilet", e);
+    return deny(request, "groups_lookup_failed");
+  }
+
   if (!isIndexLeader(groups)) {
     return deny(request, "not_index_leader");
   }

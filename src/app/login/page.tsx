@@ -10,6 +10,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_state: "Innloggingen ble avbrutt. Prøv igjen.",
   missing_code: "Innloggingen ble avbrutt. Prøv igjen.",
   token_exchange_failed: "Kunne ikke fullføre innloggingen. Prøv igjen senere.",
+  groups_lookup_failed:
+    "Innloggingen virket, men vi fikk ikke hentet gruppene dine fra TIHLDE. Prøv igjen, eller si fra til Index.",
 };
 
 function LoginForm() {

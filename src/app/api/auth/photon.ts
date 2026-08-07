@@ -46,12 +46,31 @@ export function isIndexLeader(groups: PhotonGroup[]): boolean {
   );
 }
 
+export class GroupsLookupError extends Error {
+  constructor(public status: number, public detail: string) {
+    super(`Kunne ikke hente grupper fra Photon (${status}): ${detail}`);
+    this.name = "GroupsLookupError";
+  }
+}
+
+/**
+ * Kaster framfor å returnere tom liste ved feil.
+ *
+ * En tom liste ble tidligere til «du er ikke leder i Index», uansett om
+ * årsaken var et avvist token eller en nede-tjeneste. Meldingen var feil og
+ * sendte feilsøkingen i gal retning.
+ */
 export async function fetchGroups(token: string): Promise<PhotonGroup[]> {
   const response = await fetch(`${API_URL}/groups/mine`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
-  if (!response.ok) return [];
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new GroupsLookupError(response.status, detail.slice(0, 200));
+  }
+
   return (await response.json()) as PhotonGroup[];
 }
 
