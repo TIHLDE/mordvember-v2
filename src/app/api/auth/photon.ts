@@ -74,36 +74,41 @@ export async function fetchGroups(token: string): Promise<PhotonGroup[]> {
   return (await response.json()) as PhotonGroup[];
 }
 
-type PhotonSession = {
-  user?: {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
+/** Standard OIDC-claims fra /oauth2/userinfo. */
+type PhotonUserInfo = {
+  sub: string;
+  name?: string | null;
+  email?: string | null;
+  picture?: string | null;
+  preferred_username?: string | null;
 };
 
 /**
  * Bruker og grupper, hentet fra Photon ved hvert kall.
  *
- * Den forrige utgaven mellomlagret brukeren i et Map i minnet. Det overlever
- * verken en restart eller en ny serverless-instans, så halvparten av
- * forespørslene traff uansett API-et — og de som traff cachen kunne vise
- * gamle roller etter at noen mistet et verv.
+ * Identiteten hentes fra `/oauth2/userinfo`, ikke `/get-session`.
+ * `get-session` leser sesjonscookien og ignorerer Authorization-headeren —
+ * den svarer 200 med tom sesjon selv uten innlogging, som her ble til
+ * «Sesjonen er utløpt» for en helt gyldig bruker. userinfo er OAuth-veien og
+ * er den eneste som faktisk leser bearer-tokenet.
+ *
+ * Den forrige utgaven mellomlagret dessuten brukeren i et Map i minnet. Det
+ * overlever verken en restart eller en ny serverless-instans, og de
+ * forespørslene som traff cachen kunne vise gamle roller etter at noen
+ * mistet et verv.
  */
 export async function fetchUser(token: string): Promise<AppUser | null> {
-  const [sessionResponse, groups] = await Promise.all([
-    fetch(`${ISSUER}/get-session`, {
+  const [userinfoResponse, groups] = await Promise.all([
+    fetch(`${ISSUER}/oauth2/userinfo`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     }),
     fetchGroups(token),
   ]);
 
-  if (!sessionResponse.ok) return null;
+  if (!userinfoResponse.ok) return null;
 
-  const session = (await sessionResponse.json()) as PhotonSession | null;
-  const user = session?.user;
+  const user = (await userinfoResponse.json()) as PhotonUserInfo | null;
   if (!user) return null;
 
   // Photon returnerer ett visningsnavn. Å dele det i fornavn og etternavn
@@ -111,11 +116,13 @@ export async function fetchUser(token: string): Promise<AppUser | null> {
   const [firstName, ...rest] = (user.name ?? "").trim().split(/\s+/);
 
   return {
-    id: user.id,
+    // `preferred_username` er TIHLDE-brukernavnet; `sub` er Photons interne
+    // id som ingenting utenfor Photon kjenner igjen.
+    id: user.preferred_username ?? user.sub,
     firstName: firstName ?? "",
     lastName: rest.join(" "),
     email: user.email ?? "",
-    image: user.image ?? null,
+    image: user.picture ?? null,
     groups: groups.map((group) => ({
       id: group.slug,
       name: group.name,
