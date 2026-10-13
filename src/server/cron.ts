@@ -9,7 +9,19 @@ import { deliverPendingEmails, queueEmail } from "./email";
 import { staffEmails } from "./game";
 import { notify } from "./notify";
 import { closeExpiredSignups } from "./season";
-import { buildFridayList, claimJob, sendThursdayWarnings } from "./weekly";
+import { buildFridayList, claimJob, releaseJob, sendThursdayWarnings } from "./weekly";
+
+async function runOnce(key: string, job: () => Promise<unknown>): Promise<boolean> {
+  if (!(await claimJob(key))) return false;
+  try {
+    await job();
+    return true;
+  } catch (error) {
+    // Kravet frigis så neste cron-kjøring prøver igjen.
+    await releaseJob(key);
+    throw error;
+  }
+}
 
 export async function runCron(now = new Date()) {
   const done: string[] = [];
@@ -33,13 +45,11 @@ export async function runCron(now = new Date()) {
   for (const season of running) {
     const weekStart = weekStartOf(now);
     const thursdayDue = (p.isoWeekday === 4 && p.hour >= 16) || (p.isoWeekday === 5 && p.hour < 16);
-    if (thursdayDue && (await claimJob(`torsdag:${season.id}:${weekStart}`))) {
-      await sendThursdayWarnings(season, weekStart, now);
+    if (thursdayDue && (await runOnce(`torsdag:${season.id}:${weekStart}`, () => sendThursdayWarnings(season, weekStart, now)))) {
       done.push("torsdag");
     }
     const fridayDue = (p.isoWeekday === 5 && p.hour >= 16) || p.isoWeekday >= 6;
-    if (fridayDue && (await claimJob(`fredag:${season.id}:${weekStart}`))) {
-      await buildFridayList(season, weekStart, now);
+    if (fridayDue && (await runOnce(`fredag:${season.id}:${weekStart}`, () => buildFridayList(season, weekStart, now)))) {
       done.push("fredag");
     }
   }
@@ -49,20 +59,23 @@ export async function runCron(now = new Date()) {
     .from(milestoneEvents)
     .where(and(lte(milestoneEvents.showAt, now), isNull(milestoneEvents.emailedAt), eq(milestoneEvents.sendEmail, true)));
   for (const m of dueMilestones) {
-    const [claimed] = await db
-      .update(milestoneEvents)
-      .set({ emailedAt: now })
-      .where(and(eq(milestoneEvents.id, m.id), isNull(milestoneEvents.emailedAt)))
-      .returning();
-    if (!claimed) continue;
-    const recipients = await db
-      .select({ email: users.email, status: players.status })
-      .from(players)
-      .innerJoin(users, eq(users.id, players.userId))
-      .where(eq(players.seasonId, m.seasonId));
-    const alive = recipients.filter((r) => r.status === "alive").length;
-    await queueEmail(db, "milestone", recipients.map((r) => r.email), { milepael: m.label, igjen: alive });
-    done.push(`milepael:${m.key}`);
+    const sent = await db.transaction(async (tx) => {
+      const [claimed] = await tx
+        .update(milestoneEvents)
+        .set({ emailedAt: now })
+        .where(and(eq(milestoneEvents.id, m.id), isNull(milestoneEvents.emailedAt)))
+        .returning();
+      if (!claimed) return false;
+      const recipients = await tx
+        .select({ email: users.email, status: players.status })
+        .from(players)
+        .innerJoin(users, eq(users.id, players.userId))
+        .where(eq(players.seasonId, m.seasonId));
+      const alive = recipients.filter((r) => r.status === "alive").length;
+      await queueEmail(tx, "milestone", recipients.map((r) => r.email), { milepael: m.label, igjen: alive });
+      return true;
+    });
+    if (sent) done.push(`milepael:${m.key}`);
   }
 
   const ended = await db
@@ -71,16 +84,19 @@ export async function runCron(now = new Date()) {
     .where(and(eq(seasons.phase, "ended"), isNull(seasons.dataDeletedAt), isNull(seasons.deletionReminderSentAt)));
   for (const season of ended) {
     if (!season.endedAt || addDays(season.endedAt.toISOString().slice(0, 10), 30) > now.toISOString().slice(0, 10)) continue;
-    const [claimed] = await db
-      .update(seasons)
-      .set({ deletionReminderSentAt: now })
-      .where(and(eq(seasons.id, season.id), isNull(seasons.deletionReminderSentAt)))
-      .returning();
-    if (!claimed) continue;
-    const staff = await staffEmails(db, season.id);
-    await notify(db, staff.map((s) => ({ userId: s.userId, seasonId: season.id, text: `Husk å slette sesongdata for ${season.name}`, href: "/admin/sesong" })));
-    await queueEmail(db, "deletion_reminder", staff.map((s) => s.email), { sesong: season.name });
-    done.push("slettepaminnelse");
+    const sent = await db.transaction(async (tx) => {
+      const [claimed] = await tx
+        .update(seasons)
+        .set({ deletionReminderSentAt: now })
+        .where(and(eq(seasons.id, season.id), isNull(seasons.deletionReminderSentAt)))
+        .returning();
+      if (!claimed) return false;
+      const staff = await staffEmails(tx, season.id);
+      await notify(tx, staff.map((s) => ({ userId: s.userId, seasonId: season.id, text: `Husk å slette sesongdata for ${season.name}`, href: "/admin/sesong" })));
+      await queueEmail(tx, "deletion_reminder", staff.map((s) => s.email), { sesong: season.name });
+      return true;
+    });
+    if (sent) done.push("slettepaminnelse");
   }
 
   await deliverPendingEmails();

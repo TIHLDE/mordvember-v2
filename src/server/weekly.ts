@@ -17,6 +17,10 @@ export async function claimJob(key: string): Promise<boolean> {
   return inserted.length > 0;
 }
 
+export async function releaseJob(key: string) {
+  await db.delete(jobRuns).where(eq(jobRuns.key, key));
+}
+
 export async function evaluateSeasonWeek(season: Season, weekStart: string, now = new Date()) {
   const rules = await rulesForWeek(season, weekStart);
   const alive = await db
