@@ -14,7 +14,7 @@ const TYPES: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = {
 };
 
 function storesLocally() {
-  if (env.blobToken) return false;
+  if (env.blobConfigured) return false;
   if (!isDevelopment) throw new Error("BLOB_READ_WRITE_TOKEN mangler");
   return true;
 }

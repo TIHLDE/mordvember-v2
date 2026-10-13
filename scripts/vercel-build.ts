@@ -4,7 +4,9 @@ const env = process.env.VERCEL_ENV;
 
 if (env === "production") {
   // Uten database feiler bygget med vilje, så Vercel beholder forrige deploy i stedet for å publisere en side som svarer 500.
-  const missing = ["DATABASE_URL", "BLOB_READ_WRITE_TOKEN", "QR_SECRET"].filter((key) => !process.env[key]);
+  const missing = ["DATABASE_URL", "QR_SECRET"].filter((key) => !process.env[key]);
+  // Nyere Blob-lagre bruker OIDC med BLOB_STORE_ID i stedet for en token.
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) missing.push("BLOB_READ_WRITE_TOKEN eller BLOB_STORE_ID");
   if (missing.length) {
     console.error(`Mangler ${missing.join(", ")}. Koble Neon og Blob til Vercel-prosjektet før produksjon kan bygges.`);
     process.exit(1);
