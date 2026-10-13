@@ -22,20 +22,31 @@ export function isOverdue(kill: KillCase, now: Date): boolean {
   return kill.status === "pending" && now.getTime() - kill.reportedAt.getTime() >= CONFIRM_TIMEOUT_MS;
 }
 
-export function findCollisions(kill: KillCase, all: readonly KillCase[], gameStartedAt: Date | null, now: Date): string[] {
+export function findCollisions(
+  kill: KillCase,
+  all: readonly KillCase[],
+  gameStartedAt: Date | null,
+  now: Date,
+  alive: ReadonlySet<string> = new Set(),
+): string[] {
   const reasons: string[] = [];
-  const others = all.filter((k) => k.id !== kill.id && (isOpen(k) || k.status === "applied"));
+  // Et gjennomført drap på noen som lever igjen (nåde eller angring) er ikke lenger en motsigelse.
+  const others = all.filter(
+    (k) => k.id !== kill.id && (isOpen(k) || (k.status === "applied" && !alive.has(k.victimId))),
+  );
 
   if (kill.killedAt.getTime() > now.getTime() + 5 * 60 * 1000) reasons.push("Drapstidspunktet er i framtiden");
-  if (gameStartedAt && kill.killedAt < gameStartedAt) reasons.push("Drapstidspunktet er før spillet startet");
+  // Skjemaet oppgir tidspunkt på hele minutter, så starten rundes ned til samme presisjon.
+  const startMinute = gameStartedAt ? Math.floor(gameStartedAt.getTime() / 60000) * 60000 : null;
+  if (startMinute !== null && kill.killedAt.getTime() < startMinute) reasons.push("Drapstidspunktet er før spillet startet");
 
   if (others.some((k) => k.victimId === kill.victimId)) {
     reasons.push("Offeret er også meldt drept i en annen sak");
   }
-  if (others.some((k) => k.victimId === kill.killerId && k.killedAt <= kill.killedAt)) {
+  if (others.some((k) => k.victimId === kill.killerId && k.killedAt < kill.killedAt)) {
     reasons.push("Morderen er meldt drept før dette drapstidspunktet");
   }
-  if (others.some((k) => k.killerId === kill.victimId && k.killedAt >= kill.killedAt)) {
+  if (others.some((k) => k.killerId === kill.victimId && k.killedAt > kill.killedAt)) {
     reasons.push("Offeret har meldt et eget drap etter sitt eget dødstidspunkt");
   }
   return reasons;
@@ -78,7 +89,7 @@ export function decideOnConfirm(
   gameStartedAt: Date | null,
   now: Date,
 ): ConfirmOutcome {
-  const reasons = findCollisions(kill, all, gameStartedAt, now);
+  const reasons = findCollisions(kill, all, gameStartedAt, now, new Set(ring));
   if (targetOf(ring, kill.killerId) !== kill.victimId) reasons.push("Sirkelen har endret seg siden drapet ble meldt");
   return reasons.length ? { action: "escalate", reasons } : { action: "apply" };
 }

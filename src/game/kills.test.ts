@@ -77,6 +77,13 @@ describe("kollisjoner", () => {
     );
   });
 
+  it("samme minutt regnes ikke som etter", () => {
+    const death = kill({ id: "k1", killerId: "a", victimId: "b", killedAt: t(10) });
+    const same = kill({ id: "k2", killerId: "b", victimId: "c", killedAt: t(10) });
+    expect(findCollisions(death, [death, same], start, now)).toEqual([]);
+    expect(findCollisions(same, [death, same], start, now)).toEqual([]);
+  });
+
   it("et drap før eget dødstidspunkt er ikke en kollisjon", () => {
     const death = kill({ id: "k1", killerId: "a", victimId: "b", killedAt: t(12) });
     const early = kill({ id: "k2", killerId: "b", victimId: "c", killedAt: t(11) });
@@ -89,11 +96,26 @@ describe("kollisjoner", () => {
     expect(findCollisions(two, [one, two], start, now)).toContain("Offeret er også meldt drept i en annen sak");
   });
 
+  it("et gammelt drap på en som har fått nåde teller ikke", () => {
+    const old = kill({ id: "k1", killerId: "a", victimId: "b", status: "applied", killedAt: t(8) });
+    const again = kill({ id: "k2", killerId: "c", victimId: "b", killedAt: t(12) });
+    expect(findCollisions(again, [old, again], start, now, new Set(["b", "c"]))).toEqual([]);
+    expect(findCollisions(again, [old, again], start, now, new Set(["c"]))).toContain("Offeret er også meldt drept i en annen sak");
+    const byRevived = kill({ id: "k3", killerId: "b", victimId: "d", killedAt: t(12) });
+    expect(findCollisions(byRevived, [old, byRevived], start, now, new Set(["b", "d"]))).toEqual([]);
+  });
+
   it("avviste og angrede saker teller ikke", () => {
     const one = kill({ id: "k1", status: "rejected" });
     const two = kill({ id: "k2", killerId: "z", status: "undone" });
     const three = kill({ id: "k3" });
     expect(findCollisions(three, [one, two, three], start, now)).toEqual([]);
+  });
+
+  it("drap i samme minutt som starten er gyldig", () => {
+    const started = new Date(Date.UTC(2026, 10, 2, 9, 0, 32));
+    expect(findCollisions(kill({ killedAt: new Date(Date.UTC(2026, 10, 2, 9, 0)) }), [], started, now)).toEqual([]);
+    expect(findCollisions(kill({ killedAt: new Date(Date.UTC(2026, 10, 2, 8, 59)) }), [], started, now)).toHaveLength(1);
   });
 
   it("tidspunkt før start og i framtiden flagges", () => {
