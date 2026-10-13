@@ -25,6 +25,7 @@ Uten `BLOB_READ_WRITE_TOKEN` lagres opplastede bilder i `.data/uploads` under ut
 | `npm test` | Spillmotoren (sirkel, drap, kollisjoner, angring, nåde, diskvalifisering, oppmøte, ukesjekk) og en statisk kontroll av hvem som får lese sirkelen |
 | `TEST_DATABASE_URL=… npm test` | Tar også med tilgangstester mot en egen database. Databasen tømmes. |
 | `npm run test:e2e` | Hele spillet i nettleser, fra påmelding til vinner. Krever `npm run dev` og ferske testdata. |
+| `npm run test:photon` | Ekte innlogging og e-post mot en lokal etterligning av Photon (`npm run photon:mock`). Start `next dev` med `PHOTON_ISSUER=http://localhost:4010/api/auth`, `PHOTON_CLIENT_ID=mordvember-test`, `PHOTON_CLIENT_SECRET=mock-hemmelighet` og `PHOTON_EMAIL_API_KEY=mock-epostnokkel`. |
 | `npm run test:leak` | Henter alle sider som deltaker, eliminert, arrangør, medlem, Index-leder og ikke innlogget, og ser etter lekkasje av sirkelen. Krever ferske testdata. |
 
 ## Oppbygning
