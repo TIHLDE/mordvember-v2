@@ -7,6 +7,7 @@ import {
   emailTemplates,
   emergencyAccess,
   kills,
+  milestoneEvents,
   notifications,
   players,
   questions,
@@ -142,6 +143,8 @@ export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirm
     await tx.delete(players).where(eq(players.seasonId, seasonId));
     await tx.delete(questions).where(eq(questions.seasonId, seasonId));
     await tx.delete(notifications).where(eq(notifications.seasonId, seasonId));
+    await tx.delete(auditLog).where(eq(auditLog.seasonId, seasonId));
+    await tx.delete(milestoneEvents).where(eq(milestoneEvents.seasonId, seasonId));
     await tx.execute(dsql`delete from circles where season_id = ${seasonId}`);
     await tx.execute(dsql`delete from circle_events where season_id = ${seasonId}`);
     await tx

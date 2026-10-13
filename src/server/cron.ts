@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { kills, milestoneEvents, players, seasons, users } from "@/db/schema";
+import { emailOutbox, kills, milestoneEvents, players, seasons, users } from "@/db/schema";
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
 import { addDays, osloParts, weekStartOf } from "@/game/time";
 import { closeForgottenSessions } from "./attendance";
@@ -74,5 +74,6 @@ export async function runCron(now = new Date()) {
   }
 
   await deliverPendingEmails();
+  await db.delete(emailOutbox).where(and(eq(emailOutbox.status, "sent"), lte(emailOutbox.sentAt, new Date(now.getTime() - 14 * 86400_000))));
   return done;
 }
