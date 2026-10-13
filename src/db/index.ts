@@ -4,14 +4,9 @@ import * as schema from "./schema";
 
 const globalForDb = globalThis as unknown as { sql?: postgres.Sql };
 
-function connectionString(): string {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL mangler");
-  return url;
-}
-
+// Kobler først ved første spørring, så bygget går gjennom uten DATABASE_URL.
 export const sql =
-  globalForDb.sql ?? postgres(connectionString(), { max: process.env.VERCEL ? 1 : 10, prepare: false });
+  globalForDb.sql ?? postgres(process.env.DATABASE_URL ?? "", { max: process.env.VERCEL ? 1 : 10, prepare: false });
 if (process.env.NODE_ENV !== "production") globalForDb.sql = sql;
 
 export const db = drizzle(sql, { schema });
