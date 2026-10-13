@@ -48,3 +48,4 @@ Style.css
 # lokal bildelagring i utvikling
 /.data
 /test-results
+/AGENTS.md
