@@ -1,0 +1,29 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export const QR_WINDOW_MS = 15_000;
+export const QR_GRACE_MS = 5_000;
+
+export function windowOf(at: number): number {
+  return Math.floor(at / QR_WINDOW_MS);
+}
+
+function signature(secret: string, seasonId: string, window: number): string {
+  return createHmac("sha256", secret).update(`qr:${seasonId}:${window}`).digest("base64url").slice(0, 22);
+}
+
+export function qrCode(secret: string, seasonId: string, at: number): string {
+  const window = windowOf(at);
+  return `${window}.${signature(secret, seasonId, window)}`;
+}
+
+export function verifyQrCode(secret: string, seasonId: string, code: string, at: number): boolean {
+  const [windowText, sig] = code.split(".");
+  if (!windowText || !sig || !/^\d+$/.test(windowText)) return false;
+  const window = Number(windowText);
+  const start = window * QR_WINDOW_MS;
+  const end = start + QR_WINDOW_MS;
+  if (at < start - QR_GRACE_MS || at > end + QR_GRACE_MS) return false;
+  const expected = Buffer.from(signature(secret, seasonId, window));
+  const given = Buffer.from(sig);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
