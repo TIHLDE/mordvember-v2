@@ -13,6 +13,7 @@ import { GameError } from "./game";
 import { rulesForWeek } from "./season";
 
 export const PENDING_SCAN_COOKIE = "mv_scan";
+export const SCAN_RESULT_COOKIE = "mv_scan_result";
 export const PENDING_SCAN_MS = 10 * 60 * 1000;
 
 export function boardQr(seasonId: string, now = Date.now()) {

@@ -13,7 +13,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ pameldt?: string }> }) {
+  const { pameldt } = await searchParams;
   const viewer = await getViewer();
   if (!viewer) redirect("/login?next=/profil");
   const { player, season } = viewer;
@@ -24,6 +25,7 @@ export default async function ProfilePage() {
       <PageTitle sub={`${player.name} · ${player.studyProgram ?? "Studieprogram mangler"}${player.studyStartYear ? ` · kull ${player.studyStartYear}` : ""}`}>
         Profil
       </PageTitle>
+      {pameldt && <p className="rounded-lg bg-emerald-950 p-3 text-sm text-emerald-300">Du er påmeldt! Du får e-post når spillet starter.</p>}
       <Card title="Bilde">
         <div className="flex flex-col gap-4 sm:flex-row">
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -57,7 +57,9 @@ export default async function Home() {
         <Card>
           <p className="text-sm text-zinc-300">
             Du er påmeldt.{" "}
-            {viewer.player.status === "alive"
+            {season.winnerPlayerId === viewer.player.id
+              ? "Du vant!"
+              : viewer.player.status === "alive"
               ? season.phase === "running"
                 ? "Du er fortsatt med."
                 : "Spillet har ikke startet ennå."

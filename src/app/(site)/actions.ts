@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { type ActionState, osloInput, run, text } from "@/lib/action";
-import { PENDING_SCAN_COOKIE, readPendingScan, toggleCheckin } from "@/server/attendance";
+import { PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
 import { requirePlayer, requireSeason, requireViewer } from "@/server/auth/session";
 import { myTarget } from "@/server/circle";
 import { confirmKill, disputeKill, GameError, reportKill } from "@/server/game";
@@ -115,6 +115,7 @@ export async function completeScanAction(position: { lat: number; lng: number } 
         : null;
     const result = await toggleCheckin(viewer, valid);
     jar.delete(PENDING_SCAN_COOKIE);
+    jar.set(SCAN_RESULT_COOKIE, result.kind, { httpOnly: true, sameSite: "lax", path: "/sjekkinn", maxAge: 60 });
     return result.kind === "in" ? "Du er sjekket inn" : "Du er sjekket ut";
   });
 }

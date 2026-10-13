@@ -12,7 +12,7 @@ export default async function SignupPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/login?next=/pamelding");
   const season = viewer.season;
-  if (viewer.player) redirect("/profil");
+  if (viewer.player) redirect("/profil?pameldt=1");
   if (!season || !signupOpen(season)) {
     return <PageTitle sub="Påmeldingen er ikke åpen nå.">Påmelding</PageTitle>;
   }
