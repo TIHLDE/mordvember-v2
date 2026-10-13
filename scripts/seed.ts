@@ -6,6 +6,11 @@ import * as schema from "../src/db/schema";
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL mangler");
 if (process.env.NODE_ENV === "production" || process.env.VERCEL) throw new Error("Testdata skal aldri inn i produksjon");
+// Seed tømmer hele databasen, så den nektes mot alt annet enn en lokal maskin.
+const host = new URL(url).hostname;
+if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
+  throw new Error(`Seed kjøres bare mot en lokal database, ikke ${host}`);
+}
 
 const client = postgres(url, { max: 1, onnotice: () => undefined });
 const db = drizzle(client, { schema });
