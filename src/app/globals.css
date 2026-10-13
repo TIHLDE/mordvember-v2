@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Creepster", "Impact", serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-blood: #b3121b;
+  --color-blood-light: #d01f29;
+  --color-ink: #0b0b0d;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: radial-gradient(ellipse at top, #1a0b0d 0%, var(--color-ink) 60%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+.dead {
+  filter: grayscale(1) brightness(0.55);
+}

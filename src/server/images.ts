@@ -13,7 +13,7 @@ const TYPES: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = {
   "image/webp": { ext: "webp", magic: (b) => b.subarray(0, 4).toString() === "RIFF" && b.subarray(8, 12).toString() === "WEBP" },
 };
 
-function useLocal() {
+function storesLocally() {
   if (env.blobToken) return false;
   if (!isDevelopment) throw new Error("BLOB_READ_WRITE_TOKEN mangler");
   return true;
@@ -25,7 +25,7 @@ export async function storeImage(prefix: string, file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer());
   if (!type || !type.magic(buffer)) throw new Error("Bildet må være JPG, PNG eller WebP");
   const key = `${prefix}/${crypto.randomUUID()}.${type.ext}`;
-  if (useLocal()) {
+  if (storesLocally()) {
     const target = path.join(LOCAL_DIR, key);
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, buffer);
@@ -36,7 +36,7 @@ export async function storeImage(prefix: string, file: File): Promise<string> {
 }
 
 export async function readImage(key: string): Promise<{ body: BodyInit; contentType: string } | null> {
-  if (useLocal()) {
+  if (storesLocally()) {
     const target = path.join(LOCAL_DIR, key);
     if (!target.startsWith(LOCAL_DIR)) return null;
     try {
@@ -55,7 +55,7 @@ export async function readImage(key: string): Promise<{ body: BodyInit; contentT
 
 export async function deleteImages(keys: string[]) {
   if (!keys.length) return;
-  if (useLocal()) {
+  if (storesLocally()) {
     await Promise.all(keys.map((k) => rm(path.join(LOCAL_DIR, k), { force: true })));
     return;
   }

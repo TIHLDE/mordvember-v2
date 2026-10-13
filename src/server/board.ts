@@ -4,7 +4,6 @@ import { db } from "@/db";
 import { kills, milestoneEvents, players } from "@/db/schema";
 import { osloDate } from "@/game/time";
 import type { Season } from "./auth/session";
-import { boardQr, recentBoardScans } from "./attendance";
 import { gridPlayers, visibleAliveCount } from "./players";
 
 const MILESTONE_SHOW_MS = 30_000;
@@ -43,8 +42,6 @@ export async function boardData(season: Season, now = new Date()) {
     phase: season.phase,
     players: grid,
     alive: visibleAliveCount(grid),
-    qr: season.phase === "running" ? boardQr(season.id, now.getTime()).url : null,
-    scans: season.phase === "running" ? (await recentBoardScans(season.id, now)).map((s) => ({ ...s, at: s.at.toISOString() })) : [],
     milestone: milestone ? { label: milestone.label } : null,
     winner: winnerVisible ? (grid.find((p) => !p.out)?.name ?? null) : null,
     stats: {

@@ -20,7 +20,7 @@ import type { WeekRules } from "@/game/attendance";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
 import { DEFAULT_TEMPLATES, queueEmail, type TemplateKey } from "./email";
-import { GameError, staffEmails } from "./game";
+import { GameError } from "./game";
 import { deleteImages } from "./images";
 import { notify } from "./notify";
 import { defaultSettings, type Phase, PHASES } from "./season";

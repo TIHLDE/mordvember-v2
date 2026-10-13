@@ -25,7 +25,7 @@ import {
 import { addDays, weekStartOf } from "@/game/time";
 import { audit } from "./audit";
 import { AccessError, type Season, type Viewer } from "./auth/session";
-import { announceTargets, commitRing, lockRing, ringForServer } from "./circle";
+import { announceTargets, commitRing, lockRing } from "./circle";
 import { queueEmail } from "./email";
 import { notify } from "./notify";
 
