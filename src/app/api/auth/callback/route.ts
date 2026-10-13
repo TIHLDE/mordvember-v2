@@ -1,90 +1,42 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  ACCESS_TOKEN,
-  CLIENT_ID,
-  CLIENT_SECRET,
-  fetchGroups,
-  ISSUER,
-  isIndexLeader,
-  OAUTH_STATE,
-} from "../photon";
+import { NextResponse, type NextRequest } from "next/server";
+import { OAUTH_COOKIE, safeNext } from "@/lib/redirect";
+import { exchangeCode, fetchIdentity } from "@/server/auth/photon";
+import { onLogin } from "@/server/auth/login";
 
 export const dynamic = "force-dynamic";
 
-function deny(request: NextRequest, reason: string) {
-  const url = new URL("/login", request.url);
-  url.searchParams.set("error", reason);
-  return NextResponse.redirect(url);
+function fail(origin: string, reason: string) {
+  return NextResponse.redirect(`${origin}/login?feil=${reason}`);
 }
 
-/**
- * Tar imot koden fra Photon, veksler den mot et token, og slipper brukeren inn
- * bare hvis vedkommende er leder i Index.
- */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
-  const stored = request.cookies.get(OAUTH_STATE)?.value;
-  const [expectedState, verifier] = (stored ?? "").split("|");
-
-  if (!code) return deny(request, "missing_code");
-
-  // Sammenlignes før koden brukes: en callback uten matchende state kommer
-  // ikke fra flyten denne nettleseren startet.
-  if (!state || !expectedState || state !== expectedState) {
-    return deny(request, "invalid_state");
-  }
-
-  const redirectUri = new URL("/api/auth/callback", request.url).toString();
-
-  const tokenResponse = await fetch(`${ISSUER}/oauth2/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      code_verifier: verifier ?? "",
-      // Uten `resource` utsteder Photon et ugjennomsiktig token, og
-      // requireAuth i API-et godtar bare trepart-JWT — hvert datakall ville
-      // gitt 401. Verdien må være API-ets egen baseURL, som er den eneste
-      // gyldige audience når Photon ikke har satt validAudiences.
-      resource: ISSUER,
-    }).toString(),
-  });
-
-  if (!tokenResponse.ok) return deny(request, "token_exchange_failed");
-
-  const tokens = (await tokenResponse.json()) as {
-    access_token: string;
-    expires_in?: number;
-  };
-
-  let groups;
+  const origin = request.nextUrl.origin;
+  let stored: { state?: string; verifier?: string; next?: string } = {};
   try {
-    groups = await fetchGroups(tokens.access_token);
-  } catch (e) {
-    // Skilles fra «ikke leder»: et avvist token eller en nede-tjeneste er en
-    // helt annen feil, og å vise dem som samme melding gjør feilsøking umulig.
-    console.error("Photon-gruppeoppslag feilet", e);
-    return deny(request, "groups_lookup_failed");
+    stored = JSON.parse(request.cookies.get(OAUTH_COOKIE)?.value ?? "{}");
+  } catch {
+    stored = {};
   }
+  if (!code) return fail(origin, "kode");
+  if (!state || !stored.state || state !== stored.state || !stored.verifier) return fail(origin, "state");
 
-  if (!isIndexLeader(groups)) {
-    return deny(request, "not_index_leader");
+  let identity;
+  try {
+    const token = await exchangeCode(code, `${origin}/api/auth/callback`, stored.verifier);
+    identity = await fetchIdentity(token);
+  } catch (error) {
+    console.error("Photon-innlogging feilet", error);
+    return fail(origin, "photon");
   }
-
-  const response = NextResponse.redirect(new URL("/admin", request.url));
-  response.cookies.set(ACCESS_TOKEN, tokens.access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: tokens.expires_in ?? 3600,
-  });
-  response.cookies.delete(OAUTH_STATE);
-
+  try {
+    await onLogin(identity);
+  } catch (error) {
+    console.error("Kunne ikke lagre innloggingen", error);
+    return fail(origin, "lagring");
+  }
+  const response = NextResponse.redirect(`${origin}${safeNext(stored.next)}`);
+  response.cookies.delete(OAUTH_COOKIE);
   return response;
 }

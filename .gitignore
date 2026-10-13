@@ -44,3 +44,8 @@ Style.css
 *.zip
 *.csv
 
+
+# lokal bildelagring i utvikling
+/.data
+/test-results
+/AGENTS.md

@@ -1,13 +1,9 @@
-import { NextResponse } from "next/server";
-import { ACCESS_TOKEN } from "../photon";
+import { NextResponse, type NextRequest } from "next/server";
+import { endSession } from "@/server/auth/session";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Cookien er httpOnly, så klienten kan ikke slette den selv — det må skje her.
- */
-export async function POST() {
-  const response = NextResponse.json({ ok: true });
-  response.cookies.delete(ACCESS_TOKEN);
-  return response;
+export async function POST(request: NextRequest) {
+  await endSession();
+  return NextResponse.redirect(`${request.nextUrl.origin}/`, { status: 303 });
 }

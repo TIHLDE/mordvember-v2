@@ -1,173 +1,44 @@
-# Mordvember 2025
+# Mordvember
 
-A participant tracking application for the Mordvember 2025 event with secure authentication and admin panel.
+Nettsiden for Mordvember i TIHLDE. Spesifikasjonen ligger i [docs/SPEC.md](docs/SPEC.md).
 
-## Features
+Next.js 16 (App Router), Postgres med Drizzle, Vercel Blob for bilder og Vercel Cron for tidsstyrte jobber. All datatilgang skjer på serveren.
 
-- **Home Page**: View all participants with their status (alive/dead)
-- **Admin Panel (`/admin`)**: Secure admin panel with authentication
-  - Login with username and password
-  - View all participants in a grid layout
-  - Click any participant to toggle their status between alive/dead
-  - Add new participants with image upload to Supabase Storage
-  - All changes are persisted to the database
-- **Authentication System**: React Query-based cookie authentication
-  - Protected routes with middleware
-  - Permission-based access control
-  - Automatic token management
-
-## Quick Start
-
-### 1. Install dependencies
+## Kom i gang lokalt
 
 ```bash
-pnpm install
+npm install
+cp .env.example .env.local        # fyll inn DATABASE_URL og QR_SECRET
+npm run db:migrate
+npm run db:seed                   # oppdiktede testbrukere og en testsesong
+npm run dev
 ```
 
-### 2. Environment Configuration
+Gå til `/login` og velg «velg testbruker». Utviklerinnloggingen finnes bare med `next dev`. I et produksjonsbygg kaller både siden og handlingen `notFound()` uten betingelse, så den kan ikke slås på med en miljøvariabel.
 
-Create a `.env` file in the project root:
+Uten `BLOB_READ_WRITE_TOKEN` lagres opplastede bilder i `.data/uploads` under utvikling. Uten `PHOTON_EMAIL_API_KEY` skrives e-post til konsollen i stedet for å sendes.
 
-```env
-# TIHLDE API for authentication
-NEXT_PUBLIC_TIHLDE_API_URL=https://api.tihlde.org
+## Tester
 
-# Supabase Database Configuration
-NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
+| Kommando | Hva |
+|---|---|
+| `npm test` | Spillmotoren (sirkel, drap, kollisjoner, angring, nåde, diskvalifisering, oppmøte, ukesjekk) og en statisk kontroll av hvem som får lese sirkelen |
+| `TEST_DATABASE_URL=… npm test` | Tar også med tilgangstester mot en egen database. Databasen tømmes. |
+| `npm run test:e2e` | Hele spillet i nettleser, fra påmelding til vinner. Krever `npm run dev` og ferske testdata. |
+| `npm run test:photon` | Ekte innlogging og e-post mot en lokal etterligning av Photon (`npm run photon:mock`). Start `next dev` med `PHOTON_ISSUER=http://localhost:4010/api/auth`, `PHOTON_CLIENT_ID=mordvember-test`, `PHOTON_CLIENT_SECRET=mock-hemmelighet` og `PHOTON_EMAIL_API_KEY=mock-epostnokkel`. |
+| `npm run test:leak` | Henter alle sider som deltaker, eliminert, arrangør, medlem, Index-leder og ikke innlogget, og ser etter lekkasje av sirkelen. Krever ferske testdata. |
 
-See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed setup instructions.
+## Oppbygning
 
-### 3. Run the development server
+- `src/game` – spillmotoren som rene funksjoner, uten database.
+- `src/server` – tjenester med tilgangskontroll. `circle.ts` er den eneste modulen som leser sirkelen.
+- `src/app` – sider, ruter og serverhandlinger. Handlingene er tynne og kaller tjenestene.
+- `drizzle` – migreringer. Lag nye med `npm run db:generate` etter endringer i `src/db/schema.ts`.
 
-```bash
-pnpm dev
-```
+## Sirkelen
 
-### 4. Open the application
+Sirkelen ligger som én ordnet liste per sesong. Alle endringer skjer i en transaksjon med radlås, og hver endring lagres som en hendelse med listen før og etter. En deltaker får bare sitt eget nåværende offer, og bare mens knappen holdes inne. Arrangører ser aldri hvem som har hvem. Bare spillmestere, og Index-leder med aktiv nødtilgang, får se sirkelen. Hver visning logges.
 
-Navigate to [http://localhost:3000](http://localhost:3000)
+## Drift
 
-## Admin Login
-
-To access the admin panel, go to [http://localhost:3000/admin](http://localhost:3000/admin)
-
-**Login credentials:**
-
-Use your **TIHLDE credentials** (same as you use for tihlde.org).
-
-**Access Requirements:**
-
-- You must be a **leader of Index** to access the admin panel
-- OR have the username **'astaskj'** (special admin access)
-- The system checks your TIHLDE memberships via the API
-- Only Index leaders with `membership_type: "LEADER"` OR the user 'aastaks' will be granted access
-- All other users will receive an "Access denied" message
-
-## Authentication System
-
-This project uses a comprehensive authentication system. For detailed documentation, see [AUTH_SETUP.md](./AUTH_SETUP.md).
-
-Key features:
-
-- Cookie-based token storage
-- React Query for auth state management
-- Next.js middleware for route protection
-- Permission-based access control
-- Automatic token attachment to API requests
-
-## Database Setup
-
-This project uses **Supabase** (PostgreSQL) for data storage. This ensures:
-
-- ✅ **Production compatibility** - works on serverless platforms (Vercel, Netlify, etc.)
-- ✅ **Persistent storage** - no more read-only filesystem issues
-- ✅ **Scalability** - handles any number of participants
-- ✅ **Real-time queries** - fast database operations with indexes
-
-**To set up the database, follow the guide in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md).**
-
-Quick steps:
-
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Run the schema from `supabase-schema.sql` in the SQL Editor
-3. Create a public storage bucket named `participant-images` (see [STORAGE_SETUP.md](./STORAGE_SETUP.md))
-4. Add environment variables to `.env`
-5. Deploy and test!
-
-## Git Workflow
-
-After making changes:
-
-1. Stage your changes:
-
-```bash
-git add .
-```
-
-2. Commit with a descriptive message:
-
-```bash
-git commit -m "beskrivelse av endringene"
-```
-
-3. Push to repository:
-
-```bash
-git push
-```
-
-## Project Structure
-
-```
-src/
-├── api/          # API utilities (auth, fetch, cookies)
-├── app/          # Next.js app directory
-│   ├── api/      # API routes
-│   ├── admin/    # Admin panel (protected)
-│   └── login/    # Login page
-├── components/   # React components
-├── hooks/        # Custom hooks (auth)
-├── providers/    # React providers (QueryProvider)
-├── types/        # TypeScript types
-└── data/         # JSON data storage
-```
-
-## How It Works
-
-- Participant data is stored in **Supabase (PostgreSQL database)**
-- Authentication uses cookies and React Query with TIHLDE API
-- The API routes handle authentication and participant updates
-- Middleware protects the admin routes
-- Changes made in the admin panel persist in the database
-- **Real-time updates:** The home page auto-refreshes every 5 seconds using React Query
-- Changes appear for all viewers within 5 seconds
-- Production-ready with proper database storage
-
-### Live Updates
-
-The app uses **React Query with automatic polling** for real-time updates:
-
-- Home page refreshes every 5 seconds
-- Admin changes appear instantly in admin panel
-- All viewers see updates within 5 seconds
-- See [REALTIME_UPDATES.md](./REALTIME_UPDATES.md) for details and alternatives
-
-## Development Notes
-
-- Authentication uses the TIHLDE API (see `src/app/api/auth/`)
-- Participant data is stored in Supabase (PostgreSQL)
-- The app uses server-side API routes (`/api/participants`) to interact with the database
-- See [AUTH_SETUP.md](./AUTH_SETUP.md) for authentication documentation
-- See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for database setup
-
-## Deployment Notes
-
-When deploying to production (Vercel, Netlify, etc.):
-
-1. ✅ **Set environment variables** - Add all Supabase and TIHLDE API variables
-2. ✅ **Run database migration** - Use `node migrate-to-supabase.js` to populate the database
-3. ✅ **Test the deployment** - Verify read/write operations work
-4. ℹ️ **The old `participants.json` file is kept for reference** but no longer used in production
+`vercel.json` kjører `/api/cron` hvert tiende minutt. Jobben stenger påmeldinger, lukker glemte utsjekker, sender drapssaker videre etter 12 timer, sender torsdagsvarsel og lager fredagslista, sender milepæl-e-post og påminnelse om sletting. Kallet krever `CRON_SECRET`, som Vercel setter selv.

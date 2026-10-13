@@ -1,28 +1,21 @@
-import type { Metadata, Viewport } from "next";
+import "@fontsource/creepster/400.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
 import "./globals.css";
-import QueryProvider from "@/providers/QueryProvider";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mordvember deltakere 2025",
-  description: "Mordvember participant tracking",
+  title: "Mordvember",
+  description: "Mordvember i TIHLDE",
+  robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="no">
-      <body>
-        <QueryProvider>{children}</QueryProvider>
-      </body>
+    <html lang="nb">
+      <body className="font-sans text-zinc-200 antialiased">{children}</body>
     </html>
   );
 }
+

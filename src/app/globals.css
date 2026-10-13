@@ -1,102 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@font-face {
-  font-family: "Man";
-  src: url(/fonts/murderous\ desire\ DEMO.otf);
+@theme {
+  --font-display: "Creepster", "Impact", serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-blood: #b3121b;
+  --color-blood-light: #d01f29;
+  --color-ink: #0b0b0d;
 }
 
-@font-face {
-  font-family: "Murder";
-  src: url(/fonts/youmurdererbb_reg.ttf);
+html {
+  color-scheme: dark;
 }
 
 body {
-  font-family: Man, sans-serif;
-  text-align: center;
-  background-color: #f4f4f4;
-  margin: 0;
-  padding: 1rem;
+  background: radial-gradient(ellipse at top, #1a0b0d 0%, var(--color-ink) 60%);
+  background-attachment: fixed;
+  min-height: 100dvh;
 }
 
-@media (min-width: 768px) {
-  body {
-    padding: 1.25rem;
-  }
-}
-
-header h1 {
-  font-size: clamp(2rem, 8vw, 5rem);
-  margin-bottom: 1rem;
-  color: #871414;
-  line-height: 1.2;
-  padding: 0 0.5rem;
-}
-
-.grid-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  justify-items: center;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 0.5rem;
-}
-
-@media (min-width: 480px) {
-  .grid-container {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-}
-
-@media (min-width: 768px) {
-  .grid-container {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .grid-container {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.5rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .grid-container {
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1.25rem;
-  }
-}
-
-.grid-item img {
-  width: 100%;
-  max-width: 150px;
-  height: auto;
-  aspect-ratio: 1;
-  object-fit: cover;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: transform 0.3s;
-}
-
-.grid-item img:hover {
-  transform: scale(1.1);
-}
-
-@media (hover: none) {
-  .grid-item img:hover {
-    transform: none;
-  }
-  .grid-item img:active {
-    transform: scale(0.95);
-  }
-}
-
-.blood-red {
-  filter: grayscale(100%) brightness(50%) contrast(150%);
-  mix-blend-mode: multiply;
+.dead {
+  filter: grayscale(1) brightness(0.55);
 }
