@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { endSession } from "@/server/auth/session";
-import { env } from "@/server/env";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   await endSession();
-  return NextResponse.redirect(`${env.appUrl}/`, { status: 303 });
+  return NextResponse.redirect(`${request.nextUrl.origin}/`, { status: 303 });
 }
