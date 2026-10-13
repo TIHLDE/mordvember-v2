@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "test:e2e": "tsx tests/e2e/walkthrough.ts"
+    "test:e2e": "tsx tests/e2e/walkthrough.ts",
+    "test:leak": "tsx tests/e2e/leak-check.ts"
   },
   "dependencies": {
     "@fontsource/creepster": "^5.3.0",
