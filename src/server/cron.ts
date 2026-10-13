@@ -49,6 +49,12 @@ export async function runCron(now = new Date()) {
     .from(milestoneEvents)
     .where(and(lte(milestoneEvents.showAt, now), isNull(milestoneEvents.emailedAt), eq(milestoneEvents.sendEmail, true)));
   for (const m of dueMilestones) {
+    const [claimed] = await db
+      .update(milestoneEvents)
+      .set({ emailedAt: now })
+      .where(and(eq(milestoneEvents.id, m.id), isNull(milestoneEvents.emailedAt)))
+      .returning();
+    if (!claimed) continue;
     const recipients = await db
       .select({ email: users.email, status: players.status })
       .from(players)
@@ -56,7 +62,6 @@ export async function runCron(now = new Date()) {
       .where(eq(players.seasonId, m.seasonId));
     const alive = recipients.filter((r) => r.status === "alive").length;
     await queueEmail(db, "milestone", recipients.map((r) => r.email), { milepael: m.label, igjen: alive });
-    await db.update(milestoneEvents).set({ emailedAt: now }).where(eq(milestoneEvents.id, m.id));
     done.push(`milepael:${m.key}`);
   }
 
@@ -66,10 +71,15 @@ export async function runCron(now = new Date()) {
     .where(and(eq(seasons.phase, "ended"), isNull(seasons.dataDeletedAt), isNull(seasons.deletionReminderSentAt)));
   for (const season of ended) {
     if (!season.endedAt || addDays(season.endedAt.toISOString().slice(0, 10), 30) > now.toISOString().slice(0, 10)) continue;
+    const [claimed] = await db
+      .update(seasons)
+      .set({ deletionReminderSentAt: now })
+      .where(and(eq(seasons.id, season.id), isNull(seasons.deletionReminderSentAt)))
+      .returning();
+    if (!claimed) continue;
     const staff = await staffEmails(db, season.id);
     await notify(db, staff.map((s) => ({ userId: s.userId, seasonId: season.id, text: `Husk å slette sesongdata for ${season.name}`, href: "/admin/sesong" })));
     await queueEmail(db, "deletion_reminder", staff.map((s) => s.email), { sesong: season.name });
-    await db.update(seasons).set({ deletionReminderSentAt: now }).where(eq(seasons.id, season.id));
     done.push("slettepaminnelse");
   }
 

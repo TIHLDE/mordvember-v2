@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, lt } from "drizzle-orm";
+import { eq, inArray, sql as dsql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { type EmailBlock, emailOutbox, emailTemplates } from "@/db/schema";
 import { env, isDevelopment } from "./env";
@@ -136,12 +136,21 @@ async function sendViaPhoton(to: string, subject: string, content: EmailBlock[])
 }
 
 export async function deliverPendingEmails(limit = 50) {
-  const pending = await db
-    .select()
-    .from(emailOutbox)
-    .where(and(inArray(emailOutbox.status, ["pending", "failed"]), lt(emailOutbox.attempts, 5)))
-    .limit(limit);
-  for (const mail of pending) {
+  // Hentes og merkes i én spørring, så cron og utsending etter en handling aldri tar samme e-post.
+  const claimed = await db.execute<{ id: string }>(dsql`
+    update email_outbox set claimed_at = now(), attempts = attempts + 1
+    where id in (
+      select id from email_outbox
+      where status in ('pending', 'failed') and attempts < 5
+        and (claimed_at is null or claimed_at < now() - interval '5 minutes')
+      order by created_at
+      limit ${limit}
+      for update skip locked
+    )
+    returning id`);
+  if (!claimed.length) return;
+  const mails = await db.select().from(emailOutbox).where(inArray(emailOutbox.id, claimed.map((c) => c.id)));
+  for (const mail of mails) {
     try {
       if (env.emailApiKey) {
         await sendViaPhoton(mail.to, mail.subject, mail.content);
@@ -150,14 +159,11 @@ export async function deliverPendingEmails(limit = 50) {
       } else {
         throw new Error("PHOTON_EMAIL_API_KEY mangler");
       }
-      await db
-        .update(emailOutbox)
-        .set({ status: "sent", sentAt: new Date(), attempts: mail.attempts + 1 })
-        .where(eq(emailOutbox.id, mail.id));
+      await db.update(emailOutbox).set({ status: "sent", sentAt: new Date() }).where(eq(emailOutbox.id, mail.id));
     } catch (error) {
       await db
         .update(emailOutbox)
-        .set({ status: "failed", attempts: mail.attempts + 1, lastError: String(error).slice(0, 500) })
+        .set({ status: "failed", claimedAt: null, lastError: String(error).slice(0, 500) })
         .where(eq(emailOutbox.id, mail.id));
     }
   }

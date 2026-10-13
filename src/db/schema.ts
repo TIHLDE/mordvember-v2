@@ -275,6 +275,7 @@ export const emailOutbox = pgTable("email_outbox", {
   status: emailStatusEnum("status").notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),
+  claimedAt: ts("claimed_at"),
   createdAt: createdAt(),
   sentAt: ts("sent_at"),
 });
