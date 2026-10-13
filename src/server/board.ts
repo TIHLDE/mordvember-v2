@@ -46,7 +46,7 @@ export async function boardData(season: Season, now = new Date()) {
     winner: winnerVisible ? (grid.find((p) => !p.out)?.name ?? null) : null,
     stats: {
       killsToday: stats.killsToday ? todays.length : null,
-      sinceLastKill: stats.sinceLastKill ? (visibleKills[0]?.killedAt.toISOString() ?? null) : null,
+      sinceLastKill: stats.sinceLastKill ? (visibleKills[0]?.killedAt.toISOString() ?? "") : null,
       topKillerToday: stats.topKillerToday && top ? { name: killers.find((k) => k.id === top[0])?.name ?? "", kills: top[1] } : null,
     },
   };

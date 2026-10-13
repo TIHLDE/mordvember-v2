@@ -24,9 +24,19 @@ export function Board({ token }: { token: string }) {
     let alive = true;
     const load = () =>
       fetch(`/api/tavle/${token}`, { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Lenken er ikke gyldig lenger"))))
-        .then((d: BoardData) => alive && (setData(d), setError(null)))
-        .catch((e: Error) => alive && setError(e.message));
+        .then(async (r) => {
+          if (!alive) return;
+          if (r.status === 404) {
+            setData(null);
+            setError("Lenken er ikke gyldig lenger");
+            return;
+          }
+          if (r.ok) {
+            setData((await r.json()) as BoardData);
+            setError(null);
+          }
+        })
+        .catch(() => undefined);
     void load();
     const id = setInterval(load, 10_000);
     return () => {
@@ -38,9 +48,10 @@ export function Board({ token }: { token: string }) {
   useEffect(() => {
     let alive = true;
     const seen = new Set<string>();
+    const timers = new Set<ReturnType<typeof setTimeout>>();
     const load = () =>
       fetch(`/api/tavle/${token}/live`, { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => (r.status === 404 ? { qrSvg: null, scans: [] } : r.ok ? r.json() : null))
         .then((d: Live | null) => {
           if (!alive || !d) return;
           setLive(d);
@@ -48,7 +59,11 @@ export function Board({ token }: { token: string }) {
           fresh.forEach((s) => seen.add(s.key));
           if (fresh.length) {
             setShown((cur) => [...fresh, ...cur].slice(0, 4));
-            setTimeout(() => setShown((cur) => cur.filter((s) => !fresh.some((f) => f.key === s.key))), 6000);
+            const timer = setTimeout(() => {
+              timers.delete(timer);
+              setShown((cur) => cur.filter((s) => !fresh.some((f) => f.key === s.key)));
+            }, 6000);
+            timers.add(timer);
           }
         })
         .catch(() => undefined);
@@ -57,6 +72,7 @@ export function Board({ token }: { token: string }) {
     return () => {
       alive = false;
       clearInterval(id);
+      timers.forEach(clearTimeout);
     };
   }, [token]);
 
@@ -65,7 +81,7 @@ export function Board({ token }: { token: string }) {
     return () => clearInterval(id);
   }, []);
 
-  if (error && !data) return <div className="flex min-h-dvh items-center justify-center text-2xl text-zinc-500">{error}</div>;
+  if (error) return <div className="flex min-h-dvh items-center justify-center text-2xl text-zinc-500">{error}</div>;
   if (!data) return <div className="flex min-h-dvh items-center justify-center text-zinc-500">Laster …</div>;
 
   const img = (id: string) => `/api/tavle/${token}/bilde/${id}`;

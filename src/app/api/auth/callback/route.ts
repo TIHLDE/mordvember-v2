@@ -3,6 +3,8 @@ import { OAUTH_COOKIE, safeNext } from "@/lib/redirect";
 import { exchangeCode, fetchIdentity } from "@/server/auth/photon";
 import { onLogin } from "@/server/auth/login";
 
+export const dynamic = "force-dynamic";
+
 function fail(origin: string, reason: string) {
   return NextResponse.redirect(`${origin}/login?feil=${reason}`);
 }
@@ -28,7 +30,12 @@ export async function GET(request: NextRequest) {
     console.error("Photon-innlogging feilet", error);
     return fail(origin, "photon");
   }
-  await onLogin(identity);
+  try {
+    await onLogin(identity);
+  } catch (error) {
+    console.error("Kunne ikke lagre innloggingen", error);
+    return fail(origin, "lagring");
+  }
   const response = NextResponse.redirect(`${origin}${safeNext(stored.next)}`);
   response.cookies.delete(OAUTH_COOKIE);
   return response;

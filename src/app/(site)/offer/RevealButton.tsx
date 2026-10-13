@@ -42,7 +42,10 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
         onKeyDown={(e) => {
           if ((e.key === " " || e.key === "Enter") && !holding.current) start();
         }}
-        onKeyUp={stop}
+        onKeyUp={(e) => {
+          if (e.key === " " || e.key === "Enter") stop();
+        }}
+        onBlur={stop}
         className="select-none touch-none rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white active:scale-95"
       >
         Hold inne for å vise

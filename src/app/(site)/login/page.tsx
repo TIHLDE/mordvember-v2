@@ -8,6 +8,7 @@ const ERRORS: Record<string, string> = {
   kode: "Innloggingen ble avbrutt.",
   state: "Innloggingen kom ikke fra denne nettleseren. Prøv igjen.",
   photon: "Fikk ikke kontakt med TIHLDE-innloggingen. Prøv igjen om litt.",
+  lagring: "Innloggingen gikk gjennom, men vi fikk ikke lagret den. Prøv igjen om litt.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ feil?: string; next?: string }> }) {

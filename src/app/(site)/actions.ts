@@ -115,7 +115,13 @@ export async function completeScanAction(position: { lat: number; lng: number } 
         : null;
     const result = await toggleCheckin(viewer, valid);
     jar.delete(PENDING_SCAN_COOKIE);
-    jar.set(SCAN_RESULT_COOKIE, result.kind, { httpOnly: true, sameSite: "lax", path: "/sjekkinn", maxAge: 60 });
+    jar.set(SCAN_RESULT_COOKIE, result.kind, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/sjekkinn",
+      maxAge: 60,
+    });
     return result.kind === "in" ? "Du er sjekket inn" : "Du er sjekket ut";
   });
 }
