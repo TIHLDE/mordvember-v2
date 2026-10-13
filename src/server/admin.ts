@@ -47,7 +47,7 @@ export async function createSeason(viewer: Viewer, name: string) {
       await db.insert(staff).values(carry.map((s) => ({ seasonId: season.id, username: s.username, role: s.role, addedBy: s.addedBy }))).onConflictDoNothing();
     }
   }
-  if (viewer.isKokLeader) {
+  if (viewer.isKokLeader || viewer.isSuperadmin) {
     await db.insert(staff).values({ seasonId: season.id, username: viewer.user.username, role: "gamemaster" }).onConflictDoNothing();
   }
   await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "sesong.opprettet", details: { name } });
