@@ -18,12 +18,6 @@ export const env = {
   get photonClientSecret() {
     return process.env.PHOTON_CLIENT_SECRET ?? "";
   },
-  get kokGroupSlug() {
-    return (process.env.KOK_GROUP_SLUG ?? "kok").toLowerCase();
-  },
-  get indexGroupSlug() {
-    return (process.env.INDEX_GROUP_SLUG ?? "index").toLowerCase();
-  },
   get emailApiKey() {
     return process.env.PHOTON_EMAIL_API_KEY ?? "";
   },

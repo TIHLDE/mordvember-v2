@@ -1,6 +1,9 @@
 import "server-only";
 import { env } from "../env";
 
+const KOK_GROUP_SLUG = "kok";
+const INDEX_GROUP_SLUG = "index";
+
 export type PhotonGroup = { slug: string; name: string; membership: { role: "member" | "leader" } | null };
 
 export type PhotonIdentity = {
@@ -103,7 +106,7 @@ export async function fetchIdentity(token: string): Promise<PhotonIdentity> {
     studyProgram: profile?.studyProgram ?? null,
     studyStartYear: profile?.studyStartYear ?? null,
     classYear: profile?.classYear ?? null,
-    isKokLeader: isLeaderOf(env.kokGroupSlug),
-    isIndexLeader: isLeaderOf(env.indexGroupSlug),
+    isKokLeader: isLeaderOf(KOK_GROUP_SLUG),
+    isIndexLeader: isLeaderOf(INDEX_GROUP_SLUG),
   };
 }
