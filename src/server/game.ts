@@ -424,6 +424,13 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
+    const targets = await tx
+      .select({ id: players.id })
+      .from(players)
+      .where(and(eq(players.seasonId, seasonId), eq(players.status, "alive"), inArray(players.id, playerIds)));
+    if (!playerIds.length || targets.length !== new Set(playerIds).size) {
+      throw new GameError("Bare levende deltakere i denne sesongen kan diskvalifiseres");
+    }
     const all = await seasonKills(tx, seasonId);
     for (const id of playerIds) {
       if (!canBeDisqualified(id, all)) throw new GameError("En deltaker har en uavklart drapssak. Avgjør den først.");

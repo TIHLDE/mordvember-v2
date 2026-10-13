@@ -38,6 +38,7 @@ export async function createSeason(viewer: Viewer, name: string) {
     throw new AccessError("Bare KoK-leder eller Index-leder kan opprette den første sesongen");
   }
   if (!name.trim()) throw new GameError("Gi sesongen et navn");
+  if (viewer.season?.phase === "running") throw new GameError("Avslutt sesongen som pågår før du oppretter en ny");
   const [season] = await db.insert(seasons).values({ name: name.trim(), settings: defaultSettings() }).returning();
   if (!season) throw new GameError("Kunne ikke opprette sesongen");
   if (viewer.season) {
@@ -138,7 +139,6 @@ export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirm
   const winner = all.find((p) => p.id === season.winnerPlayerId);
   const durationDays =
     season.startedAt && season.endedAt ? Math.max(1, Math.round((season.endedAt.getTime() - season.startedAt.getTime()) / 86400_000)) : 0;
-  await deleteImages(all.map((p) => p.imageKey).filter((k): k is string => !!k));
   await db.transaction(async (tx) => {
     await tx.delete(players).where(eq(players.seasonId, seasonId));
     await tx.delete(questions).where(eq(questions.seasonId, seasonId));
@@ -159,6 +159,7 @@ export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirm
       .where(eq(seasons.id, seasonId));
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.data_slettet" });
   });
+  await deleteImages(all.map((p) => p.imageKey).filter((k): k is string => !!k));
 }
 
 export async function addStaff(viewer: Viewer, username: string, role: "gamemaster" | "organizer") {
