@@ -32,8 +32,8 @@ export const env = {
   get cronSecret() {
     return process.env.CRON_SECRET ?? "";
   },
-  get blobToken() {
-    return process.env.BLOB_READ_WRITE_TOKEN ?? "";
+  get blobConfigured() {
+    return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
   },
 };
 
