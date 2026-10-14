@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "photon_image_key" text;

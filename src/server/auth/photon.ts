@@ -73,6 +73,17 @@ async function photonGet<T>(url: string, token: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+export async function downloadPhotonImage(url: string, token: string): Promise<File | null> {
+  // Tokenet skal aldri sendes til andre verter enn Photon, så andre URL-er kopieres ikke.
+  if (!url.startsWith(`${env.photonApi}/assets/`)) return null;
+  const asset = new URL(url);
+  asset.searchParams.set("w", "480");
+  const response = await fetch(asset, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (!response.ok) throw new Error(`Photon-bildet svarte ${response.status}`);
+  const blob = await response.blob();
+  return new File([blob], "photon", { type: blob.type });
+}
+
 type UserInfo = { sub: string; name?: string | null; email?: string | null; picture?: string | null; preferred_username?: string | null };
 
 type UserProfile = {

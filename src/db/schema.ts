@@ -44,6 +44,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email"),
   photonImage: text("photon_image"),
+  photonImageKey: text("photon_image_key"),
   studyProgram: text("study_program"),
   studyStartYear: integer("study_start_year"),
   classYear: integer("class_year"),
