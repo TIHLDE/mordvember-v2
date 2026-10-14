@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { getViewer } from "@/server/auth/session";
+import { UserAvatar } from "./Avatar";
 import { openKillsForPlayer } from "@/server/game";
 
 export async function SiteHeader() {
@@ -27,7 +28,6 @@ export async function SiteHeader() {
               { href: "/oppmote", label: "Oppmøte" },
             ]
           : []),
-        ...(viewer.player ? [{ href: "/profil", label: "Profil" }] : []),
         { href: "/sporsmal", label: "Spørsmål" },
         { href: "/varsler", label: unread ? `Varsler (${unread})` : "Varsler" },
         ...(viewer.isStaff || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
@@ -49,9 +49,18 @@ export async function SiteHeader() {
             ))}
           </nav>
           {viewer ? (
-            <form action="/api/auth/logout" method="post">
-              <button className="text-sm text-zinc-500 hover:text-zinc-300">Logg ut</button>
-            </form>
+            <div className="flex items-center gap-4">
+              <form action="/api/auth/logout" method="post">
+                <button className="text-sm text-zinc-500 hover:text-zinc-300">Logg ut</button>
+              </form>
+              {viewer.player ? (
+                <Link href="/profil" aria-label="Gå til profil" className="rounded-full hover:ring-2 hover:ring-blood/60">
+                  <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
+                </Link>
+              ) : (
+                <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
+              )}
+            </div>
           ) : (
             <Link href="/login" className="text-sm text-zinc-300 hover:text-white">
               Logg inn
