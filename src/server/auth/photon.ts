@@ -78,7 +78,12 @@ export async function downloadPhotonImage(url: string, token: string): Promise<F
   if (!url.startsWith(`${env.photonApi}/assets/`)) return null;
   const asset = new URL(url);
   asset.searchParams.set("w", "480");
-  const response = await fetch(asset, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  const response = await fetch(asset, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(5000),
+  });
   if (!response.ok) throw new Error(`Photon-bildet svarte ${response.status}`);
   const blob = await response.blob();
   return new File([blob], "photon", { type: blob.type });
