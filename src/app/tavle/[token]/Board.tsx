@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Portrait } from "@/components/Portrait";
 import type { BoardData } from "@/server/board";
 
 type Live = { qrSvg: string | null; scans: { key: string; playerId: string; name: string; kind: "in" | "out" }[] };
+type Shown = Live["scans"][number] & { leaving?: boolean };
 
 function since(iso: string, now: number) {
   const minutes = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
@@ -16,7 +18,7 @@ function since(iso: string, now: number) {
 export function Board({ token }: { token: string }) {
   const [data, setData] = useState<BoardData | null>(null);
   const [live, setLive] = useState<Live>({ qrSvg: null, scans: [] });
-  const [shown, setShown] = useState<Live["scans"]>([]);
+  const [shown, setShown] = useState<Shown[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
 
@@ -59,11 +61,16 @@ export function Board({ token }: { token: string }) {
           fresh.forEach((s) => seen.add(s.key));
           if (fresh.length) {
             setShown((cur) => [...fresh, ...cur].slice(0, 4));
-            const timer = setTimeout(() => {
-              timers.delete(timer);
-              setShown((cur) => cur.filter((s) => !fresh.some((f) => f.key === s.key)));
-            }, 6000);
-            timers.add(timer);
+            const isFresh = (s: Shown) => fresh.some((f) => f.key === s.key);
+            const later = (ms: number, fn: () => void) => {
+              const timer = setTimeout(() => {
+                timers.delete(timer);
+                fn();
+              }, ms);
+              timers.add(timer);
+            };
+            later(6000, () => setShown((cur) => cur.map((s) => (isFresh(s) ? { ...s, leaving: true } : s))));
+            later(6300, () => setShown((cur) => cur.filter((s) => !isFresh(s))));
           }
         })
         .catch(() => undefined);
@@ -92,23 +99,24 @@ export function Board({ token }: { token: string }) {
         <header className="mb-6 flex items-end justify-between">
           <h1 className="font-display text-6xl text-blood">Mordvember</h1>
           <div className="text-right">
-            <p className="font-display text-7xl leading-none text-white">{data.alive}</p>
+            <p className="font-display text-7xl leading-none text-white">
+              <span key={data.alive} className="count-change">{data.alive}</span>
+            </p>
             <p className="text-zinc-400">spillere igjen</p>
           </div>
         </header>
         <ul className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-3">
           {data.players.map((p) => (
             <li key={p.id} className="text-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img(p.id)} alt="" className={`aspect-square w-full rounded-lg object-cover ${p.out ? "dead" : ""}`} />
-              <p className={`mt-1 truncate text-sm ${p.out ? "text-zinc-600" : "text-zinc-100"}`}>{p.name}</p>
+              <Portrait src={img(p.id)} alt="" className={`aspect-square w-full rounded-lg object-cover ${p.out ? "dead" : ""}`} />
+              <p className={`mt-1 truncate text-sm transition-colors duration-500 ${p.out ? "text-zinc-600" : "text-zinc-100"}`}>{p.name}</p>
             </li>
           ))}
         </ul>
       </main>
       <aside className="flex w-72 shrink-0 flex-col gap-6">
         {live.qrSvg && (
-          <div className="rounded-xl bg-white p-3">
+          <div className="appear rounded-xl bg-white p-3">
             <div dangerouslySetInnerHTML={{ __html: live.qrSvg }} />
             <p className="mt-2 text-center text-sm font-medium text-black">Skann for å sjekke inn eller ut</p>
           </div>
@@ -123,7 +131,7 @@ export function Board({ token }: { token: string }) {
       {shown.length > 0 && (
         <div className="fixed bottom-6 left-1/2 flex -translate-x-1/2 gap-4">
           {shown.map((s) => (
-            <div key={s.key} className="flex items-center gap-3 rounded-xl bg-black/90 p-3 pr-6 shadow-2xl ring-1 ring-white/20">
+            <div key={s.key} data-leaving={s.leaving || undefined} className="toast glass flex items-center gap-3 rounded-xl p-3 pr-6 shadow-2xl ring-1 ring-white/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img(s.playerId)} alt="" className="h-16 w-16 rounded-lg object-cover" />
               <div>
@@ -136,7 +144,7 @@ export function Board({ token }: { token: string }) {
       )}
 
       {(data.milestone || data.winner) && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-center">
+        <div className="overlay fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-center backdrop-blur-xl">
           <p className="font-display text-8xl text-blood">{data.winner ? "Vi har en vinner" : data.milestone?.label}</p>
           <p className="mt-6 text-5xl text-white">{data.winner ?? `${data.alive} spillere igjen`}</p>
         </div>
@@ -149,7 +157,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4">
       <p className="text-sm text-zinc-400">{label}</p>
-      <p className="text-3xl font-semibold text-white">{value}</p>
+      <p key={value} className="appear text-3xl font-semibold text-white">{value}</p>
     </div>
   );
 }

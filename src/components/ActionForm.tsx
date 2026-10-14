@@ -29,11 +29,11 @@ export function ActionForm({
       }}
       key={resetOnSuccess && state?.ok ? state.nonce : undefined}
     >
-      <fieldset disabled={pending} className="contents">
+      <fieldset disabled={pending} aria-busy={pending} className="contents">
         {children}
       </fieldset>
-      {state?.error && <p role="alert" className="mt-2 text-sm text-red-400">{state.error}</p>}
-      {state?.ok && <p role="status" className="mt-2 text-sm text-emerald-400">{state.ok}</p>}
+      {state?.error && <p key={`e${state.nonce ?? state.error}`} role="alert" className="appear mt-2 text-sm text-red-400">{state.error}</p>}
+      {state?.ok && <p key={`o${state.nonce ?? state.ok}`} role="status" className="appear mt-2 text-sm text-emerald-400">{state.ok}</p>}
     </form>
   );
 }

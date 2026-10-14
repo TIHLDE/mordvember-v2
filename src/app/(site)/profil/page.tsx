@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
+import { Portrait } from "@/components/Portrait";
 import { Badge, Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
@@ -28,8 +29,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       {pameldt && <p className="rounded-lg bg-emerald-950 p-3 text-sm text-emerald-300">Du er påmeldt! Du får e-post når spillet starter.</p>}
       <Card title="Bilde">
         <div className="flex flex-col gap-4 sm:flex-row">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt="" className="h-36 w-36 rounded-lg object-cover" />
+          <Portrait src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt="" className="h-36 w-36 rounded-lg object-cover" />
           <div className="flex-1 space-y-3">
             {player.imageRejectedReason && (
               <p className="rounded bg-red-950 p-2 text-sm text-red-300">Bildet ble avvist: {player.imageRejectedReason}</p>

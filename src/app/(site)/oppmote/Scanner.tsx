@@ -61,17 +61,17 @@ export function Scanner() {
     <div className="space-y-3">
       {active ? (
         <>
-          <video ref={video} playsInline muted className="aspect-square w-full max-w-sm rounded-xl bg-black object-cover" />
-          <button type="button" onClick={() => setActive(false)} className="text-sm text-zinc-400 underline">
+          <video ref={video} playsInline muted className="appear aspect-square w-full max-w-sm rounded-xl bg-black object-cover" />
+          <button type="button" onClick={() => setActive(false)} className="press text-sm text-zinc-400 underline">
             Lukk kamera
           </button>
         </>
       ) : (
-        <button type="button" onClick={() => setActive(true)} className="rounded-lg bg-blood px-5 py-3 font-medium text-white">
+        <button type="button" onClick={() => setActive(true)} className="press rounded-lg bg-blood px-5 py-3 font-medium text-white hover:bg-blood-light">
           Skann QR-koden på tavla
         </button>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="appear text-sm text-red-400">{error}</p>}
     </div>
   );
 }

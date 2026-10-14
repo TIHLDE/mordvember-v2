@@ -33,7 +33,7 @@ export function Button({
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 press rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 ${variants[variant]} ${className}`}
     >
       {children}
     </button>
@@ -42,14 +42,14 @@ export function Button({
 
 export function LinkButton({ href, children, variant = "primary" }: { href: string; children: React.ReactNode; variant?: keyof typeof variants }) {
   return (
-    <Link href={href} className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition ${variants[variant]}`}>
+    <Link href={href} className={`press inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium ${variants[variant]}`}>
       {children}
     </Link>
   );
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:border-blood focus:outline-none";
+  "w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-500 transition-[border-color,box-shadow] duration-150 focus:border-blood focus:shadow-[0_0_0_3px_rgb(179_18_27/0.2)] focus:outline-none";
 
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (

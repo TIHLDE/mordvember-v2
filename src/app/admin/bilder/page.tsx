@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { players } from "@/db/schema";
 import { guard } from "@/lib/guard";
 import { approveImageAction, rejectImageAction } from "../actions";
+import { Portrait } from "@/components/Portrait";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,7 @@ export default async function ImagesAdmin() {
         {rows.map((p) => (
           <li key={p.id}>
             <Card>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`} alt={p.name} className="mb-2 aspect-square w-full rounded object-cover" />
+              <Portrait src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`} alt={p.name} className="mb-2 aspect-square w-full rounded object-cover" />
               <p className="font-medium text-white">{p.name}</p>
               <p className="mb-2 flex flex-wrap gap-1">
                 {p.useDefaultImage ? <Badge>TIHLDE-bilde</Badge> : <Badge>Opplastet</Badge>}

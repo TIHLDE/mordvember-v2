@@ -21,3 +21,264 @@ body {
 .dead {
   filter: grayscale(1) brightness(0.55);
 }
+
+:root {
+  --spring: linear(0, 0.06, 0.186, 0.329, 0.466, 0.584, 0.682, 0.76, 0.821, 0.868, 0.903, 0.929, 0.949, 0.963, 0.973, 0.981, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.998, 0.999, 1);
+  --spring-duration: 600ms;
+  --spring-bouncy: linear(0, 0.062, 0.202, 0.366, 0.526, 0.664, 0.776, 0.861, 0.922, 0.964, 0.99, 1.005, 1.012, 1.015, 1.015, 1.013, 1.01, 1.008, 1.006, 1.004, 1.002, 1.001, 1.001, 1, 1, 1, 1, 1, 1);
+  --spring-bouncy-duration: 700ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .font-display {
+    letter-spacing: 0.01em;
+    line-height: 1.05;
+  }
+
+  .press {
+    transition:
+      transform 100ms var(--ease-out),
+      background-color 150ms ease,
+      color 150ms ease,
+      border-color 150ms ease,
+      opacity 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .press:active:not(:disabled),
+  .press[data-pressed] {
+    transform: scale(0.97);
+    transition-duration: 60ms;
+  }
+
+  .page-enter > * > * {
+    animation: rise var(--spring-duration) var(--spring) backwards;
+    animation-delay: calc(min(var(--i, 0), 6) * 40ms);
+  }
+
+  .page-enter > * > :nth-child(1) { --i: 0; }
+  .page-enter > * > :nth-child(2) { --i: 1; }
+  .page-enter > * > :nth-child(3) { --i: 2; }
+  .page-enter > * > :nth-child(4) { --i: 3; }
+  .page-enter > * > :nth-child(5) { --i: 4; }
+  .page-enter > * > :nth-child(n + 6) { --i: 5; }
+
+  .appear {
+    animation: appear 320ms var(--ease-out) backwards;
+  }
+
+  .glass {
+    background: rgb(11 11 13 / 0.62);
+    backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.06), 0 8px 24px -16px rgb(0 0 0 / 0.8);
+  }
+
+  .nav-link {
+    position: relative;
+    transition: color 150ms ease;
+  }
+
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -4px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--color-blood-light);
+    transform: scaleX(0);
+    transition: transform 350ms var(--spring);
+  }
+
+  .nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  .portrait {
+    transition:
+      opacity 400ms ease,
+      filter 600ms ease,
+      transform 350ms var(--spring);
+  }
+
+  .portrait[data-loaded="false"] {
+    opacity: 0;
+  }
+
+  @media (hover: hover) {
+    .lift:hover .portrait {
+      transform: scale(1.05);
+    }
+  }
+
+  .reveal-frame {
+    transition:
+      border-color 200ms ease,
+      box-shadow 300ms ease,
+      transform 350ms var(--spring);
+  }
+
+  .reveal-frame[data-state="holding"] {
+    border-color: rgb(208 31 41 / 0.6);
+    box-shadow: 0 0 0 4px rgb(179 18 27 / 0.15), 0 24px 60px -20px rgb(179 18 27 / 0.45);
+    transform: scale(1.02);
+  }
+
+  .reveal-image {
+    animation: materialize 450ms var(--spring) backwards;
+  }
+
+  .reveal-pulse {
+    animation: pulse 900ms ease-in-out infinite alternate;
+  }
+
+  .toast {
+    animation: toast-in var(--spring-bouncy-duration) var(--spring-bouncy) backwards;
+  }
+
+  .toast[data-leaving] {
+    animation: toast-out 280ms cubic-bezier(0.64, 0, 0.78, 0) both;
+  }
+
+  .overlay {
+    animation: overlay-in 500ms var(--ease-out) backwards;
+  }
+
+  .overlay > * {
+    animation: materialize var(--spring-duration) var(--spring) backwards;
+    animation-delay: 120ms;
+  }
+
+  .overlay > * + * {
+    animation-delay: 240ms;
+  }
+
+  .count-change {
+    display: inline-block;
+    animation: count 500ms var(--spring) backwards;
+  }
+
+  .success-pop {
+    animation: pop var(--spring-bouncy-duration) var(--spring-bouncy) backwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-enter > * > *,
+    .appear,
+    .toast,
+    .toast[data-leaving],
+    .overlay > *,
+    .count-change,
+    .success-pop,
+    .reveal-image {
+      animation-name: fade;
+      animation-duration: 200ms;
+      animation-timing-function: ease;
+      animation-delay: 0ms;
+      animation-iteration-count: 1;
+      animation-direction: normal;
+    }
+
+    .toast[data-leaving] {
+      animation-direction: reverse;
+    }
+
+    .press:active:not(:disabled),
+    .press[data-pressed],
+    .reveal-frame[data-state="holding"],
+    .lift:hover .portrait {
+      transform: none;
+    }
+
+    .nav-link::after {
+      transition: none;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .glass {
+      background: var(--color-ink);
+      backdrop-filter: none;
+    }
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes materialize {
+  from {
+    opacity: 0;
+    filter: blur(16px);
+    transform: scale(1.06);
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0.8;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.96);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(32px) scale(0.96);
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes count {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25em) scale(0.92);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}

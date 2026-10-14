@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NavLink } from "@/components/NavLink";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getViewer } from "@/server/auth/session";
 
@@ -28,9 +28,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:flex-row">
         <nav className="flex flex-wrap gap-2 md:w-44 md:flex-col md:gap-1">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="rounded px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">
+            <NavLink key={l.href} href={l.href} exact={l.href === "/admin"} className="press rounded px-3 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white aria-[current=page]:bg-white/[0.07] aria-[current=page]:text-white">
               {l.label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
         <main className="min-w-0 flex-1">{children}</main>

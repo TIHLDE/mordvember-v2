@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { getViewer } from "@/server/auth/session";
 import { openKillsForPlayer } from "@/server/game";
+import { NavLink } from "./NavLink";
 
 export async function SiteHeader() {
   const viewer = await getViewer();
@@ -36,21 +37,21 @@ export async function SiteHeader() {
 
   return (
     <>
-      <header className="border-b border-white/10 bg-black/40 backdrop-blur">
+      <header className="glass sticky top-0 z-40">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3">
           <Link href="/" className="font-display text-2xl text-blood">
             Mordvember
           </Link>
           <nav className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-sm">
             {links.map((l) => (
-              <Link key={l.href} href={l.href} className="text-zinc-300 hover:text-white">
+              <NavLink key={l.href} href={l.href} className="nav-link text-zinc-400 hover:text-white aria-[current=page]:text-white">
                 {l.label}
-              </Link>
+              </NavLink>
             ))}
           </nav>
           {viewer ? (
             <form action="/api/auth/logout" method="post">
-              <button className="text-sm text-zinc-500 hover:text-zinc-300">Logg ut</button>
+              <button className="press text-sm text-zinc-500 hover:text-zinc-300">Logg ut</button>
             </form>
           ) : (
             <Link href="/login" className="text-sm text-zinc-300 hover:text-white">
@@ -60,10 +61,10 @@ export async function SiteHeader() {
         </div>
       </header>
       {waiting > 0 && (
-        <div className="bg-blood/90 text-white">
+        <div className="appear bg-blood/90 text-white">
           <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
             <span>Et drap du er part i venter på svar fra deg.</span>
-            <Link href="/drap" className="rounded bg-white/15 px-3 py-1 font-medium hover:bg-white/25">
+            <Link href="/drap" className="press rounded bg-white/15 px-3 py-1 font-medium hover:bg-white/25">
               Bekreft eller avvis
             </Link>
           </div>

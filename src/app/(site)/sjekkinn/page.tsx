@@ -28,7 +28,7 @@ export default async function CheckinPage({ searchParams }: { searchParams: Prom
       ) : !viewer.player ? (
         <p className="text-zinc-400">Du er ikke påmeldt.</p>
       ) : !pending && done ? (
-        <p className="font-display text-4xl text-emerald-400">{done === "in" ? "Du er sjekket inn" : "Du er sjekket ut"}</p>
+        <p className="success-pop font-display text-4xl text-emerald-400">{done === "in" ? "Du er sjekket inn" : "Du er sjekket ut"}</p>
       ) : !pending ? (
         <p className="text-zinc-400">Skann QR-koden på tavla for å sjekke inn eller ut.</p>
       ) : (
