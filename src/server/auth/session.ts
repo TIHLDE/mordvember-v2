@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { db } from "@/db";
 import { emergencyAccess, players, seasons, sessions, staff, users } from "@/db/schema";
+import { env } from "../env";
 import { getCurrentSeason } from "../season";
 import type { PhotonIdentity } from "./photon";
 
@@ -75,6 +76,7 @@ export type Viewer = {
   user: User;
   isKokLeader: boolean;
   isIndexLeader: boolean;
+  isSuperadmin: boolean;
   season: Season | null;
   player: Player | null;
   staffRole: "gamemaster" | "organizer" | null;
@@ -122,12 +124,14 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     emergencyUntil = active?.expiresAt ?? null;
   }
 
-  const isGamemaster = staffRole === "gamemaster" || session.isKokLeader;
+  const isSuperadmin = env.superadmins.includes(user.username);
+  const isGamemaster = staffRole === "gamemaster" || session.isKokLeader || isSuperadmin;
   const isOrganizer = staffRole === "organizer";
   return {
     user,
     isKokLeader: session.isKokLeader,
     isIndexLeader: session.isIndexLeader,
+    isSuperadmin,
     season,
     player,
     staffRole,

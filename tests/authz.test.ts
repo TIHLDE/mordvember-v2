@@ -26,6 +26,7 @@ describe.skipIf(!url)("tilgang mot database", async () => {
       user,
       isKokLeader: false,
       isIndexLeader: false,
+      isSuperadmin: false,
       season,
       player: null,
       staffRole: null,
