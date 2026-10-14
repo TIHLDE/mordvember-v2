@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
-import { and, desc, eq, isNotNull, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, notExists, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   auditLog,
@@ -139,8 +139,13 @@ export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirm
   const winner = all.find((p) => p.id === season.winnerPlayerId);
   const durationDays =
     season.startedAt && season.endedAt ? Math.max(1, Math.round((season.endedAt.getTime() - season.startedAt.getTime()) / 86400_000)) : 0;
-  await db.transaction(async (tx) => {
+  const photonCopies = await db.transaction(async (tx) => {
     await tx.delete(players).where(eq(players.seasonId, seasonId));
+    const unused = await tx
+      .select({ id: users.id, key: users.photonImageKey })
+      .from(users)
+      .where(and(isNotNull(users.photonImageKey), notExists(tx.select().from(players).where(eq(players.userId, users.id)))));
+    if (unused.length) await tx.update(users).set({ photonImageKey: null }).where(inArray(users.id, unused.map((u) => u.id)));
     await tx.delete(questions).where(eq(questions.seasonId, seasonId));
     await tx.delete(notifications).where(eq(notifications.seasonId, seasonId));
     await tx.delete(auditLog).where(eq(auditLog.seasonId, seasonId));
@@ -158,8 +163,9 @@ export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirm
       })
       .where(eq(seasons.id, seasonId));
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.data_slettet" });
+    return unused.map((u) => u.key);
   });
-  await deleteImages(all.map((p) => p.imageKey).filter((k): k is string => !!k));
+  await deleteImages([...all.map((p) => p.imageKey), ...photonCopies].filter((k): k is string => !!k));
 }
 
 export async function addStaff(viewer: Viewer, username: string, role: "gamemaster" | "organizer") {

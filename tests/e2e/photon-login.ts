@@ -25,6 +25,12 @@ async function main() {
   assert((await page.locator("text=2024").count()) >= 1, "kull fra Photon vises");
   console.log("• Innlogging via Photon (PKCE, state, resource) og studie/kull fra /api/user/:brukernavn");
 
+  const [copied] = await sql<{ key: string | null }[]>`select photon_image_key as key from users where username = 'mock-deltaker'`;
+  const { imageRequests } = (await (await fetch(`${MOCK}/__state`)).json()) as { imageRequests: { key: string; width: string | null }[] };
+  assert(copied?.key?.startsWith("photon/"), `det private Photon-bildet er kopiert ved innlogging (${JSON.stringify(copied)})`);
+  assert(imageRequests.some((r) => r.key === "profil-mock-deltaker.png" && r.width === "480"), "bildet hentes med token i 480 px");
+  console.log("• Privat profilbilde hentes med brukerens token og lagres hos oss");
+
   await page.getByRole("button", { name: "Dette stemmer ikke" }).click();
   await page.locator("text=Teknologiministeren har fått beskjed").waitFor();
   let mails: { to: string; subject: string; content: { type: string }[] }[] = [];

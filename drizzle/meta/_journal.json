@@ -15,6 +15,13 @@
       "when": 1791924168612,
       "tag": "0001_email_claim",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791993644549,
+      "tag": "0002_photon_image_key",
+      "breakpoints": true
     }
   ]
 }

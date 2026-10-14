@@ -15,6 +15,8 @@ const emails: unknown[] = [];
 const errors: string[] = [];
 
 const b64url = (buf: Buffer) => buf.toString("base64url");
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+const imageRequests: { key: string; width: string | null }[] = [];
 
 function body(req: import("node:http").IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
@@ -42,7 +44,7 @@ createServer(async (req, res) => {
     current = JSON.parse(await body(req));
     return json(res, 200, { ok: true });
   }
-  if (path === "/__state") return json(res, 200, { emails, errors });
+  if (path === "/__state") return json(res, 200, { emails, errors, imageRequests });
 
   if (path === "/api/auth/oauth2/authorize") {
     const p = url.searchParams;
@@ -110,7 +112,15 @@ createServer(async (req, res) => {
   if (profile) {
     const user = bearerUser(req);
     if (!user || decodeURIComponent(profile[1]!) !== user.username) return json(res, 401, {});
-    return json(res, 200, { id: "x", username: user.username, name: user.name, image: null, studyProgram: "Mockstudiet", studyStartYear: 2024, classYear: 3 });
+    return json(res, 200, { id: "x", username: user.username, name: user.name, image: `http://localhost:${PORT}/api/assets/profil-${user.username}.png`, studyProgram: "Mockstudiet", studyStartYear: 2024, classYear: 3 });
+  }
+
+  const asset = /^\/api\/assets\/(.+)$/.exec(path);
+  if (asset) {
+    if (!bearerUser(req)) return json(res, 404, {});
+    imageRequests.push({ key: asset[1]!, width: url.searchParams.get("w") });
+    res.writeHead(200, { "Content-Type": "image/png" });
+    return res.end(PNG);
   }
 
   if (path === "/api/email/send" && req.method === "POST") {

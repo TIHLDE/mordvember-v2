@@ -23,15 +23,16 @@ export async function GET(request: NextRequest) {
   if (!state || !stored.state || state !== stored.state || !stored.verifier) return fail(origin, "state");
 
   let identity;
+  let token;
   try {
-    const token = await exchangeCode(code, `${origin}/api/auth/callback`, stored.verifier);
+    token = await exchangeCode(code, `${origin}/api/auth/callback`, stored.verifier);
     identity = await fetchIdentity(token);
   } catch (error) {
     console.error("Photon-innlogging feilet", error);
     return fail(origin, "photon");
   }
   try {
-    await onLogin(identity);
+    await onLogin(identity, token);
   } catch (error) {
     console.error("Kunne ikke lagre innloggingen", error);
     return fail(origin, "lagring");
