@@ -128,6 +128,7 @@ async function sendViaPhoton(to: string, subject: string, content: EmailBlock[])
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.emailApiKey}` },
     body: JSON.stringify({ to, from: env.emailFrom, subject, content }),
+    signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
@@ -148,7 +149,8 @@ export async function deliverPendingEmails(limit = 50) {
       for update skip locked
     )
     returning id`);
-  if (!claimed.length) return;
+  if (!claimed.length) return 0;
+  let failed = 0;
   const mails = await db.select().from(emailOutbox).where(inArray(emailOutbox.id, claimed.map((c) => c.id)));
   for (const mail of mails) {
     try {
@@ -161,10 +163,12 @@ export async function deliverPendingEmails(limit = 50) {
       }
       await db.update(emailOutbox).set({ status: "sent", sentAt: new Date() }).where(eq(emailOutbox.id, mail.id));
     } catch (error) {
+      failed++;
       await db
         .update(emailOutbox)
         .set({ status: "failed", claimedAt: null, lastError: String(error).slice(0, 500) })
         .where(eq(emailOutbox.id, mail.id));
     }
   }
+  return failed;
 }

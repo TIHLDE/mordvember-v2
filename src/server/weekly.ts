@@ -58,8 +58,13 @@ export async function sendThursdayWarnings(season: Season, weekStart: string, no
   const results = await evaluateSeasonWeek(season, weekStart, now);
   for (const { player, evaluation } of results) {
     if (evaluation.ok) continue;
-    await notify(db, [{ userId: player.userId, seasonId: season.id, text: `Du ligger an til å ryke: ${evaluation.missing.join(", ")}`, href: "/oppmote" }]);
-    await queueEmail(db, "weekly_warning", [player.email], { mangler: evaluation.missing.join("\n") });
+    // Eget krav per deltaker, så et nytt forsøk etter en feil halvveis ikke varsler noen to ganger.
+    await db.transaction(async (tx) => {
+      const [claimed] = await tx.insert(jobRuns).values({ key: `torsdag:${season.id}:${weekStart}:${player.id}` }).onConflictDoNothing().returning();
+      if (!claimed) return;
+      await notify(tx, [{ userId: player.userId, seasonId: season.id, text: `Du ligger an til å ryke: ${evaluation.missing.join(", ")}`, href: "/oppmote" }]);
+      await queueEmail(tx, "weekly_warning", [player.email], { mangler: evaluation.missing.join("\n") });
+    });
   }
 }
 
