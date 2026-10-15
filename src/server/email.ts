@@ -128,6 +128,7 @@ async function sendViaPhoton(to: string, subject: string, content: EmailBlock[])
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.emailApiKey}` },
     body: JSON.stringify({ to, from: env.emailFrom, subject, content }),
+    signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

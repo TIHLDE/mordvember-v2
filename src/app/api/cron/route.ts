@@ -10,6 +10,6 @@ export async function GET(request: Request) {
   if (!env.cronSecret || expected.length !== given.length || !timingSafeEqual(expected, given)) {
     return new Response("Ikke tilgang", { status: 401 });
   }
-  const done = await runCron();
-  return Response.json({ ok: true, done });
+  const { done, failed } = await runCron();
+  return Response.json({ ok: failed.length === 0, done, failed }, { status: failed.length ? 500 : 200 });
 }
