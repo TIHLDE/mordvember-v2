@@ -124,8 +124,9 @@ export async function runCron(now = new Date()) {
   });
 
   await step("e-post", async () => {
-    await deliverPendingEmails();
+    const notSent = await deliverPendingEmails();
     await db.delete(emailOutbox).where(and(eq(emailOutbox.status, "sent"), lte(emailOutbox.sentAt, new Date(now.getTime() - 14 * 86400_000))));
+    if (notSent) throw new Error(`${notSent} e-poster ble ikke sendt`);
   });
   return { done, failed };
 }
