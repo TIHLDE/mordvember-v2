@@ -1,5 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { Badge, Button, Card, Empty, Field, inputBase, LinkButton, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
@@ -46,14 +47,8 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
         <ActionForm action={editCheckinAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="checkinId" value={c.checkin.id} />
           <input type="hidden" name="kind" value="times" />
-          <input type="datetime-local" name="checkInAt" aria-label="Inn" defaultValue={osloInputValue(c.checkin.checkInAt)} className={`${inputBase} w-auto`} />
-          <input
-            type="datetime-local"
-            name="checkOutAt"
-            aria-label="Ut"
-            defaultValue={c.checkin.checkOutAt ? osloInputValue(c.checkin.checkOutAt) : ""}
-            className={`${inputBase} w-auto`}
-          />
+          <DateTimePicker name="checkInAt" aria-label="Inn" defaultValue={osloInputValue(c.checkin.checkInAt)} />
+          <DateTimePicker name="checkOutAt" aria-label="Ut" defaultValue={c.checkin.checkOutAt ? osloInputValue(c.checkin.checkOutAt) : ""} />
           <Button type="submit" variant="ghost" size="sm">Rett tider</Button>
         </ActionForm>
       </div>
@@ -79,10 +74,10 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
             </select>
           </Field>
           <Field label="Inn">
-            <input type="datetime-local" name="checkInAt" required className={`${inputBase} w-auto`} />
+            <DateTimePicker name="checkInAt" required />
           </Field>
           <Field label="Ut">
-            <input type="datetime-local" name="checkOutAt" required className={`${inputBase} w-auto`} />
+            <DateTimePicker name="checkOutAt" required />
           </Field>
           <Button type="submit">Legg til</Button>
         </ActionForm>

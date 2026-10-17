@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, Field, inputClass, PageTitle } from "@/components/ui";
+import { DateTimePicker } from "@/components/DateTimePicker";
+import { Badge, Button, Card, Empty, Field, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { kills, players } from "@/db/schema";
 import { formatOslo } from "@/game/time";
@@ -78,7 +79,7 @@ export default async function KillsPage() {
             <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde drap på offeret ditt?">
               <input type="hidden" name="role" value="killer" />
               <Field label="Når skjedde det?">
-                <input type="datetime-local" name="killedAt" defaultValue={now} max={now} required className={inputClass} />
+                <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
               </Field>
               <Button type="submit">Meld drap</Button>
             </ActionForm>
@@ -87,7 +88,7 @@ export default async function KillsPage() {
             <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde at du er tatt?">
               <input type="hidden" name="role" value="victim" />
               <Field label="Når skjedde det?">
-                <input type="datetime-local" name="killedAt" defaultValue={now} max={now} required className={inputClass} />
+                <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
               </Field>
               <Button type="submit" variant="ghost">Meld at jeg er tatt</Button>
             </ActionForm>
