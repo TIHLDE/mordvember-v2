@@ -8,7 +8,7 @@ import { NavLinks, type NavLink } from "./NavLinks";
 import { buttonClass, cx } from "./ui";
 import { openKillsForPlayer } from "@/server/game";
 
-export async function SiteHeader({ wide = false }: { wide?: boolean }) {
+export async function SiteHeader() {
   const viewer = await getViewer();
   let unread = 0;
   let waiting = 0;
@@ -35,7 +35,7 @@ export async function SiteHeader({ wide = false }: { wide?: boolean }) {
         ...(viewer.isStaff || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
       ]
     : [];
-  const container = cx("mx-auto px-4", wide ? "max-w-6xl" : "max-w-5xl");
+  const container = "mx-auto max-w-5xl px-4";
 
   return (
     <>

@@ -65,7 +65,7 @@ export default async function AdminHome() {
       {viewer.emergencyUntil && (
         <Notice tone="red">Nødtilgang er aktiv til {formatOslo(viewer.emergencyUntil)}.</Notice>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <p className="text-sm text-zinc-400">Deltakere</p>
           <p className="mt-2 text-3xl font-semibold text-white tabular-nums">{total}</p>
