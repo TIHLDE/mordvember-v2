@@ -6,6 +6,7 @@
   --color-blood: #b3121b;
   --color-blood-light: #d01f29;
   --color-ink: #0b0b0d;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {
@@ -34,14 +35,57 @@
 
 html {
   color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
 }
 
 body {
-  background: radial-gradient(ellipse at top, #1a0b0d 0%, var(--color-ink) 60%);
+  background-color: var(--color-ink);
+  background-image: radial-gradient(ellipse at top, #1a0b0d 0%, var(--color-ink) 60%);
   background-attachment: fixed;
   min-height: 100dvh;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--color-blood) 60%, transparent);
+  color: white;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-blood-light);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-blood);
+}
+
+summary {
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
 .dead {
   filter: grayscale(1) brightness(0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .material {
+    background-color: var(--color-ink);
+    backdrop-filter: none;
+  }
 }

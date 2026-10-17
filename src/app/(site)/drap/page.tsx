@@ -34,12 +34,12 @@ export default async function KillsPage() {
 
       {open.length > 0 && (
         <Card title="Åpne saker">
-          <ul className="space-y-4">
+          <ul className="divide-y divide-white/5">
             {open.map(({ kill, victimName }) => {
               const iAmVictim = kill.victimId === me;
               const iConfirm = (kill.reportedBy === "killer" ? kill.victimId : kill.killerId) === me;
               return (
-                <li key={kill.id} className="rounded-lg border border-white/10 p-4">
+                <li key={kill.id} className="py-4 first:pt-0 last:pb-0">
                   <p className="text-sm">
                     {iAmVictim
                       ? kill.reportedBy === "killer"
@@ -49,11 +49,11 @@ export default async function KillsPage() {
                         ? `${victimName} har meldt at du tok hen ${formatOslo(kill.killedAt)}.`
                         : `Du meldte at du tok ${victimName} ${formatOslo(kill.killedAt)}.`}
                   </p>
-                  <p className="mt-1">
+                  <p className="mt-2">
                     {kill.status === "escalated" ? <Badge tone="amber">Hos arrangørene</Badge> : iConfirm ? <Badge tone="red">Venter på deg</Badge> : <Badge>Venter på den andre</Badge>}
                   </p>
                   {kill.status === "pending" && (
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       {iConfirm && (
                         <ActionForm action={confirmKillAction} confirm="Bekrefte drapet?">
                           <input type="hidden" name="killId" value={kill.id} />
@@ -76,7 +76,7 @@ export default async function KillsPage() {
       {running && (
         <div className="grid gap-4 md:grid-cols-2">
           <Card title="Jeg har tatt offeret mitt">
-            <ActionForm action={reportKillAction} className="space-y-3" confirm="Melde drap på offeret ditt?">
+            <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde drap på offeret ditt?">
               <input type="hidden" name="role" value="killer" />
               <Field label="Når skjedde det?">
                 <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
@@ -85,7 +85,7 @@ export default async function KillsPage() {
             </ActionForm>
           </Card>
           <Card title="Jeg er tatt">
-            <ActionForm action={reportKillAction} className="space-y-3" confirm="Melde at du er tatt?">
+            <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde at du er tatt?">
               <input type="hidden" name="role" value="victim" />
               <Field label="Når skjedde det?">
                 <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
@@ -100,16 +100,16 @@ export default async function KillsPage() {
         {history.length === 0 ? (
           <Empty>Ingen drap ennå.</Empty>
         ) : (
-          <ul className="space-y-2 text-sm">
+          <ul className="divide-y divide-white/5 text-sm">
             {history.map(({ kill, victimName }) => (
-              <li key={kill.id} className="flex flex-wrap items-center gap-2">
+              <li key={kill.id} className="flex flex-wrap items-center gap-2 py-2 first:pt-0">
                 <span>{kill.victimId === me ? `Du ble tatt ${formatOslo(kill.killedAt)}` : `Du tok ${victimName} ${formatOslo(kill.killedAt)}`}</span>
                 {kill.status === "rejected" && <Badge>Avvist</Badge>}
               </li>
             ))}
           </ul>
         )}
-        <p className="mt-3 text-sm text-zinc-400">Drap totalt: {viewer.player.killCount}</p>
+        <p className="mt-4 border-t border-white/5 pt-4 text-sm text-zinc-400">Drap totalt: <span className="text-white tabular-nums">{viewer.player.killCount}</span></p>
       </Card>
     </div>
   );

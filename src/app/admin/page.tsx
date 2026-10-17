@@ -2,7 +2,7 @@ import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
+import { Button, Card, Field, inputClass, Notice, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { checkins, kills, players, questions, seasons } from "@/db/schema";
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
@@ -21,10 +21,10 @@ export default async function AdminHome() {
   const season = viewer.season;
   if (!season) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <PageTitle>Admin</PageTitle>
         <Card title="Opprett første sesong">
-          <ActionForm action={createSeasonAction} className="space-y-3">
+          <ActionForm action={createSeasonAction} className="space-y-4">
             <Field label="Navn">
               <input name="name" required className={inputClass} placeholder="Mordvember 2026" />
             </Field>
@@ -55,28 +55,28 @@ export default async function AdminHome() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageTitle sub={`${season.name} · ${phaseLabel(season.phase)}`}>Admin</PageTitle>
       {needsDeletion.map((s) => (
-        <p key={s.id} className="rounded-lg bg-amber-950 p-3 text-sm text-amber-200">
+        <Notice key={s.id} tone="amber">
           {s.name} ble avsluttet {s.endedAt ? formatOslo(s.endedAt) : ""}. Husk å <Link href="/admin/sesong" className="underline">slette sesongdata</Link>.
-        </p>
+        </Notice>
       ))}
       {viewer.emergencyUntil && (
-        <p className="rounded-lg bg-red-950 p-3 text-sm text-red-200">Nødtilgang er aktiv til {formatOslo(viewer.emergencyUntil)}.</p>
+        <Notice tone="red">Nødtilgang er aktiv til {formatOslo(viewer.emergencyUntil)}.</Notice>
       )}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <p className="text-sm text-zinc-400">Deltakere</p>
-          <p className="text-3xl font-semibold">{total}</p>
-          <p className="text-sm text-zinc-500">{alive} med i spillet</p>
+          <p className="mt-2 text-3xl font-semibold text-white tabular-nums">{total}</p>
+          <p className="mt-1 text-sm text-zinc-500">{alive} med i spillet</p>
         </Card>
         {viewer.isStaff &&
           items.map((i) => (
-            <Link key={i.href} href={i.href}>
-              <Card className="h-full hover:border-white/25">
+            <Link key={i.href} href={i.href} className="group rounded-2xl">
+              <Card className="h-full transition-colors duration-150 group-hover:border-white/25 group-hover:bg-white/[0.05]">
                 <p className="text-sm text-zinc-400">{i.label}</p>
-                <p className={`text-3xl font-semibold ${i.value ? "text-blood-light" : ""}`}>{i.value}</p>
+                <p className={`mt-2 text-3xl font-semibold tabular-nums ${i.value ? "text-blood-light" : "text-white"}`}>{i.value}</p>
               </Card>
             </Link>
           ))}

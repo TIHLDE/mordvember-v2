@@ -29,7 +29,7 @@ export default async function NotificationsPage() {
         ) : (
           <ul className="divide-y divide-white/5">
             {rows.map((n) => (
-              <li key={n.id} className="flex items-start justify-between gap-4 py-3 text-sm">
+              <li key={n.id} className="flex items-start justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0">
                 <span className={n.readAt ? "text-zinc-400" : "font-medium text-white"}>
                   {n.href ? <Link href={n.href} className="hover:underline">{n.text}</Link> : n.text}
                 </span>

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NavLinks } from "@/components/NavLinks";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getViewer } from "@/server/auth/session";
 
@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!viewer) redirect("/login?next=/admin");
   if (!viewer.isStaff && !viewer.canManageRoles) redirect("/");
   const links = [
-    { href: "/admin", label: "Oversikt", show: true },
+    { href: "/admin", label: "Oversikt", show: true, exact: true },
     { href: "/admin/drap", label: "Drapssaker", show: viewer.isStaff },
     { href: "/admin/fredag", label: "Fredagslista", show: viewer.isStaff },
     { href: "/admin/oppmote", label: "Oppmøte", show: viewer.isStaff },
@@ -24,15 +24,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ].filter((l) => l.show);
   return (
     <>
-      <SiteHeader />
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:flex-row">
-        <nav className="flex flex-wrap gap-2 md:w-44 md:flex-col md:gap-1">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className="rounded px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/5 hover:text-white">
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+      <SiteHeader wide />
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-8 pb-16 md:flex-row md:gap-10">
+        <aside className="md:sticky md:top-32 lg:top-22 md:w-48 md:shrink-0 md:self-start">
+          <NavLinks links={links} vertical className="-mx-1" />
+        </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </>

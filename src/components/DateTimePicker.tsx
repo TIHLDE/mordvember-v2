@@ -31,7 +31,7 @@ const popupClass =
   "z-50 rounded-xl border border-white/10 bg-zinc-950 text-sm text-zinc-200 shadow-xl shadow-black/60 outline-none";
 
 const triggerClass =
-  "flex items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm text-white focus:border-blood focus:outline-none focus-visible:border-blood disabled:opacity-50 data-[popup-open]:border-blood";
+  "flex min-h-10 items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-base text-white transition-[border-color,box-shadow] duration-150 hover:border-white/25 focus:border-blood focus:ring-2 focus:ring-blood/30 focus:outline-none disabled:opacity-50 data-[popup-open]:border-blood data-[popup-open]:ring-2 data-[popup-open]:ring-blood/30 sm:text-sm";
 
 export function DateTimePicker({
   name,
@@ -43,6 +43,7 @@ export function DateTimePicker({
   placeholder = "Velg dato",
   minuteStep = 5,
   className = "",
+  "aria-label": ariaLabel,
 }: {
   name: string;
   defaultValue?: string;
@@ -53,6 +54,7 @@ export function DateTimePicker({
   placeholder?: string;
   minuteStep?: number;
   className?: string;
+  "aria-label"?: string;
 }) {
   const [value, setValue] = useState<Value | null>(() => parse(defaultValue));
   // Lets the user pick a time before a date without losing the input.
@@ -63,6 +65,7 @@ export function DateTimePicker({
     <div className={`relative flex items-start gap-2 ${className}`}>
       <DatePicker
         id={id}
+        aria-label={ariaLabel}
         value={value?.day ?? null}
         onChange={(day) => setValue(day ? { day, time: time ?? { hour: 0, minute: 0 } } : null)}
         min={startOfDay(min)}
@@ -93,6 +96,7 @@ export function DateTimePicker({
 
 function DatePicker({
   id,
+  "aria-label": ariaLabel,
   value,
   onChange,
   min,
@@ -100,6 +104,7 @@ function DatePicker({
   placeholder,
 }: {
   id?: string;
+  "aria-label"?: string;
   value: Date | null;
   onChange: (day: Date | null) => void;
   min?: Date;
@@ -109,7 +114,7 @@ function DatePicker({
   const [open, setOpen] = useState(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger id={id} type="button" className={`${triggerClass} min-w-36 flex-1 justify-between`}>
+      <Popover.Trigger id={id} type="button" aria-label={ariaLabel} className={`${triggerClass} min-w-36 flex-1 justify-between`}>
         <span className={`truncate ${value ? "" : "text-zinc-500"}`}>{value ? format(value, "d. MMM yyyy", { locale: nb }) : placeholder}</span>
         <CalendarIcon />
       </Popover.Trigger>
@@ -286,7 +291,7 @@ function TimePicker({
     else if (pendingHour !== null) emit({ hour: pendingHour, minute });
   };
 
-  const segmentClass = "w-[2ch] bg-transparent text-sm tabular-nums text-white outline-none placeholder:text-zinc-500";
+  const segmentClass = "w-[2ch] bg-transparent text-base tabular-nums sm:text-sm text-white outline-none placeholder:text-zinc-500";
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
@@ -294,7 +299,7 @@ function TimePicker({
       <Popover.Trigger
         nativeButton={false}
         render={<div aria-label="Tidsvelger" />}
-        className={`${triggerClass} w-28 shrink-0 cursor-text has-[input:focus]:border-blood`}
+        className={`${triggerClass} w-28 shrink-0 cursor-text has-[input:focus]:border-blood has-[input:focus]:ring-2 has-[input:focus]:ring-blood/30`}
       >
         <input
           ref={hourRef}
