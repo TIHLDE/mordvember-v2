@@ -5,19 +5,14 @@ import { notifications } from "@/db/schema";
 import { getViewer } from "@/server/auth/session";
 import { UserAvatar } from "./Avatar";
 import { NavLinks, type NavLink } from "./NavLinks";
-import { buttonClass, cx } from "./ui";
-import { openKillsForPlayer } from "@/server/game";
+import { PendingKillBanner } from "./PendingKillBanner";
+import { buttonClass } from "./ui";
 
 export async function SiteHeader() {
   const viewer = await getViewer();
   let unread = 0;
-  let waiting = 0;
   if (viewer) {
     unread = await db.$count(notifications, and(eq(notifications.userId, viewer.user.id), isNull(notifications.readAt)));
-    if (viewer.season && viewer.player) {
-      const open = await openKillsForPlayer(viewer.season.id, viewer.player.id);
-      waiting = open.filter((k) => k.status === "pending" && (k.reportedBy === "killer" ? k.victimId : k.killerId) === viewer.player!.id).length;
-    }
   }
   const playing = viewer?.player && viewer.season && viewer.season.phase === "running";
   const links: NavLink[] = viewer
@@ -72,16 +67,7 @@ export async function SiteHeader() {
           {links.length > 0 && <NavLinks links={links} className="-mx-1 pb-3 lg:hidden" />}
         </div>
       </header>
-      {waiting > 0 && (
-        <div className="bg-blood/90 text-white">
-          <div className={cx(container, "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2.5 text-sm")}>
-            <span>Et drap du er part i venter på svar fra deg.</span>
-            <Link href="/drap" className="inline-flex min-h-8 items-center rounded-lg bg-white/15 px-3 font-medium transition-colors hover:bg-white/25">
-              Bekreft eller avvis
-            </Link>
-          </div>
-        </div>
-      )}
+      <PendingKillBanner className={container} />
     </>
   );
 }

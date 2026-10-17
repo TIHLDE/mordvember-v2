@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UserAvatar } from "./Avatar";
 import { cx } from "./ui";
 
@@ -15,14 +15,23 @@ function isActive(pathname: string, link: { href: string; exact?: boolean }) {
 export function AdminShell({
   groups,
   user,
+  banner,
   children,
 }: {
   groups: AdminNavGroup[];
   user: { name: string; image: string | null; hasProfile: boolean };
+  banner: React.ReactNode;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   const current = groups.flatMap((g) => g.links).find((l) => isActive(pathname, l));
   const avatar = <UserAvatar name={user.name} image={user.image} />;
@@ -32,8 +41,8 @@ export function AdminShell({
       {open && <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
       <aside
         className={cx(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-ink transition-transform duration-200 ease-out-strong md:translate-x-0",
-          open ? "translate-x-0" : "-translate-x-full",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-ink transition-[translate,visibility] duration-200 ease-out-strong md:visible md:translate-x-0",
+          open ? "visible translate-x-0" : "invisible -translate-x-full",
         )}
       >
         <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/10 px-4">
@@ -117,6 +126,7 @@ export function AdminShell({
             )}
           </div>
         </header>
+        {banner}
         <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 px-4 pt-8 pb-16 md:px-8">{children}</main>
       </div>
     </div>

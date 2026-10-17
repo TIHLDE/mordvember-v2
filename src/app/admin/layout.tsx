@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
+import { PendingKillBanner } from "@/components/PendingKillBanner";
 import { getViewer } from "@/server/auth/session";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -35,7 +36,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .filter((g) => g.links.length > 0);
 
   return (
-    <AdminShell groups={groups} user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}>
+    <AdminShell
+      groups={groups}
+      banner={<PendingKillBanner className="mx-auto w-full max-w-7xl px-4 md:px-8" />}
+      user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}
+    >
       {children}
     </AdminShell>
   );
