@@ -9,7 +9,7 @@ allerede brukes i koden.
 
 Gjelder spillersidene (`src/app/(site)`) og adminpanelet (`src/app/admin`).
 Tavla på kontoret (`src/app/tavle`) er laget for en stor skjerm på avstand og
-følger sine egne mål. Se [Tavla](#tavla).
+følger sine egne mål. Se [Tavla](#10-tavla).
 
 ---
 
