@@ -291,7 +291,7 @@ function TimePicker({
     else if (pendingHour !== null) emit({ hour: pendingHour, minute });
   };
 
-  const segmentClass = "w-[2ch] bg-transparent text-base tabular-nums sm:text-sm text-white outline-none placeholder:text-zinc-500";
+  const segmentClass = "w-[2.6ch] bg-transparent text-base tabular-nums sm:text-sm text-white outline-none placeholder:text-zinc-500";
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
