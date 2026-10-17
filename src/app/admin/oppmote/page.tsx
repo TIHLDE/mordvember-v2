@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { ActionForm } from "@/components/ActionForm";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
@@ -47,13 +48,8 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
         <ActionForm action={editCheckinAction} className="flex flex-wrap items-center gap-1">
           <input type="hidden" name="checkinId" value={c.checkin.id} />
           <input type="hidden" name="kind" value="times" />
-          <input type="datetime-local" name="checkInAt" defaultValue={osloInputValue(c.checkin.checkInAt)} className={`${inputClass} w-auto`} />
-          <input
-            type="datetime-local"
-            name="checkOutAt"
-            defaultValue={c.checkin.checkOutAt ? osloInputValue(c.checkin.checkOutAt) : ""}
-            className={`${inputClass} w-auto`}
-          />
+          <DateTimePicker name="checkInAt" defaultValue={osloInputValue(c.checkin.checkInAt)} />
+          <DateTimePicker name="checkOutAt" defaultValue={c.checkin.checkOutAt ? osloInputValue(c.checkin.checkOutAt) : ""} />
           <Button type="submit" variant="ghost">Rett tider</Button>
         </ActionForm>
       </div>
@@ -76,8 +72,8 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
-          <input type="datetime-local" name="checkInAt" required className={`${inputClass} w-auto`} />
-          <input type="datetime-local" name="checkOutAt" required className={`${inputClass} w-auto`} />
+          <DateTimePicker name="checkInAt" required />
+          <DateTimePicker name="checkOutAt" required />
           <Button type="submit">Legg til</Button>
         </ActionForm>
       </Card>

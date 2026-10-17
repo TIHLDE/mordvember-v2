@@ -1,5 +1,6 @@
 import { desc } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { Badge, Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
@@ -71,7 +72,7 @@ export default async function SeasonAdmin() {
         <ActionForm action={updateBasicsAction} className="space-y-3">
           <Field label="Navn"><input name="name" defaultValue={season.name} className={inputClass} /></Field>
           <Field label="Påmeldingsfrist" hint="Påmeldingen stenger automatisk ved fristen.">
-            <input type="datetime-local" name="signupDeadline" defaultValue={season.signupDeadline ? osloInputValue(season.signupDeadline) : ""} className={inputClass} />
+            <DateTimePicker name="signupDeadline" defaultValue={season.signupDeadline ? osloInputValue(season.signupDeadline) : ""} />
           </Field>
           <Field label="Regler (vises på forsiden)"><textarea name="rulesText" rows={6} defaultValue={settings.info.rules} className={inputClass} /></Field>
           <Field label="Datoer (vises på forsiden)"><textarea name="dates" rows={2} defaultValue={settings.info.dates} className={inputClass} /></Field>
