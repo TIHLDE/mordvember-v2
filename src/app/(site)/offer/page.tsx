@@ -13,7 +13,7 @@ export default async function TargetPage() {
   const running = viewer.season?.phase === "running";
   return (
     <div className="mx-auto max-w-md text-center">
-      <PageTitle sub="Pass på at ingen ser skjermen din. Navn og bilde vises bare så lenge du holder inne.">Mitt offer</PageTitle>
+      <PageTitle center sub="Pass på at ingen ser skjermen din. Navn og bilde vises bare så lenge du holder inne.">Mitt offer</PageTitle>
       {!running ? (
         <p className="text-zinc-400">Spillet har ikke startet.</p>
       ) : viewer.player.status !== "alive" ? (

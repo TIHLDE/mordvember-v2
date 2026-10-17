@@ -1,6 +1,7 @@
 "use client";
 
 import jsQR from "jsqr";
+import { Button } from "@/components/ui";
 import { useEffect, useRef, useState } from "react";
 
 export function Scanner() {
@@ -58,18 +59,18 @@ export function Scanner() {
   }, [active]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {active ? (
         <>
           <video ref={video} playsInline muted className="aspect-square w-full max-w-sm rounded-xl bg-black object-cover" />
-          <button type="button" onClick={() => setActive(false)} className="text-sm text-zinc-400 underline">
+          <Button type="button" variant="ghost" onClick={() => setActive(false)}>
             Lukk kamera
-          </button>
+          </Button>
         </>
       ) : (
-        <button type="button" onClick={() => setActive(true)} className="rounded-lg bg-blood px-5 py-3 font-medium text-white">
+        <Button type="button" onClick={() => setActive(true)}>
           Skann QR-koden på tavla
-        </button>
+        </Button>
       )}
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>

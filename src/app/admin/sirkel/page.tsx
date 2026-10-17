@@ -1,6 +1,6 @@
 import { and, asc, eq, ne } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { Button, Card, Empty, inputBase, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 import { formatOslo } from "@/game/time";
@@ -36,7 +36,7 @@ export default async function CirclePage() {
   const gm = viewer.isGamemaster;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageTitle sub={gm ? "All visning av denne siden logges." : "Du ser sirkelen med nødtilgang. Visningen er logget og spillmesterne er varslet."}>
         Sirkel
       </PageTitle>
@@ -65,22 +65,22 @@ export default async function CirclePage() {
         ) : (
           <ol className="divide-y divide-white/5 text-sm">
             {circle.map((c, i) => (
-              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
                 <span>
-                  <span className="mr-2 text-zinc-600">{i + 1}.</span>
+                  <span className="mr-2 inline-block w-6 text-right text-zinc-600 tabular-nums">{i + 1}.</span>
                   <span className="text-white">{c.name}</span> <span className="text-zinc-500">→ {c.targetId ? names.get(c.targetId) : "–"}</span>
                   <span className="ml-2 text-xs text-zinc-500">{c.killCount} drap</span>
                 </span>
                 {gm && (
-                  <ActionForm action={moveAction} className="flex gap-1">
+                  <ActionForm action={moveAction} className="flex gap-2">
                     <input type="hidden" name="playerId" value={c.id} />
-                    <select name="afterId" className={`${inputClass} w-44`} defaultValue="">
+                    <select name="afterId" aria-label="Flytt etter" className={`${inputBase} w-44`} defaultValue="">
                       <option value="" disabled>Flytt etter …</option>
                       {circle.filter((o) => o.id !== c.id).map((o) => (
                         <option key={o.id} value={o.id}>{o.name}</option>
                       ))}
                     </select>
-                    <Button type="submit" variant="ghost">Flytt</Button>
+                    <Button type="submit" variant="ghost" size="sm">Flytt</Button>
                   </ActionForm>
                 )}
               </li>
@@ -91,14 +91,14 @@ export default async function CirclePage() {
 
       {gm && season.phase === "running" && (
         <Card title="Gi nåde">
-          <p className="mb-2 text-sm text-zinc-400">Spilleren settes inn etter valgt jeger, eller på en tilfeldig plass. Krav gjelder fra uka etter.</p>
+          <p className="mb-4 text-sm text-zinc-400">Spilleren settes inn etter valgt jeger, eller på en tilfeldig plass. Krav gjelder fra uka etter.</p>
           <ActionForm action={mercyAction} className="flex flex-wrap gap-2" confirm="Gi nåde?">
-            <select name="playerId" required className={`${inputClass} w-auto`}>
+            <select name="playerId" required aria-label="Deltaker" className={`${inputBase} w-auto`}>
               {out.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
-            <select name="afterId" className={`${inputClass} w-auto`} defaultValue="">
+            <select name="afterId" aria-label="Plassering" className={`${inputBase} w-auto`} defaultValue="">
               <option value="">Tilfeldig plass</option>
               {circle.map((c) => (
                 <option key={c.id} value={c.id}>Etter {c.name}</option>
@@ -113,7 +113,7 @@ export default async function CirclePage() {
         {events.length === 0 ? (
           <Empty>Ingen endringer ennå.</Empty>
         ) : (
-          <ul className="space-y-1 text-sm">
+          <ul className="space-y-1.5 text-sm">
             {events.map((e) => (
               <li key={e.id} className="text-zinc-400">
                 {formatOslo(e.createdAt)} · {EVENT_LABEL[e.type] ?? e.type} · {e.actor ?? "deltakerbekreftelse"} · {e.size} i sirkelen

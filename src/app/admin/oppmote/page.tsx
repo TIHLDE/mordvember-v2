@@ -1,7 +1,6 @@
 import { asc, eq } from "drizzle-orm";
-import Link from "next/link";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Empty, Field, inputBase, LinkButton, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 import { addDays, formatOslo, formatOsloDate, weekStartOf } from "@/game/time";
@@ -21,7 +20,7 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
   const flagged = rows.filter((r) => !r.checkin.flagsReviewed && !r.checkin.rejected && (r.checkin.autoClosed || r.checkin.flags.length > 0));
 
   const row = (c: (typeof rows)[number]) => (
-    <li key={c.checkin.id} className="space-y-2 py-3 text-sm">
+    <li key={c.checkin.id} className="space-y-3 py-4 text-sm first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium text-white">{c.name}</span>
         <span className="text-zinc-400">
@@ -39,45 +38,52 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
           <ActionForm key={kind} action={editCheckinAction}>
             <input type="hidden" name="checkinId" value={c.checkin.id} />
             <input type="hidden" name="kind" value={kind} />
-            <Button type="submit" variant="ghost">
+            <Button type="submit" variant="ghost" size="sm">
               {{ approve: "Godkjenn", reject: "Underkjenn", reviewed: "OK, sett som sett", restore: "Nullstill" }[kind]}
             </Button>
           </ActionForm>
         ))}
-        <ActionForm action={editCheckinAction} className="flex flex-wrap items-center gap-1">
+        <ActionForm action={editCheckinAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="checkinId" value={c.checkin.id} />
           <input type="hidden" name="kind" value="times" />
-          <input type="datetime-local" name="checkInAt" defaultValue={osloInputValue(c.checkin.checkInAt)} className={`${inputClass} w-auto`} />
+          <input type="datetime-local" name="checkInAt" aria-label="Inn" defaultValue={osloInputValue(c.checkin.checkInAt)} className={`${inputBase} w-auto`} />
           <input
             type="datetime-local"
             name="checkOutAt"
+            aria-label="Ut"
             defaultValue={c.checkin.checkOutAt ? osloInputValue(c.checkin.checkOutAt) : ""}
-            className={`${inputClass} w-auto`}
+            className={`${inputBase} w-auto`}
           />
-          <Button type="submit" variant="ghost">Rett tider</Button>
+          <Button type="submit" variant="ghost" size="sm">Rett tider</Button>
         </ActionForm>
       </div>
     </li>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageTitle sub={`Uke fra ${formatOsloDate(week)}`}>Oppmøte</PageTitle>
-      <div className="flex gap-3 text-sm">
-        <Link href={`/admin/oppmote?uke=${addDays(week, -7)}`} className="underline">Forrige uke</Link>
-        <Link href={`/admin/oppmote?uke=${addDays(week, 7)}`} className="underline">Neste uke</Link>
+      <div className="-mt-4 flex gap-2">
+        <LinkButton href={`/admin/oppmote?uke=${addDays(week, -7)}`} variant="ghost" size="sm">← Forrige uke</LinkButton>
+        <LinkButton href={`/admin/oppmote?uke=${addDays(week, 7)}`} variant="ghost" size="sm">Neste uke →</LinkButton>
       </div>
       <Card title="Merket for gjennomgang">{flagged.length ? <ul className="divide-y divide-white/5">{flagged.map(row)}</ul> : <Empty>Ingen.</Empty>}</Card>
       <Card title="Alle innsjekker">{rows.length ? <ul className="divide-y divide-white/5">{rows.map(row)}</ul> : <Empty>Ingen innsjekker denne uka.</Empty>}</Card>
       <Card title="Legg inn oppmøte manuelt">
-        <ActionForm action={addCheckinAction} className="flex flex-wrap gap-2">
-          <select name="playerId" required className={`${inputClass} w-auto`}>
-            {roster.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <input type="datetime-local" name="checkInAt" required className={`${inputClass} w-auto`} />
-          <input type="datetime-local" name="checkOutAt" required className={`${inputClass} w-auto`} />
+        <ActionForm action={addCheckinAction} className="flex flex-wrap items-end gap-3">
+          <Field label="Deltaker">
+            <select name="playerId" required className={`${inputBase} w-auto`}>
+              {roster.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Inn">
+            <input type="datetime-local" name="checkInAt" required className={`${inputBase} w-auto`} />
+          </Field>
+          <Field label="Ut">
+            <input type="datetime-local" name="checkOutAt" required className={`${inputBase} w-auto`} />
+          </Field>
           <Button type="submit">Legg til</Button>
         </ActionForm>
       </Card>

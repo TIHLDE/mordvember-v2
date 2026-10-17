@@ -12,29 +12,29 @@ export default async function ImagesAdmin() {
   const viewer = await guard("staff");
   const rows = await db.select().from(players).where(eq(players.seasonId, viewer.season.id)).orderBy(asc(players.imageApprovedAt), asc(players.name));
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageTitle sub="Avvis bilder der ansiktet ikke vises tydelig. Deltakeren får en melding og kan laste opp nytt.">Bilder</PageTitle>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((p) => (
           <li key={p.id}>
-            <Card>
+            <Card className="h-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`} alt={p.name} className="mb-2 aspect-square w-full rounded object-cover" />
+              <img src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`} alt={p.name} className="mb-4 aspect-square w-full rounded-xl object-cover" />
               <p className="font-medium text-white">{p.name}</p>
-              <p className="mb-2 flex flex-wrap gap-1">
+              <p className="mt-2 mb-4 flex flex-wrap gap-1">
                 {p.useDefaultImage ? <Badge>TIHLDE-bilde</Badge> : <Badge>Opplastet</Badge>}
                 {p.imageApprovedAt && <Badge tone="green">Godkjent</Badge>}
                 {p.imageRejectedReason && <Badge tone="red">Avvist</Badge>}
               </p>
               {!p.imageApprovedAt && (
-                <ActionForm action={approveImageAction} className="mb-2">
+                <ActionForm action={approveImageAction} className="mb-3">
                   <input type="hidden" name="playerId" value={p.id} />
                   <Button type="submit" variant="ghost">Godkjenn</Button>
                 </ActionForm>
               )}
               <ActionForm action={rejectImageAction} className="flex gap-2">
                 <input type="hidden" name="playerId" value={p.id} />
-                <input name="message" required placeholder="Kort melding" className={inputClass} />
+                <input name="message" required aria-label="Melding til deltakeren" placeholder="Kort melding" className={`${inputClass} min-w-0`} />
                 <Button type="submit" variant="danger">Avvis</Button>
               </ActionForm>
             </Card>
