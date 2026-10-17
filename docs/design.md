@@ -78,7 +78,7 @@ aldri uten å erstatte den.
 | Hva | Klasse |
 |---|---|
 | Sidebredde, spillersider | `max-w-5xl` (smale sider: `max-w-xl`, `max-w-2xl` eller `max-w-md`) |
-| Sidebredde, admin | `max-w-6xl` |
+| Sidebredde, admin | `max-w-7xl` ved siden av menyen (ligger i `AdminShell`) |
 | Luft over innholdet | `pt-8`, under `pb-16` (ligger i layoutene) |
 | Mellom tittel og innhold | `mb-8` (ligger i `PageTitle`) |
 | Mellom kort på en side | `space-y-6` på ytterste `div` |
@@ -207,7 +207,7 @@ glass (`bg-ink/75 backdrop-blur-xl`). Innholdet glir under. Logo til venstre,
 - Fra `lg` står menyen i samme rad som logoen.
 - Under `lg` står menyen på egen linje under logoen og brytes til flere linjer.
   Den scroller aldri sidelengs.
-- I adminpanelet er headeren like bred som panelet (`<SiteHeader wide />`).
+- Adminpanelet har ikke `SiteHeader`, men sin egen ramme (`AdminShell`).
 
 **Menylenker** (`NavLinks`) er like i headeren og i adminmenyen:
 
@@ -217,8 +217,10 @@ glass (`bg-ink/75 backdrop-blur-xl`). Innholdet glir under. Logo til venstre,
   opp på alle undersider.
 - Uleste varsler vises som en rød telleboble ved lenken, ikke som «Varsler (3)».
 
-**Adminmenyen** står til venstre og følger med når du ruller (`md:sticky`). På
-mobil står den over innholdet og brytes til flere linjer.
+**Adminmenyen** (`AdminShell`) er en sidemeny i full høyde, 256 px bred
+(`w-64`), med lenkene delt i grupper. Innholdet fyller resten av bredden, under
+en klistret topplinje med brødsmuler, «Logg ut» og avatar. På mobil er menyen
+skjult bak en menyknapp i topplinja og glir inn fra venstre.
 
 ---
 
@@ -277,4 +279,5 @@ avstandene.
 | `src/components/ActionForm.tsx` | Skjema med låsing, bekreftelse og svar under |
 | `src/components/NavLinks.tsx` | Menylenker med aktiv tilstand og telleboble |
 | `src/components/SiteHeader.tsx` | Header og banneret «Et drap du er part i venter på svar fra deg» |
-| `src/app/admin/layout.tsx` | Adminmenyen |
+| `src/app/admin/layout.tsx` | Hvilke lenker adminmenyen viser |
+| `src/components/AdminShell.tsx` | Adminrammen: sidemeny, topplinje og innholdsbredde |
