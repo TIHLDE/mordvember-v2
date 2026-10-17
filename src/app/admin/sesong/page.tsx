@@ -1,6 +1,6 @@
 import { desc } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Checkbox, Field, inputBase, inputClass, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
 import type { WeekRules } from "@/game/attendance";
@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 
 function RuleFields({ rules }: { rules: WeekRules }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
       <Field label="Dager"><input name="days" type="number" min={0} max={5} defaultValue={rules.days} className={inputClass} /></Field>
       <Field label="Timer"><input name="hours" type="number" min={0} max={8} step="0.5" defaultValue={rules.hours} className={inputClass} /></Field>
       <Field label="Fra"><input name="windowStart" defaultValue={rules.windowStart} className={inputClass} /></Field>
@@ -46,18 +46,18 @@ export default async function SeasonAdmin() {
   const all = await db.select().from(seasons).orderBy(desc(seasons.createdAt));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageTitle sub={`Fase: ${phaseLabel(season.phase)}`}>{season.name}</PageTitle>
 
       <Card title="Fase">
-        <ol className="mb-3 flex flex-wrap gap-2 text-sm">
+        <ol className="mb-5 flex flex-wrap gap-2 text-sm">
           {PHASES.map((p) => (
             <li key={p.key}>
               <Badge tone={p.key === season.phase ? "red" : "zinc"}>{p.label}</Badge>
             </li>
           ))}
         </ol>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {season.phase === "setup" && <PhaseButton phase="signup" label="Åpne påmelding" />}
           {season.phase === "signup" && <PhaseButton phase="closed" label="Steng påmelding" />}
           {season.phase === "signup" && <PhaseButton phase="setup" label="Tilbake til oppsett" />}
@@ -68,7 +68,7 @@ export default async function SeasonAdmin() {
       </Card>
 
       <Card title="Grunninfo">
-        <ActionForm action={updateBasicsAction} className="space-y-3">
+        <ActionForm action={updateBasicsAction} className="space-y-4">
           <Field label="Navn"><input name="name" defaultValue={season.name} className={inputClass} /></Field>
           <Field label="Påmeldingsfrist" hint="Påmeldingen stenger automatisk ved fristen.">
             <input type="datetime-local" name="signupDeadline" defaultValue={season.signupDeadline ? osloInputValue(season.signupDeadline) : ""} className={inputClass} />
@@ -80,20 +80,20 @@ export default async function SeasonAdmin() {
       </Card>
 
       <Card title="Ukeregler">
-        <ActionForm action={defaultRulesAction} className="space-y-2">
-          <p className="text-sm text-zinc-400">Standard for alle uker</p>
+        <ActionForm action={defaultRulesAction} className="space-y-3">
+          <p className="text-sm font-medium text-zinc-300">Standard for alle uker</p>
           <RuleFields rules={settings.defaultRules} />
           <Button type="submit">Lagre standard</Button>
         </ActionForm>
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-6">
           {weekRules.map(({ week, rules }) => (
-            <ActionForm key={week} action={weekRulesAction} className="space-y-2 border-t border-white/5 pt-4">
+            <ActionForm key={week} action={weekRulesAction} className="space-y-3 border-t border-white/5 pt-6">
               <input type="hidden" name="weekStart" value={week} />
-              <p className="text-sm text-zinc-400">Uke fra {formatOsloDate(week)}</p>
+              <p className="text-sm font-medium text-zinc-300">Uke fra {formatOsloDate(week)}</p>
               <RuleFields rules={rules} />
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-4">
                 <Button type="submit" variant="ghost">Lagre for denne uka</Button>
-                <label className="flex items-center gap-1 text-xs text-zinc-500"><input type="checkbox" name="reset" /> Bruk standard</label>
+                <Checkbox name="reset">Bruk standard</Checkbox>
               </div>
             </ActionForm>
           ))}
@@ -101,15 +101,15 @@ export default async function SeasonAdmin() {
       </Card>
 
       <Card title="Milepæler">
-        <ActionForm action={milestonesAction} className="space-y-2">
+        <ActionForm action={milestonesAction} className="space-y-3">
           {settings.milestones.map((m) => (
-            <div key={m.key} className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="w-48">{m.label}</span>
+            <div key={m.key} className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/5 pb-3 text-sm last-of-type:border-0">
+              <span className="w-full text-zinc-200 sm:w-48">{m.label}</span>
               {m.kind !== "winner" && (
-                <input name={`value-${m.key}`} type="number" defaultValue={m.value} className={`${inputClass} w-20`} />
+                <input name={`value-${m.key}`} type="number" aria-label={m.label} defaultValue={m.value} className={`${inputBase} w-20`} />
               )}
-              <span className="text-zinc-500">{m.kind === "percent" ? "% igjen" : m.kind === "count" ? "igjen" : ""}</span>
-              <label className="flex items-center gap-1"><input type="checkbox" name={`email-${m.key}`} defaultChecked={m.email} /> E-post</label>
+              <span className="w-14 text-zinc-500">{m.kind === "percent" ? "% igjen" : m.kind === "count" ? "igjen" : ""}</span>
+              <Checkbox name={`email-${m.key}`} defaultChecked={m.email}>E-post</Checkbox>
             </div>
           ))}
           <Button type="submit">Lagre</Button>
@@ -117,26 +117,26 @@ export default async function SeasonAdmin() {
       </Card>
 
       <Card title="Statistikk på tavla">
-        <ActionForm action={statsAction} className="space-y-2 text-sm">
-          <label className="flex items-center gap-2"><input type="checkbox" name="killsToday" defaultChecked={settings.stats.killsToday} /> Drap i dag</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="sinceLastKill" defaultChecked={settings.stats.sinceLastKill} /> Tid siden siste drap</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="topKillerToday" defaultChecked={settings.stats.topKillerToday} /> Dagens morder</label>
+        <ActionForm action={statsAction} className="space-y-3">
+          <Checkbox name="killsToday" defaultChecked={settings.stats.killsToday}>Drap i dag</Checkbox>
+          <Checkbox name="sinceLastKill" defaultChecked={settings.stats.sinceLastKill}>Tid siden siste drap</Checkbox>
+          <Checkbox name="topKillerToday" defaultChecked={settings.stats.topKillerToday}>Dagens morder</Checkbox>
           <Button type="submit">Lagre</Button>
         </ActionForm>
       </Card>
 
       <Card title="Kontorets posisjon">
-        <p className="mb-2 text-sm text-zinc-400">Innsjekk lenger unna enn radiusen merkes for arrangørene. Tomme felt slår av avstandssjekken.</p>
-        <ActionForm action={officeAction} className="grid grid-cols-3 gap-2">
+        <p className="mb-4 text-sm text-zinc-400">Innsjekk lenger unna enn radiusen merkes for arrangørene. Tomme felt slår av avstandssjekken.</p>
+        <ActionForm action={officeAction} className="grid gap-3 sm:grid-cols-3">
           <Field label="Breddegrad"><input name="lat" defaultValue={settings.office?.lat ?? ""} className={inputClass} /></Field>
           <Field label="Lengdegrad"><input name="lng" defaultValue={settings.office?.lng ?? ""} className={inputClass} /></Field>
           <Field label="Radius (m)"><input name="radius" defaultValue={settings.office?.radiusMeters ?? 300} className={inputClass} /></Field>
-          <Button type="submit" className="col-span-3 w-fit">Lagre</Button>
+          <Button type="submit" className="w-fit sm:col-span-3">Lagre</Button>
         </ActionForm>
       </Card>
 
       <Card title="Skjermlenke for tavla">
-        <p className="mb-2 text-sm text-zinc-400">
+        <p className="mb-4 text-sm text-zinc-400">
           {season.screenTokenCreatedAt ? `Aktiv lenke laget ${formatOslo(season.screenTokenCreatedAt)}.` : "Ingen aktiv lenke."}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -152,15 +152,15 @@ export default async function SeasonAdmin() {
       </Card>
 
       <Card title="Ny sesong">
-        <p className="mb-2 text-sm text-zinc-400">Oppretter en tom sesong. Den forrige slettes ikke. Spillmestere og arrangører følger med.</p>
-        <ActionForm action={createSeasonAction} className="flex gap-2" confirm="Opprette ny sesong? Den blir gjeldende sesong.">
-          <input name="name" required placeholder="Mordvember 2027" className={inputClass} />
+        <p className="mb-4 text-sm text-zinc-400">Oppretter en tom sesong. Den forrige slettes ikke. Spillmestere og arrangører følger med.</p>
+        <ActionForm action={createSeasonAction} className="flex flex-wrap gap-2" confirm="Opprette ny sesong? Den blir gjeldende sesong.">
+          <input name="name" required aria-label="Navn på ny sesong" placeholder="Mordvember 2027" className={`${inputClass} min-w-48 flex-1`} />
           <Button type="submit">Opprett</Button>
         </ActionForm>
       </Card>
 
       <Card title="Slett sesongdata">
-        <p className="mb-3 text-sm text-zinc-400">
+        <p className="mb-4 text-sm text-zinc-400">
           Fjerner bilder, navn, sirkel, drap, oppmøte og spørsmål. Igjen står antall deltakere, antall drap og varighet. Vinneren beholdes bare
           med samtykke.
         </p>
@@ -175,7 +175,7 @@ export default async function SeasonAdmin() {
               ) : (
                 <ActionForm action={deleteSeasonDataAction} className="flex flex-wrap gap-2" confirm={`Slette alle data for ${s.name}? Dette kan ikke angres.`}>
                   <input type="hidden" name="seasonId" value={s.id} />
-                  <input name="confirm" required placeholder={`Skriv «${s.name}»`} className={`${inputClass} flex-1`} />
+                  <input name="confirm" required aria-label="Bekreft sesongnavn" placeholder={`Skriv «${s.name}»`} className={`${inputClass} min-w-48 flex-1`} />
                   <Button type="submit" variant="danger">Slett data for {s.name}</Button>
                 </ActionForm>
               )}

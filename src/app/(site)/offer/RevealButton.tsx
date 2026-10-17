@@ -23,7 +23,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="flex aspect-square w-64 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50">
+      <div className="flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50">
         {target ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={target.image} alt="" className="h-full w-full object-cover" draggable={false} />
@@ -31,7 +31,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
           <span className="px-6 text-center text-sm text-zinc-500">{empty ? "Du har ikke noe offer nå" : "Skjult"}</span>
         )}
       </div>
-      <p className="h-8 text-2xl font-semibold text-white">{target?.name ?? ""}</p>
+      <p className="h-8 text-2xl font-semibold tracking-tight text-white">{target?.name ?? ""}</p>
       <button
         type="button"
         onPointerDown={start}
@@ -46,7 +46,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
           if (e.key === " " || e.key === "Enter") stop();
         }}
         onBlur={stop}
-        className="select-none touch-none rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white active:scale-95"
+        className="touch-none rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white transition-[background-color,transform] duration-150 ease-out-strong select-none hover:bg-blood-light active:scale-95 motion-reduce:active:scale-100"
       >
         Hold inne for å vise
       </button>

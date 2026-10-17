@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Checkbox, Field, inputClass, Notice, PageTitle } from "@/components/ui";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import {
@@ -21,18 +21,18 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   if (!player || !season) redirect("/");
   const isWinner = season.winnerPlayerId === player.id;
   return (
-    <div className="mx-auto max-w-xl space-y-4">
+    <div className="mx-auto max-w-xl space-y-6">
       <PageTitle sub={`${player.name} · ${player.studyProgram ?? "Studieprogram mangler"}${player.studyStartYear ? ` · kull ${player.studyStartYear}` : ""}`}>
         Profil
       </PageTitle>
-      {pameldt && <p className="rounded-lg bg-emerald-950 p-3 text-sm text-emerald-300">Du er påmeldt! Du får e-post når spillet starter.</p>}
+      {pameldt && <Notice tone="green">Du er påmeldt! Du får e-post når spillet starter.</Notice>}
       <Card title="Bilde">
-        <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-col gap-5 sm:flex-row">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt="" className="h-36 w-36 rounded-lg object-cover" />
-          <div className="flex-1 space-y-3">
+          <img src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt="" className="size-36 shrink-0 rounded-xl border border-white/10 object-cover" />
+          <div className="min-w-0 flex-1 space-y-4">
             {player.imageRejectedReason && (
-              <p className="rounded bg-red-950 p-2 text-sm text-red-300">Bildet ble avvist: {player.imageRejectedReason}</p>
+              <Notice tone="red">Bildet ble avvist: {player.imageRejectedReason}</Notice>
             )}
             {player.imageDeleted ? (
               <Badge>Bildet er slettet</Badge>
@@ -41,7 +41,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             )}
             {player.status === "alive" && (
               <>
-                <ActionForm action={uploadImageAction} className="space-y-2" resetOnSuccess>
+                <ActionForm action={uploadImageAction} className="space-y-3" resetOnSuccess>
                   <Field label="Last opp nytt bilde" hint="Ansiktet skal vises tydelig og utildekket. Maks 5 MB.">
                     <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
                   </Field>
@@ -64,11 +64,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </Card>
       {isWinner && (
         <Card title="Du vant!">
-          <ActionForm action={winnerConsentAction} className="space-y-2">
-            <label className="flex items-start gap-2 text-sm">
-              <input type="checkbox" name="consent" defaultChecked={player.winnerConsent} className="mt-1" />
+          <ActionForm action={winnerConsentAction} className="space-y-4">
+            <Checkbox name="consent" defaultChecked={player.winnerConsent}>
               Navnet mitt kan stå som vinner etter at sesongdata er slettet.
-            </label>
+            </Checkbox>
             <Button type="submit">Lagre</Button>
           </ActionForm>
         </Card>

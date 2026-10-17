@@ -259,14 +259,14 @@ async function main() {
   alive = await alivePlayers(season.id);
   const dqName = alive[3]!.name;
   await organizer.goto(`${BASE}/admin/deltakere`);
-  const dqRow = organizer.locator("tr").filter({ hasText: dqName });
+  const dqRow = organizer.locator("li").filter({ hasText: dqName });
   await dqRow.locator("input[name=reason]").fill("Testdiskvalifisering");
   await submit(organizer, dqRow.locator("form"), "Diskvalifiser");
   alive = await alivePlayers(season.id);
   const dq2 = alive.slice(0, 2).map((p) => p.name);
   for (const name of dq2) {
     await organizer.goto(`${BASE}/admin/deltakere`);
-    const row = organizer.locator("tr").filter({ hasText: name });
+    const row = organizer.locator("li").filter({ hasText: name });
     await row.locator("input[name=reason]").fill("Testdiskvalifisering");
     await submit(organizer, row.locator("form"), "Diskvalifiser");
   }

@@ -14,11 +14,11 @@ export default async function FaqPage() {
         {items.length === 0 ? (
           <Empty>Ingen publiserte spørsmål ennå.</Empty>
         ) : (
-          <dl className="space-y-5">
+          <dl className="divide-y divide-white/5">
             {items.map((q) => (
-              <div key={q.id}>
+              <div key={q.id} className="py-4 first:pt-0 last:pb-0">
                 <dt className="font-medium text-white">{q.question}</dt>
-                <dd className="mt-1 whitespace-pre-line text-sm text-zinc-300">{q.answer}</dd>
+                <dd className="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-zinc-300">{q.answer}</dd>
               </div>
             ))}
           </dl>
