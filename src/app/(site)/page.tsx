@@ -3,7 +3,7 @@ import { PlayerGrid } from "@/components/PlayerGrid";
 import { getViewer } from "@/server/auth/session";
 import { gridPlayers, visibleAliveCount } from "@/server/players";
 import { getCurrentSeason, phaseLabel, signupOpen } from "@/server/season";
-import { formatOslo } from "@/game/time";
+import { formatOslo, formatOsloDate } from "@/game/time";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,7 @@ export default async function Home() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2" title="Regler">
           <div className="space-y-3 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{info.rules}</div>
+          {info.startDate && season.phase !== "running" && season.phase !== "ended" && <p className="mt-4 text-sm text-zinc-400">Spillet starter {formatOsloDate(info.startDate)}.</p>}
           {info.dates && <p className="mt-4 whitespace-pre-line text-sm text-zinc-400">{info.dates}</p>}
           {season.signupDeadline && season.phase === "signup" && (
             <p className="mt-4 text-sm text-zinc-400">Påmeldingsfrist: {formatOslo(season.signupDeadline)}</p>

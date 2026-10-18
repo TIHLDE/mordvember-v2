@@ -33,7 +33,7 @@ export type SeasonSettings = {
   milestones: MilestoneRule[];
   defaultRules: WeekRules;
   office: { lat: number; lng: number; radiusMeters: number } | null;
-  info: { rules: string; dates: string };
+  info: { rules: string; dates: string; startDate?: string | null };
 };
 
 export type SeasonSummary = { participants: number; kills: number; durationDays: number };

@@ -21,7 +21,7 @@ export default async function TemplatesPage() {
             <Field label="Tekst"><textarea name="body" rows={5} defaultValue={t.body} className={inputClass} /></Field>
             <div className="flex flex-wrap items-center gap-4">
               <Button type="submit">Lagre</Button>
-              {t.custom && <Checkbox name="reset">Tilbakestill til standard</Checkbox>}
+              {t.custom && <Checkbox name="restoreDefault">Tilbakestill til standard</Checkbox>}
             </div>
           </ActionForm>
         </Card>

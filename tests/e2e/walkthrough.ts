@@ -295,10 +295,10 @@ async function main() {
   assert((await anon.locator("text=Teller det hvis offeret sover?").count()) === 1, "FAQ publisert");
   log("Spørsmål stilt, besvart privat og publisert anonymt");
 
-  await organizer.goto(`${BASE}/admin/bilder`);
-  const xrayCard = organizer.locator("li").filter({ hasText: "Deltaker Xray" });
-  await xrayCard.locator("input[name=message]").fill("Ansiktet vises ikke");
-  await submit(organizer, xrayCard.locator("form").filter({ hasText: "Avvis" }), "Avvis");
+  await organizer.goto(`${BASE}/admin/deltakere`);
+  await organizer.locator("a", { hasText: "Deltaker Xray" }).click();
+  await organizer.locator("input[name=message]").fill("Ansiktet vises ikke");
+  await submit(organizer, organizer.locator("form").filter({ hasText: "Avvis" }), "Avvis");
   log("Bilde avvist av arrangør");
 
   let round = 0;
