@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import type { SeasonSettings } from "@/db/schema";
 import type { WeekRules } from "@/game/attendance";
 import { type ActionState, osloInput, run, text } from "@/lib/action";
@@ -158,7 +159,9 @@ export async function addPlayerAction(_: ActionState, form: FormData) {
 }
 
 export async function removePlayerAction(_: ActionState, form: FormData) {
-  return run(async () => removePlayerAsGamemaster(await requireGamemaster(), text(form, "playerId")), "Deltakeren er fjernet");
+  const result = await run(async () => removePlayerAsGamemaster(await requireGamemaster(), text(form, "playerId")), "Deltakeren er fjernet");
+  if (result?.ok) redirect("/admin/deltakere");
+  return result;
 }
 
 export async function createSeasonAction(_: ActionState, form: FormData) {
@@ -172,9 +175,12 @@ export async function setPhaseAction(_: ActionState, form: FormData) {
 export async function updateBasicsAction(_: ActionState, form: FormData) {
   return run(async () => {
     const deadline = text(form, "signupDeadline");
+    const startDate = text(form, "startDate");
+    if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) throw new GameError("Ugyldig startdato");
     await updateSeasonBasics(await requireGamemaster(), {
       name: text(form, "name"),
       signupDeadline: deadline ? osloInput(deadline) : null,
+      startDate: startDate || null,
       rulesText: text(form, "rulesText"),
       dates: text(form, "dates"),
     });
@@ -187,8 +193,8 @@ export async function defaultRulesAction(_: ActionState, form: FormData) {
 
 export async function weekRulesAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const reset = form.get("reset") === "on";
-    await setWeekRules(await requireGamemaster(), text(form, "weekStart"), reset ? null : rulesFrom(form));
+    const useDefault = form.get("useDefault") === "on";
+    await setWeekRules(await requireGamemaster(), text(form, "weekStart"), useDefault ? null : rulesFrom(form));
   });
 }
 
@@ -264,7 +270,7 @@ export async function saveTemplateAction(_: ActionState, form: FormData) {
   return run(async () => {
     const key = text(form, "key");
     if (!(key in DEFAULT_TEMPLATES)) throw new GameError("Ukjent mal");
-    if (form.get("reset") === "on") return resetTemplate(await requireGamemaster(), key as TemplateKey);
+    if (form.get("restoreDefault") === "on") return resetTemplate(await requireGamemaster(), key as TemplateKey);
     await saveTemplate(await requireGamemaster(), key as TemplateKey, text(form, "subject"), text(form, "body"));
   });
 }

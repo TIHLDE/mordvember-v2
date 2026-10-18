@@ -189,8 +189,7 @@ linje før det blir for smalt. Står flere felt på rad, pakk dem i `Field` med
 ```
 
 - Mange like rader: én `Card` med `divide-y`, ikke ett kort per rad.
-- Et rutenett av kort bare når hvert element har mye innhold (bilder i
-  `admin/bilder`).
+- Et rutenett av kort bare når hvert element har mye innhold.
 - En rad med navn og handling: `flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`.
   Navnet står over knappen på mobil og ved siden av på desktop.
 - Et kort som er en lenke (tallene på admin-forsiden): legg `group` på lenken

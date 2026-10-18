@@ -1,11 +1,12 @@
 import { desc } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
-import { DateTimePicker } from "@/components/DateTimePicker";
+import { DateField, DateTimePicker, TimeField } from "@/components/DateTimePicker";
+import { NumberStepper } from "@/components/NumberStepper";
 import { Badge, Button, Card, Checkbox, Field, inputBase, inputClass, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
 import type { WeekRules } from "@/game/attendance";
-import { addDays, formatOslo, formatOsloDate, weekStartOf } from "@/game/time";
+import { addDays, formatOslo, formatOsloDate, osloTime, weekStartOf } from "@/game/time";
 import { osloInputValue } from "@/lib/action";
 import { guard } from "@/lib/guard";
 import { PHASES, phaseLabel, rulesForWeek } from "@/server/season";
@@ -27,12 +28,12 @@ export const dynamic = "force-dynamic";
 
 function RuleFields({ rules }: { rules: WeekRules }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-      <Field label="Dager"><input name="days" type="number" min={0} max={5} defaultValue={rules.days} className={inputClass} /></Field>
-      <Field label="Timer"><input name="hours" type="number" min={0} max={8} step="0.5" defaultValue={rules.hours} className={inputClass} /></Field>
-      <Field label="Fra"><input name="windowStart" defaultValue={rules.windowStart} className={inputClass} /></Field>
-      <Field label="Til"><input name="windowEnd" defaultValue={rules.windowEnd} className={inputClass} /></Field>
-      <Field label="Drap"><input name="killsRequired" type="number" min={0} max={20} defaultValue={rules.killsRequired} className={inputClass} /></Field>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <Field label="Dager"><NumberStepper name="days" min={0} max={5} defaultValue={rules.days} /></Field>
+      <Field label="Timer"><NumberStepper name="hours" min={0} max={8} step={0.5} defaultValue={rules.hours} /></Field>
+      <Field label="Drap"><NumberStepper name="killsRequired" min={0} max={20} defaultValue={rules.killsRequired} /></Field>
+      <Field label="Fra"><TimeField name="windowStart" defaultValue={rules.windowStart} required /></Field>
+      <Field label="Til"><TimeField name="windowEnd" defaultValue={rules.windowEnd} required /></Field>
     </div>
   );
 }
@@ -42,7 +43,13 @@ export default async function SeasonAdmin() {
   const season = viewer.season;
   const settings = season.settings;
   const thisWeek = weekStartOf(new Date());
-  const weeks = [thisWeek, addDays(thisWeek, 7), addDays(thisWeek, 14)];
+  const startWeek = settings.info.startDate ? weekStartOf(osloTime(settings.info.startDate, "12:00")) : null;
+  const firstWeek = startWeek && startWeek > thisWeek ? startWeek : thisWeek;
+  const weeks = [firstWeek, addDays(firstWeek, 7), addDays(firstWeek, 14)];
+  const weekLabel = (week: string) => {
+    const number = startWeek ? Math.round((Date.parse(week) - Date.parse(startWeek)) / (7 * 864e5)) + 1 : null;
+    return `${number ? `Uke ${number} · ` : "Uka fra "}${formatOsloDate(week)}`;
+  };
   const weekRules = await Promise.all(weeks.map(async (w) => ({ week: w, rules: await rulesForWeek(season, w) })));
   const all = await db.select().from(seasons).orderBy(desc(seasons.createdAt));
 
@@ -70,12 +77,25 @@ export default async function SeasonAdmin() {
 
       <Card title="Grunninfo">
         <ActionForm action={updateBasicsAction} className="space-y-4">
-          <Field label="Navn"><input name="name" defaultValue={season.name} className={inputClass} /></Field>
-          <Field label="Påmeldingsfrist" hint="Påmeldingen stenger automatisk ved fristen.">
-            <DateTimePicker name="signupDeadline" defaultValue={season.signupDeadline ? osloInputValue(season.signupDeadline) : ""} />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem_11rem]">
+            <Field label="Navn"><input name="name" defaultValue={season.name} className={inputClass} /></Field>
+            <Field label="Påmeldingsfrist" hint="Påmeldingen stenger automatisk.">
+              <DateTimePicker name="signupDeadline" defaultValue={season.signupDeadline ? osloInputValue(season.signupDeadline) : ""} />
+            </Field>
+            <Field label="Spillstart" hint="Vises på forsiden. Ukereglene starter her.">
+              <DateField name="startDate" defaultValue={settings.info.startDate ?? ""} />
+            </Field>
+          </div>
+          <Field label="Regler" hint="Vises på forsiden."><textarea name="rulesText" rows={6} defaultValue={settings.info.rules} className={inputClass} /></Field>
+          <Field label="Andre datoer" hint="Vises under reglene på forsiden, sammen med spillstart. Én dato per linje.">
+            <textarea
+              name="dates"
+              rows={3}
+              defaultValue={settings.info.dates}
+              placeholder={"Fredag 13. november: første fredagsliste\nTorsdag 3. desember: finale og premieutdeling"}
+              className={inputClass}
+            />
           </Field>
-          <Field label="Regler (vises på forsiden)"><textarea name="rulesText" rows={6} defaultValue={settings.info.rules} className={inputClass} /></Field>
-          <Field label="Datoer (vises på forsiden)"><textarea name="dates" rows={2} defaultValue={settings.info.dates} className={inputClass} /></Field>
           <Button type="submit">Lagre</Button>
         </ActionForm>
       </Card>
@@ -90,11 +110,11 @@ export default async function SeasonAdmin() {
           {weekRules.map(({ week, rules }) => (
             <ActionForm key={week} action={weekRulesAction} className="space-y-3 border-t border-white/5 pt-6">
               <input type="hidden" name="weekStart" value={week} />
-              <p className="text-sm font-medium text-zinc-300">Uke fra {formatOsloDate(week)}</p>
+              <p className="text-sm font-medium text-zinc-300 first-letter:uppercase">{weekLabel(week)}</p>
               <RuleFields rules={rules} />
               <div className="flex flex-wrap items-center gap-4">
                 <Button type="submit" variant="ghost">Lagre for denne uka</Button>
-                <Checkbox name="reset">Bruk standard</Checkbox>
+                <Checkbox name="useDefault">Bruk standard</Checkbox>
               </div>
             </ActionForm>
           ))}

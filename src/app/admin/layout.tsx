@@ -15,7 +15,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/drap", label: "Drapssaker", show: viewer.isStaff },
         { href: "/admin/fredag", label: "Fredagslista", show: viewer.isStaff },
         { href: "/admin/oppmote", label: "Oppmøte", show: viewer.isStaff },
-        { href: "/admin/bilder", label: "Bilder", show: viewer.isStaff },
         { href: "/admin/sporsmal", label: "Spørsmål", show: viewer.isStaff },
         { href: "/admin/deltakere", label: "Deltakere", show: viewer.isStaff },
         { href: "/admin/sirkel", label: "Sirkel", show: viewer.canSeeCircle },

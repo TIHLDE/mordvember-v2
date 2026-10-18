@@ -10,7 +10,7 @@ function assert(cond: unknown, message: string): asserts cond {
 
 const PAGES = [
   "/", "/pamelding", "/offer", "/drap", "/oppmote", "/sjekkinn", "/profil", "/varsler", "/sporsmal", "/faq",
-  "/admin", "/admin/drap", "/admin/fredag", "/admin/oppmote", "/admin/bilder", "/admin/sporsmal", "/admin/deltakere",
+  "/admin", "/admin/drap", "/admin/fredag", "/admin/oppmote", "/admin/sporsmal", "/admin/deltakere",
   "/admin/sirkel", "/admin/sesong", "/admin/maler", "/admin/roller", "/admin/logg", "/admin/nodtilgang",
 ];
 const GM_ONLY = ["/admin/sirkel", "/admin/sesong", "/admin/maler", "/admin/logg"];

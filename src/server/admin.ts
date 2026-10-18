@@ -76,9 +76,12 @@ export async function setPhase(viewer: Viewer, phase: Phase) {
   await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "sesong.fase", details: { phase } });
 }
 
-export async function updateSeasonBasics(viewer: Viewer, input: { name: string; signupDeadline: Date | null; rulesText: string; dates: string }) {
+export async function updateSeasonBasics(
+  viewer: Viewer,
+  input: { name: string; signupDeadline: Date | null; startDate: string | null; rulesText: string; dates: string },
+) {
   const season = gm(viewer);
-  const settings: SeasonSettings = { ...season.settings, info: { rules: input.rulesText, dates: input.dates } };
+  const settings: SeasonSettings = { ...season.settings, info: { rules: input.rulesText, dates: input.dates, startDate: input.startDate } };
   await db
     .update(seasons)
     .set({ name: input.name.trim() || season.name, signupDeadline: input.signupDeadline, settings })
