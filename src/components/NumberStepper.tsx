@@ -47,9 +47,9 @@ export function NumberStepper({
           const raw = e.target.value.replace(decimals ? /[^\d,.]/g : /\D/g, "");
           setText(raw);
           const parsed = Number(raw.replace(",", "."));
-          if (raw !== "" && Number.isFinite(parsed) && parsed >= min && parsed <= (max ?? Infinity)) setValue(parsed);
+          if (raw !== "" && Number.isFinite(parsed)) setValue(Number(clamp(parsed).toFixed(decimals)));
         }}
-        onBlur={() => commit(text === "" ? value : Number(text.replace(",", ".")) || 0)}
+        onBlur={() => commit(value)}
         onKeyDown={(e) => {
           if (e.key === "ArrowUp" || e.key === "ArrowDown") {
             e.preventDefault();

@@ -27,8 +27,9 @@ import {
 export const dynamic = "force-dynamic";
 
 function RuleFields({ rules }: { rules: WeekRules }) {
+  // The fields keep their own state, so remount them when the saved rules change (e.g. after «Bruk standard»).
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div key={JSON.stringify(rules)} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       <Field label="Dager"><NumberStepper name="days" min={0} max={5} defaultValue={rules.days} /></Field>
       <Field label="Timer"><NumberStepper name="hours" min={0} max={8} step={0.5} defaultValue={rules.hours} /></Field>
       <Field label="Drap"><NumberStepper name="killsRequired" min={0} max={20} defaultValue={rules.killsRequired} /></Field>
