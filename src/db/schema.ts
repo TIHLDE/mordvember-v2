@@ -59,6 +59,9 @@ export const sessions = pgTable("sessions", {
     .references(() => users.id, { onDelete: "cascade" }),
   isKokLeader: boolean("is_kok_leader").notNull().default(false),
   isIndexLeader: boolean("is_index_leader").notNull().default(false),
+  photonAccessToken: text("photon_access_token"),
+  photonRefreshToken: text("photon_refresh_token"),
+  photonTokenExpiresAt: ts("photon_token_expires_at"),
   createdAt: createdAt(),
   expiresAt: ts("expires_at").notNull(),
 });

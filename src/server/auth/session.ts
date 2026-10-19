@@ -7,14 +7,23 @@ import { db } from "@/db";
 import { emergencyAccess, players, seasons, sessions, staff, users } from "@/db/schema";
 import { env } from "../env";
 import { getCurrentSeason } from "../season";
-import type { PhotonIdentity } from "./photon";
+import { type PhotonIdentity, type PhotonTokens, refreshTokens } from "./photon";
+import { seal, unseal } from "./token-box";
 
 export const SESSION_COOKIE = "mv_session";
 const SESSION_DAYS = 3;
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 
-export async function startSession(identity: PhotonIdentity): Promise<string> {
+function sealedTokens(tokens: PhotonTokens) {
+  return {
+    photonAccessToken: seal(tokens.accessToken),
+    photonRefreshToken: tokens.refreshToken ? seal(tokens.refreshToken) : null,
+    photonTokenExpiresAt: tokens.expiresAt,
+  };
+}
+
+export async function startSession(identity: PhotonIdentity, tokens?: PhotonTokens): Promise<string> {
   const [user] = await db
     .insert(users)
     .values({
@@ -48,6 +57,7 @@ export async function startSession(identity: PhotonIdentity): Promise<string> {
     userId: user.id,
     isKokLeader: identity.isKokLeader,
     isIndexLeader: identity.isIndexLeader,
+    ...(tokens ? sealedTokens(tokens) : {}),
     expiresAt: new Date(Date.now() + SESSION_DAYS * 86400_000),
   });
   const jar = await cookies();
@@ -59,6 +69,29 @@ export async function startSession(identity: PhotonIdentity): Promise<string> {
     maxAge: SESSION_DAYS * 86400,
   });
   return user.id;
+}
+
+export async function currentPhotonToken(): Promise<string | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const id = hash(token);
+  const session = await db.query.sessions.findFirst({ where: and(eq(sessions.id, id), gt(sessions.expiresAt, new Date())) });
+  if (!session?.photonAccessToken) return null;
+  if (session.photonTokenExpiresAt && session.photonTokenExpiresAt.getTime() > Date.now() + 60_000) {
+    return unseal(session.photonAccessToken);
+  }
+  const refreshToken = session.photonRefreshToken ? unseal(session.photonRefreshToken) : null;
+  if (!refreshToken) return null;
+  const fresh = await refreshTokens(refreshToken).catch((error) => {
+    console.error("Kunne ikke fornye Photon-tokenet", error);
+    return null;
+  });
+  if (!fresh) return null;
+  await db
+    .update(sessions)
+    .set(sealedTokens({ ...fresh, refreshToken: fresh.refreshToken ?? refreshToken }))
+    .where(eq(sessions.id, id));
+  return fresh.accessToken;
 }
 
 export async function endSession() {

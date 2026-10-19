@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, Empty, inputBase, inputClass, PageTitle } from "@/components/ui";
+import { Button, Card, Empty, inputBase, PageTitle } from "@/components/ui";
+import { UserSearch } from "@/components/UserSearch";
 import { guard } from "@/lib/guard";
 import { listStaff } from "@/server/admin";
 import { addStaffAction, removeStaffAction } from "../actions";
@@ -13,8 +14,9 @@ export default async function RolesAdmin() {
     <div className="space-y-6">
       <PageTitle sub="Spillmestere ser sirkelen. Arrangører godkjenner drap, oppmøte, bilder og spørsmål, men ser ikke hvem som har hvem.">Roller</PageTitle>
       <Card title="Legg til">
-        <ActionForm action={addStaffAction} className="flex flex-wrap gap-2" resetOnSuccess>
-          <input name="username" required aria-label="TIHLDE-brukernavn" placeholder="TIHLDE-brukernavn" className={`${inputClass} min-w-48 flex-1`} />
+        <p className="mb-4 text-sm text-zinc-400">Søk blant brukerne i Photon. Personen trenger ikke å ha logget inn i Mordvember først.</p>
+        <ActionForm action={addStaffAction} className="flex flex-wrap items-start gap-2" resetOnSuccess>
+          <UserSearch name="username" className="min-w-48 flex-1" />
           <select name="role" aria-label="Rolle" className={`${inputBase} w-auto`}>
             <option value="organizer">Arrangør</option>
             <option value="gamemaster">Spillmester</option>
