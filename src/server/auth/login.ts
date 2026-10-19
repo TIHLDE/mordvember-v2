@@ -4,13 +4,13 @@ import { db } from "@/db";
 import { players, staff, users } from "@/db/schema";
 import { deleteImages, storeImage } from "../images";
 import { getCurrentSeason } from "../season";
-import { downloadPhotonImage, type PhotonIdentity } from "./photon";
+import { downloadPhotonImage, type PhotonIdentity, type PhotonTokens } from "./photon";
 import { startSession } from "./session";
 
-export async function onLogin(identity: PhotonIdentity, token?: string) {
-  const userId = await startSession(identity);
-  if (token) {
-    await copyPhotonImage(userId, identity.image, token).catch((error) =>
+export async function onLogin(identity: PhotonIdentity, tokens?: PhotonTokens) {
+  const userId = await startSession(identity, tokens);
+  if (tokens) {
+    await copyPhotonImage(userId, identity.image, tokens.accessToken).catch((error) =>
       console.error("Kunne ikke kopiere profilbildet fra Photon", error),
     );
   }
