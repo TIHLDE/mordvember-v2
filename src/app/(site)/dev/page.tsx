@@ -1,6 +1,6 @@
 import { asc, like } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
-import { Button, Card, PageTitle } from "@/components/ui";
+import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { safeNext } from "@/lib/redirect";
@@ -40,17 +40,15 @@ export default async function DevLoginPage({ searchParams }: { searchParams: Pro
       <div className="grid gap-3 sm:grid-cols-2">
         {testUsers.map((u) => (
           <Card key={u.id}>
-            <form action={devLogin} className="space-y-2">
+            <form action={devLogin} className="space-y-3">
               <input type="hidden" name="username" value={u.username} />
               <input type="hidden" name="next" value={safeNext(next)} />
-              <p className="font-medium text-white">{u.name}</p>
-              <p className="text-xs text-zinc-500">{u.username}</p>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="kok" defaultChecked={u.username === "test-kokleder"} /> Leder i KoK
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="index" defaultChecked={u.username === "test-indexleder"} /> Leder i Index
-              </label>
+              <div>
+                <p className="font-medium text-white">{u.name}</p>
+                <p className="text-xs text-zinc-500">{u.username}</p>
+              </div>
+              <Checkbox name="kok" defaultChecked={u.username === "test-kokleder"}>Leder i KoK</Checkbox>
+              <Checkbox name="index" defaultChecked={u.username === "test-indexleder"}>Leder i Index</Checkbox>
               <Button type="submit">Logg inn som {u.name.split(" ")[0]}</Button>
             </form>
           </Card>

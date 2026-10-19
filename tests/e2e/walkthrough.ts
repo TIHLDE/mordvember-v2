@@ -259,14 +259,14 @@ async function main() {
   alive = await alivePlayers(season.id);
   const dqName = alive[3]!.name;
   await organizer.goto(`${BASE}/admin/deltakere`);
-  const dqRow = organizer.locator("tr").filter({ hasText: dqName });
+  const dqRow = organizer.locator("li").filter({ hasText: dqName });
   await dqRow.locator("input[name=reason]").fill("Testdiskvalifisering");
   await submit(organizer, dqRow.locator("form"), "Diskvalifiser");
   alive = await alivePlayers(season.id);
   const dq2 = alive.slice(0, 2).map((p) => p.name);
   for (const name of dq2) {
     await organizer.goto(`${BASE}/admin/deltakere`);
-    const row = organizer.locator("tr").filter({ hasText: name });
+    const row = organizer.locator("li").filter({ hasText: name });
     await row.locator("input[name=reason]").fill("Testdiskvalifisering");
     await submit(organizer, row.locator("form"), "Diskvalifiser");
   }
@@ -295,10 +295,10 @@ async function main() {
   assert((await anon.locator("text=Teller det hvis offeret sover?").count()) === 1, "FAQ publisert");
   log("Spørsmål stilt, besvart privat og publisert anonymt");
 
-  await organizer.goto(`${BASE}/admin/bilder`);
-  const xrayCard = organizer.locator("li").filter({ hasText: "Deltaker Xray" });
-  await xrayCard.locator("input[name=message]").fill("Ansiktet vises ikke");
-  await submit(organizer, xrayCard.locator("form").filter({ hasText: "Avvis" }), "Avvis");
+  await organizer.goto(`${BASE}/admin/deltakere`);
+  await organizer.locator("a", { hasText: "Deltaker Xray" }).click();
+  await organizer.locator("input[name=message]").fill("Ansiktet vises ikke");
+  await submit(organizer, organizer.locator("form").filter({ hasText: "Avvis" }), "Avvis");
   log("Bilde avvist av arrangør");
 
   let round = 0;

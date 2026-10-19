@@ -17,7 +17,7 @@ export default async function CheckinPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="mx-auto max-w-md py-8 text-center">
-      <PageTitle>Oppmøte</PageTitle>
+      <PageTitle center>Oppmøte</PageTitle>
       {feil === "kode" && !pending ? (
         <p className="text-red-400">QR-koden er utløpt eller ugyldig. Skann på nytt.</p>
       ) : !viewer ? (

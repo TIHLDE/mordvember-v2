@@ -3,24 +3,21 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { getViewer } from "@/server/auth/session";
-import { openKillsForPlayer } from "@/server/game";
-import { NavLink } from "./NavLink";
+import { UserAvatar } from "./Avatar";
+import { NavLinks, type NavLink } from "./NavLinks";
+import { PendingKillBanner } from "./PendingKillBanner";
+import { buttonClass } from "./ui";
 
 export async function SiteHeader() {
   const viewer = await getViewer();
   let unread = 0;
-  let waiting = 0;
   if (viewer) {
     unread = await db.$count(notifications, and(eq(notifications.userId, viewer.user.id), isNull(notifications.readAt)));
-    if (viewer.season && viewer.player) {
-      const open = await openKillsForPlayer(viewer.season.id, viewer.player.id);
-      waiting = open.filter((k) => k.status === "pending" && (k.reportedBy === "killer" ? k.victimId : k.killerId) === viewer.player!.id).length;
-    }
   }
   const playing = viewer?.player && viewer.season && viewer.season.phase === "running";
-  const links = viewer
+  const links: NavLink[] = viewer
     ? [
-        { href: "/", label: "Deltakere" },
+        { href: "/", label: "Deltakere", exact: true },
         ...(playing && viewer.player?.status === "alive"
           ? [
               { href: "/offer", label: "Mitt offer" },
@@ -28,48 +25,49 @@ export async function SiteHeader() {
               { href: "/oppmote", label: "Oppmøte" },
             ]
           : []),
-        ...(viewer.player ? [{ href: "/profil", label: "Profil" }] : []),
         { href: "/sporsmal", label: "Spørsmål" },
-        { href: "/varsler", label: unread ? `Varsler (${unread})` : "Varsler" },
+        { href: "/varsler", label: "Varsler", count: unread },
         ...(viewer.isStaff || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
       ]
     : [];
+  const container = "mx-auto max-w-5xl px-4";
 
   return (
     <>
-      <header className="glass sticky top-0 z-40">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3">
-          <Link href="/" className="font-display text-2xl text-blood">
-            Mordvember
-          </Link>
-          <nav className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-sm">
-            {links.map((l) => (
-              <NavLink key={l.href} href={l.href} className="nav-link text-zinc-400 hover:text-white aria-[current=page]:text-white">
-                {l.label}
-              </NavLink>
-            ))}
-          </nav>
-          {viewer ? (
-            <form action="/api/auth/logout" method="post">
-              <button className="press text-sm text-zinc-500 hover:text-zinc-300">Logg ut</button>
-            </form>
-          ) : (
-            <Link href="/login" className="text-sm text-zinc-300 hover:text-white">
-              Logg inn
+      <header className="material sticky top-0 z-40 border-b border-white/10 bg-ink/75 backdrop-blur-xl backdrop-saturate-150">
+        <div className={container}>
+          <div className="flex h-14 items-center gap-6">
+            <Link href="/" className="font-display text-2xl text-blood">
+              Mordvember
             </Link>
-          )}
+            {links.length > 0 && <NavLinks links={links} className="hidden flex-1 lg:flex" />}
+            <div className="ml-auto flex items-center gap-2">
+              {viewer ? (
+                <>
+                  <form action="/api/auth/logout" method="post">
+                    <button className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+                      Logg ut
+                    </button>
+                  </form>
+                  {viewer.player ? (
+                    <Link href="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+                      <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
+                    </Link>
+                  ) : (
+                    <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
+                  )}
+                </>
+              ) : (
+                <Link href="/login" className={buttonClass({ variant: "ghost", size: "sm" })}>
+                  Logg inn
+                </Link>
+              )}
+            </div>
+          </div>
+          {links.length > 0 && <NavLinks links={links} className="-mx-1 pb-3 lg:hidden" />}
         </div>
       </header>
-      {waiting > 0 && (
-        <div className="appear bg-blood/90 text-white">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-            <span>Et drap du er part i venter på svar fra deg.</span>
-            <Link href="/drap" className="press rounded bg-white/15 px-3 py-1 font-medium hover:bg-white/25">
-              Bekreft eller avvis
-            </Link>
-          </div>
-        </div>
-      )}
+      <PendingKillBanner className={container} />
     </>
   );
 }

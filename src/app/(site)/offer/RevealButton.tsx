@@ -29,7 +29,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
     <div className="flex flex-col items-center gap-6">
       <div
         data-state={pressed ? "holding" : "idle"}
-        className="reveal-frame flex aspect-square w-64 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50"
+        className="reveal-frame flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50"
       >
         {target ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -56,7 +56,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
         }}
         onBlur={stop}
         data-pressed={pressed || undefined}
-        className="press select-none touch-none rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white shadow-[0_10px_30px_-10px_rgb(179_18_27/0.6)] data-[pressed]:bg-blood-light data-[pressed]:shadow-none"
+        className="touch-none rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white shadow-[0_10px_30px_-10px_rgb(179_18_27/0.6)] transition-[background-color,box-shadow,transform] duration-150 ease-out-strong select-none hover:bg-blood-light active:scale-95 data-[pressed]:scale-95 data-[pressed]:bg-blood-light data-[pressed]:shadow-none motion-reduce:active:scale-100 motion-reduce:data-[pressed]:scale-100"
       >
         Hold inne for å vise
       </button>

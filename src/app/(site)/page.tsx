@@ -3,7 +3,7 @@ import { PlayerGrid } from "@/components/PlayerGrid";
 import { getViewer } from "@/server/auth/session";
 import { gridPlayers, visibleAliveCount } from "@/server/players";
 import { getCurrentSeason, phaseLabel, signupOpen } from "@/server/season";
-import { formatOslo } from "@/game/time";
+import { formatOslo, formatOsloDate } from "@/game/time";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,7 @@ export default async function Home() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2" title="Regler">
           <div className="space-y-3 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{info.rules}</div>
+          {info.startDate && season.phase !== "running" && season.phase !== "ended" && <p className="mt-4 text-sm text-zinc-400">Spillet starter {formatOsloDate(info.startDate)}.</p>}
           {info.dates && <p className="mt-4 whitespace-pre-line text-sm text-zinc-400">{info.dates}</p>}
           {season.signupDeadline && season.phase === "signup" && (
             <p className="mt-4 text-sm text-zinc-400">Påmeldingsfrist: {formatOslo(season.signupDeadline)}</p>
@@ -32,7 +33,7 @@ export default async function Home() {
         </Card>
         <Card>
           <p className="text-sm text-zinc-400">Spillere igjen</p>
-          <p className="font-display text-6xl text-blood">{season.phase === "running" || season.phase === "ended" ? alive : grid.length}</p>
+          <p className="mt-2 font-display text-6xl leading-none text-blood tabular-nums">{season.phase === "running" || season.phase === "ended" ? alive : grid.length}</p>
           {season.phase !== "running" && season.phase !== "ended" && <p className="text-xs text-zinc-500">påmeldt</p>}
           {winner && viewer && <p className="mt-3 text-sm">Vinner: <strong className="text-white">{winner.name}</strong></p>}
           {season.dataDeletedAt && season.winnerName && <p className="mt-3 text-sm">Vinner: {season.winnerName}</p>}
@@ -40,15 +41,15 @@ export default async function Home() {
       </div>
 
       {!viewer && (
-        <Card>
-          <p className="mb-3 text-zinc-300">Logg inn med TIHLDE-brukeren din for å se deltakerne og melde deg på.</p>
+        <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-zinc-300">Logg inn med TIHLDE-brukeren din for å se deltakerne og melde deg på.</p>
           <LinkButton href="/login">Logg inn</LinkButton>
         </Card>
       )}
 
       {viewer && !viewer.player && !viewer.isGamemaster && signupOpen(season) && (
-        <Card>
-          <p className="mb-3 text-zinc-300">Påmeldingen er åpen.</p>
+        <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-zinc-300">Påmeldingen er åpen.</p>
           <LinkButton href="/pamelding">Meld deg på</LinkButton>
         </Card>
       )}
@@ -70,7 +71,7 @@ export default async function Home() {
 
       {viewer && grid.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Deltakere</h2>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">Deltakere</h2>
           <PlayerGrid players={grid} />
         </section>
       )}

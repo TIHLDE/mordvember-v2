@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { Button, Card, Empty, inputBase, PageTitle } from "@/components/ui";
+import { UserSearch } from "@/components/UserSearch";
 import { guard } from "@/lib/guard";
 import { listStaff } from "@/server/admin";
 import { addStaffAction, removeStaffAction } from "../actions";
@@ -10,12 +11,13 @@ export default async function RolesAdmin() {
   const viewer = await guard("roles");
   const rows = await listStaff(viewer.season.id);
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageTitle sub="Spillmestere ser sirkelen. Arrangører godkjenner drap, oppmøte, bilder og spørsmål, men ser ikke hvem som har hvem.">Roller</PageTitle>
       <Card title="Legg til">
-        <ActionForm action={addStaffAction} className="flex flex-wrap gap-2" resetOnSuccess>
-          <input name="username" required placeholder="TIHLDE-brukernavn" className={`${inputClass} flex-1`} />
-          <select name="role" className={`${inputClass} w-auto`}>
+        <p className="mb-4 text-sm text-zinc-400">Søk blant brukerne i Photon. Personen trenger ikke å ha logget inn i Mordvember først.</p>
+        <ActionForm action={addStaffAction} className="flex flex-wrap items-start gap-2" resetOnSuccess>
+          <UserSearch name="username" className="min-w-48 flex-1" />
+          <select name="role" aria-label="Rolle" className={`${inputBase} w-auto`}>
             <option value="organizer">Arrangør</option>
             <option value="gamemaster">Spillmester</option>
           </select>
@@ -28,14 +30,14 @@ export default async function RolesAdmin() {
         ) : (
           <ul className="divide-y divide-white/5 text-sm">
             {rows.map((r) => (
-              <li key={r.id} className="flex items-center justify-between py-2">
-                <span>
+              <li key={r.id} className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+                <span className="min-w-0">
                   <span className="text-white">{r.name ?? r.username}</span> <span className="text-zinc-500">{r.username}</span> ·{" "}
                   {r.role === "gamemaster" ? "Spillmester" : "Arrangør"}
                 </span>
                 <ActionForm action={removeStaffAction} confirm={`Fjerne ${r.username}?`}>
                   <input type="hidden" name="staffId" value={r.id} />
-                  <Button type="submit" variant="ghost">Fjern</Button>
+                  <Button type="submit" variant="ghost" size="sm">Fjern</Button>
                 </ActionForm>
               </li>
             ))}

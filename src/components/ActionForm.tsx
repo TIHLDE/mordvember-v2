@@ -23,13 +23,13 @@ export function ActionForm({
   return (
     <form
       action={formAction}
-      className={className}
       onSubmit={(e) => {
         if (confirm && !window.confirm(confirm)) e.preventDefault();
       }}
       key={resetOnSuccess && state?.ok ? state.nonce : undefined}
     >
-      <fieldset disabled={pending} aria-busy={pending} className="contents">
+      {/* The layout class sits on the fieldset so the status line below always lands under the controls, never beside them in a row. */}
+      <fieldset disabled={pending} aria-busy={pending} className={`min-w-0 ${className ?? ""}`}>
         {children}
       </fieldset>
       {state?.error && <p key={`e${state.nonce ?? state.error}`} role="alert" className="appear mt-2 text-sm text-red-400">{state.error}</p>}

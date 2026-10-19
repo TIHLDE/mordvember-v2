@@ -6,20 +6,88 @@
   --color-blood: #b3121b;
   --color-blood-light: #d01f29;
   --color-ink: #0b0b0d;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@layer base {
+  button,
+  select,
+  summary,
+  label[for],
+  label:has(> input:is([type="checkbox"], [type="radio"])),
+  input:is([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="color"], [type="range"]),
+  input[type="file"]::file-selector-button,
+  [role="button"],
+  [role="tab"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="option"],
+  [role="menuitem"],
+  [role="combobox"] {
+    cursor: pointer;
+  }
+
+  :is(button, select, input, [role="button"], [role="tab"], [role="checkbox"], [role="radio"], [role="switch"], [role="option"], [role="menuitem"], [role="combobox"]):is(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: not-allowed;
+  }
 }
 
 html {
   color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
 }
 
 body {
-  background: radial-gradient(ellipse at top, #1a0b0d 0%, var(--color-ink) 60%);
+  background-color: var(--color-ink);
+  background-image: radial-gradient(ellipse at top, #1a0b0d 0%, var(--color-ink) 60%);
   background-attachment: fixed;
   min-height: 100dvh;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--color-blood) 60%, transparent);
+  color: white;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-blood-light);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-blood);
+}
+
+summary {
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
 .dead {
   filter: grayscale(1) brightness(0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .material {
+    background-color: var(--color-ink);
+    backdrop-filter: none;
+  }
 }
 
 :root {
@@ -43,22 +111,6 @@ body {
     line-height: 1.05;
   }
 
-  .press {
-    transition:
-      transform 100ms var(--ease-out),
-      background-color 150ms ease,
-      color 150ms ease,
-      border-color 150ms ease,
-      opacity 150ms ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .press:active:not(:disabled),
-  .press[data-pressed] {
-    transform: scale(0.97);
-    transition-duration: 60ms;
-  }
-
   .page-enter > * > * {
     animation: rise var(--spring-duration) var(--spring) backwards;
     animation-delay: calc(min(var(--i, 0), 6) * 40ms);
@@ -79,27 +131,6 @@ body {
     background: rgb(11 11 13 / 0.62);
     backdrop-filter: blur(20px) saturate(160%);
     box-shadow: 0 1px 0 rgb(255 255 255 / 0.06), 0 8px 24px -16px rgb(0 0 0 / 0.8);
-  }
-
-  .nav-link {
-    position: relative;
-    transition: color 150ms ease;
-  }
-
-  .nav-link::after {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    bottom: -4px;
-    height: 2px;
-    border-radius: 1px;
-    background: var(--color-blood-light);
-    transform: scaleX(0);
-    transition: transform 350ms var(--spring);
-  }
-
-  .nav-link[aria-current="page"]::after {
-    transform: scaleX(1);
   }
 
   .portrait {
@@ -191,15 +222,9 @@ body {
       animation-direction: reverse;
     }
 
-    .press:active:not(:disabled),
-    .press[data-pressed],
     .reveal-frame[data-state="holding"],
     .lift:hover .portrait {
       transform: none;
-    }
-
-    .nav-link::after {
-      transition: none;
     }
   }
 

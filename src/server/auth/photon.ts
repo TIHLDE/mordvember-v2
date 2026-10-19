@@ -18,6 +18,12 @@ export type PhotonIdentity = {
   isIndexLeader: boolean;
 };
 
+export type PhotonTokens = { accessToken: string; refreshToken: string | null; expiresAt: Date };
+
+export type PhotonUser = { username: string; name: string };
+
+export class PhotonForbiddenError extends Error {}
+
 export function createVerifier(): string {
   return base64url(crypto.getRandomValues(new Uint8Array(32)));
 }
@@ -36,32 +42,53 @@ export function authorizeUrl(redirectUri: string, state: string, challenge: stri
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", env.photonClientId);
   url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("scope", "openid profile email");
+  url.searchParams.set("scope", "openid profile email offline_access");
   url.searchParams.set("state", state);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
   return url.toString();
 }
 
-export async function exchangeCode(code: string, redirectUri: string, verifier: string): Promise<string> {
+export async function exchangeCode(code: string, redirectUri: string, verifier: string): Promise<PhotonTokens> {
+  return requestTokens({ grant_type: "authorization_code", code, redirect_uri: redirectUri, code_verifier: verifier });
+}
+
+export async function refreshTokens(refreshToken: string): Promise<PhotonTokens> {
+  return requestTokens({ grant_type: "refresh_token", refresh_token: refreshToken });
+}
+
+async function requestTokens(grant: Record<string, string>): Promise<PhotonTokens> {
   const response = await fetch(`${env.photonIssuer}/oauth2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri,
+      ...grant,
       client_id: env.photonClientId,
       client_secret: env.photonClientSecret,
-      code_verifier: verifier,
       // Uten resource gir Photon et ugjennomsiktig token som API-et avviser med 401.
       resource: env.photonIssuer,
     }).toString(),
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`Tokenveksling feilet (${response.status})`);
-  const tokens = (await response.json()) as { access_token: string };
-  return tokens.access_token;
+  const tokens = (await response.json()) as { access_token: string; refresh_token?: string; expires_in?: number };
+  return {
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token ?? null,
+    expiresAt: new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000),
+  };
+}
+
+// groupSlug lets the leader of that group search, since Photon otherwise requires users:view.
+export async function searchUsers(token: string, query: string, groupSlug?: string): Promise<PhotonUser[]> {
+  const url = new URL(`${env.photonApi}/user/search`);
+  url.searchParams.set("q", query);
+  if (groupSlug) url.searchParams.set("groupSlug", groupSlug);
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (response.status === 403) throw new PhotonForbiddenError();
+  if (!response.ok) throw new Error(`Photon-søket svarte ${response.status}`);
+  const users = (await response.json()) as { name: string | null; username: string | null }[];
+  return users.flatMap((u) => (u.username ? [{ username: u.username, name: u.name ?? u.username }] : []));
 }
 
 async function photonGet<T>(url: string, token: string): Promise<T> {
@@ -71,6 +98,22 @@ async function photonGet<T>(url: string, token: string): Promise<T> {
     throw new Error(`Photon ${url} svarte ${response.status}: ${detail.slice(0, 200)}`);
   }
   return (await response.json()) as T;
+}
+
+export async function downloadPhotonImage(url: string, token: string): Promise<File | null> {
+  // Tokenet skal aldri sendes til andre verter enn Photon, så andre URL-er kopieres ikke.
+  if (!url.startsWith(`${env.photonApi}/assets/`)) return null;
+  const asset = new URL(url);
+  asset.searchParams.set("w", "480");
+  const response = await fetch(asset, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok) throw new Error(`Photon-bildet svarte ${response.status}`);
+  const blob = await response.blob();
+  return new File([blob], "photon", { type: blob.type });
 }
 
 type UserInfo = { sub: string; name?: string | null; email?: string | null; picture?: string | null; preferred_username?: string | null };

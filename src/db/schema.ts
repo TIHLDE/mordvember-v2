@@ -33,7 +33,7 @@ export type SeasonSettings = {
   milestones: MilestoneRule[];
   defaultRules: WeekRules;
   office: { lat: number; lng: number; radiusMeters: number } | null;
-  info: { rules: string; dates: string };
+  info: { rules: string; dates: string; startDate?: string | null };
 };
 
 export type SeasonSummary = { participants: number; kills: number; durationDays: number };
@@ -44,6 +44,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email"),
   photonImage: text("photon_image"),
+  photonImageKey: text("photon_image_key"),
   studyProgram: text("study_program"),
   studyStartYear: integer("study_start_year"),
   classYear: integer("class_year"),
@@ -58,6 +59,9 @@ export const sessions = pgTable("sessions", {
     .references(() => users.id, { onDelete: "cascade" }),
   isKokLeader: boolean("is_kok_leader").notNull().default(false),
   isIndexLeader: boolean("is_index_leader").notNull().default(false),
+  photonAccessToken: text("photon_access_token"),
+  photonRefreshToken: text("photon_refresh_token"),
+  photonTokenExpiresAt: ts("photon_token_expires_at"),
   createdAt: createdAt(),
   expiresAt: ts("expires_at").notNull(),
 });
