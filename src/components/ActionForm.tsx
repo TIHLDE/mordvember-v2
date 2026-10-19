@@ -29,11 +29,11 @@ export function ActionForm({
       key={resetOnSuccess && state?.ok ? state.nonce : undefined}
     >
       {/* The layout class sits on the fieldset so the status line below always lands under the controls, never beside them in a row. */}
-      <fieldset disabled={pending} className={`min-w-0 ${className ?? ""}`}>
+      <fieldset disabled={pending} aria-busy={pending} className={`min-w-0 ${className ?? ""}`}>
         {children}
       </fieldset>
-      {state?.error && <p role="alert" className="mt-2 text-sm text-red-400">{state.error}</p>}
-      {state?.ok && <p role="status" className="mt-2 text-sm text-emerald-400">{state.ok}</p>}
+      {state?.error && <p key={`e${state.nonce ?? state.error}`} role="alert" className="appear mt-2 text-sm text-red-400">{state.error}</p>}
+      {state?.ok && <p key={`o${state.nonce ?? state.ok}`} role="status" className="appear mt-2 text-sm text-emerald-400">{state.ok}</p>}
     </form>
   );
 }

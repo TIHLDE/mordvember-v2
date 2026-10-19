@@ -22,7 +22,7 @@ export function CompleteScan({ complete }: { complete: (pos: { lat: number; lng:
     );
   }, [complete]);
 
-  if (!state) return <p className="text-zinc-400">Registrerer … Svar ja hvis mobilen spør om posisjon.</p>;
-  if (state.error) return <p className="text-red-400">{state.error}</p>;
-  return <p className="font-display text-4xl text-emerald-400">{state.ok}</p>;
+  if (!state) return <p className="reveal-pulse text-zinc-400">Registrerer … Svar ja hvis mobilen spør om posisjon.</p>;
+  if (state.error) return <p className="appear text-red-400">{state.error}</p>;
+  return <p className="success-pop font-display text-4xl text-emerald-400">{state.ok}</p>;
 }
