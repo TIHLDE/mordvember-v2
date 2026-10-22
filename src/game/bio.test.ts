@@ -16,8 +16,13 @@ describe("bio", () => {
     expect(composeBio({ hair: "Brun\nØyenfarge: grønn" })).toBe("Hårfarge: Brun Øyenfarge: grønn");
   });
 
+  it("felt med faste valg forkaster ukjente verdier", () => {
+    expect(composeBio({ study: "Dataingeniør", year: "7. klasse", hair: "Brun" })).toBe("Hårfarge: Brun");
+    expect(composeBio({ study: "DigSec", year: "5. klasse" })).toBe("Studie: DigSec\nKlassetrinn: 5. klasse");
+  });
+
   it("leser tilbake det som ble lagret", () => {
-    const values = { eyes: "Grønn", height: "170 cm", hair: "Rødt", study: "Dataingeniør", year: "1. klasse" };
+    const values = { eyes: "Grønn", height: "170 cm", hair: "Rødt", study: "Data", year: "1. klasse" };
     expect(parseBio(composeBio(values))).toEqual(values);
     expect(parseBio(null)).toEqual({});
   });
