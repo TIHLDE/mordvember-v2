@@ -29,6 +29,13 @@
       "when": 1792361867648,
       "tag": "0003_photon_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792671519905,
+      "tag": "0004_player_bio",
+      "breakpoints": true
     }
   ]
 }

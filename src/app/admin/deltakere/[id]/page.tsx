@@ -72,6 +72,7 @@ export default async function PlayerAdmin({ params }: { params: Promise<{ id: st
           <p className="mb-6">
             <Badge tone={STATUS[player.status][1]}>{STATUS[player.status][0]}</Badge>
           </p>
+          {player.bio && <p className="mb-6 text-sm whitespace-pre-line text-zinc-300">{player.bio}</p>}
           {canDisqualify && (
             <ActionForm action={disqualifyAction} className="flex flex-wrap gap-2" confirm={`Diskvalifisere ${player.name}?`}>
               <input type="hidden" name="playerId" value={player.id} />

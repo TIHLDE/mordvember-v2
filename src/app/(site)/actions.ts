@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
+import { BIO_FIELDS, composeBio } from "@/game/bio";
 import { type ActionState, osloInput, run, text } from "@/lib/action";
 import { PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
 import { requirePlayer, requireSeason, requireViewer } from "@/server/auth/session";
@@ -12,6 +13,7 @@ import { confirmKill, disputeKill, GameError, reportKill } from "@/server/game";
 import {
   deleteOwnImage,
   reportWrongStudy,
+  setBio,
   setImage,
   setWinnerConsent,
   signUp,
@@ -20,11 +22,15 @@ import {
 } from "@/server/players";
 import { askQuestion } from "@/server/questions";
 
+function bioFrom(form: FormData) {
+  return composeBio(Object.fromEntries(BIO_FIELDS.map(({ key }) => [key, text(form, `bio_${key}`)])));
+}
+
 export async function signUpAction(_: ActionState, form: FormData) {
   return run(async () => {
     const viewer = await requireSeason();
     const image = form.get("image");
-    await signUp(viewer, { consent: form.get("consent") === "on", image: image instanceof File ? image : null });
+    await signUp(viewer, { consent: form.get("consent") === "on", image: image instanceof File ? image : null, bio: bioFrom(form) });
     return "Du er påmeldt!";
   });
 }
@@ -66,17 +72,24 @@ export async function deleteImageAction(_: ActionState) {
   });
 }
 
+export async function bioAction(_: ActionState, form: FormData) {
+  return run(async () => {
+    await setBio(await requirePlayer(), bioFrom(form));
+    return "Beskrivelsen er lagret";
+  });
+}
+
 export async function winnerConsentAction(_: ActionState, form: FormData) {
   return run(async () => {
     await setWinnerConsent(await requirePlayer(), form.get("consent") === "on");
   });
 }
 
-export async function revealTargetAction(): Promise<{ name: string; image: string } | null> {
+export async function revealTargetAction(): Promise<{ name: string; image: string; bio: string | null } | null> {
   const viewer = await requirePlayer();
   const target = await myTarget(viewer);
   if (!target) return null;
-  return { name: target.name, image: `/api/bilde/${target.id}` };
+  return { name: target.name, image: `/api/bilde/${target.id}`, bio: target.bio };
 }
 
 export async function reportKillAction(_: ActionState, form: FormData) {

@@ -112,6 +112,7 @@ export const players = pgTable(
     name: text("name").notNull(),
     studyProgram: text("study_program"),
     studyStartYear: integer("study_start_year"),
+    bio: text("bio"),
     imageKey: text("image_key"),
     useDefaultImage: boolean("use_default_image").notNull().default(true),
     imageRejectedReason: text("image_rejected_reason"),
