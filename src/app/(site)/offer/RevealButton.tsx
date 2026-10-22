@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Target = { name: string; image: string; bio: string | null };
 
@@ -8,24 +8,31 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
   const [target, setTarget] = useState<Target | null>(null);
   const [empty, setEmpty] = useState(false);
   const [pressed, setPressed] = useState(false);
-  const holding = useRef(false);
+  const request = useRef(0);
 
-  async function start() {
-    holding.current = true;
+  async function show() {
+    const id = ++request.current;
     setPressed(true);
     const result = await reveal();
-    if (!holding.current) return;
+    if (id !== request.current) return;
     if (!result) setEmpty(true);
     setTarget(result);
   }
 
   // Hiding is deliberately instant (no exit animation) so the target never lingers on screen.
-  function stop() {
-    holding.current = false;
+  function hide() {
+    request.current++;
     setPressed(false);
     setTarget(null);
     setEmpty(false);
   }
+
+  // Hide automatically when the tab is backgrounded or the phone is locked.
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && hide();
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -48,22 +55,12 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
       </div>
       <button
         type="button"
-        onPointerDown={start}
-        onPointerUp={stop}
-        onPointerLeave={stop}
-        onPointerCancel={stop}
-        onContextMenu={(e) => e.preventDefault()}
-        onKeyDown={(e) => {
-          if ((e.key === " " || e.key === "Enter") && !holding.current) start();
-        }}
-        onKeyUp={(e) => {
-          if (e.key === " " || e.key === "Enter") stop();
-        }}
-        onBlur={stop}
+        onClick={() => (pressed ? hide() : show())}
+        aria-pressed={pressed}
         data-pressed={pressed || undefined}
-        className="touch-none rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white shadow-[0_10px_30px_-10px_rgb(179_18_27/0.6)] transition-[background-color,box-shadow,transform] duration-150 ease-out-strong select-none hover:bg-blood-light active:scale-95 data-[pressed]:scale-95 data-[pressed]:bg-blood-light data-[pressed]:shadow-none motion-reduce:active:scale-100 motion-reduce:data-[pressed]:scale-100"
+        className="rounded-full bg-blood px-10 py-5 text-lg font-semibold text-white shadow-[0_10px_30px_-10px_rgb(179_18_27/0.6)] transition-[background-color,box-shadow,transform] duration-150 ease-out-strong select-none hover:bg-blood-light active:scale-95 data-[pressed]:scale-95 data-[pressed]:bg-blood-light data-[pressed]:shadow-none motion-reduce:active:scale-100 motion-reduce:data-[pressed]:scale-100"
       >
-        Hold inne for å vise
+        {pressed ? "Skjul" : "Vis offer"}
       </button>
     </div>
   );

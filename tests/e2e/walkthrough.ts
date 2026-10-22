@@ -104,15 +104,11 @@ async function alivePlayers(seasonId: string) {
 
 async function revealTarget(page: Page): Promise<string> {
   await page.goto(`${BASE}/offer`);
-  const button = page.getByRole("button", { name: "Hold inne for å vise" });
-  const box = await button.boundingBox();
-  assert(box, "fant ikke knappen");
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
+  await page.getByRole("button", { name: "Vis offer" }).click();
   const nameEl = page.locator("p.text-2xl");
   await page.waitForFunction(() => (document.querySelector("p.text-2xl")?.textContent ?? "").length > 0, null, { timeout: 15000 });
   const name = (await nameEl.textContent())!.trim();
-  await page.mouse.up();
+  await page.getByRole("button", { name: "Skjul" }).click();
   await page.waitForFunction(() => (document.querySelector("p.text-2xl")?.textContent ?? "") === "");
   return name;
 }
