@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { kills, milestoneEvents, players } from "@/db/schema";
 import { osloDate } from "@/game/time";
@@ -35,6 +35,13 @@ export async function boardData(season: Season, now = new Date()) {
     ),
     orderBy: desc(milestoneEvents.showAt),
   });
+  // Uses revealAt, not killedAt, so the time shown is no more precise than the grid going grey.
+  const [lastOut] = await db
+    .select({ id: players.id, name: players.name, at: players.revealAt })
+    .from(players)
+    .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.revealAt), lte(players.revealAt, now)))
+    .orderBy(desc(players.revealAt))
+    .limit(1);
   const winnerVisible = season.winnerPlayerId && grid.filter((p) => !p.out).length === 1;
 
   return {
@@ -43,6 +50,7 @@ export async function boardData(season: Season, now = new Date()) {
     players: grid,
     alive: visibleAliveCount(grid),
     milestone: milestone ? { label: milestone.label } : null,
+    lastOut: lastOut ? { id: lastOut.id, name: lastOut.name, at: lastOut.at!.toISOString() } : null,
     winner: winnerVisible ? (grid.find((p) => !p.out)?.name ?? null) : null,
     stats: {
       killsToday: stats.killsToday ? todays.length : null,

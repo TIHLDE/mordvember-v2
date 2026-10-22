@@ -39,9 +39,13 @@ const playerUsers = CODENAMES.slice(0, count).map((code, i) => ({
   studyStartYear: 2022 + (i % 4),
 }));
 
+// Profilbilder fra pravatar.cc (CC0). Tjenesten har 70 faste bilder, valgt med ?img=1–70.
+const PORTRAITS = 70;
+const portrait = (i: number) => `https://i.pravatar.cc/400?img=${(i % PORTRAITS) + 1}`;
+
 const users = await db
   .insert(schema.users)
-  .values([...staffUsers, ...playerUsers].map((u) => ({ ...u, email: `${u.username}@example.test` })))
+  .values([...staffUsers, ...playerUsers].map((u, i) => ({ ...u, email: `${u.username}@example.test`, photonImage: portrait(i) })))
   .returning();
 
 const [season] = await db

@@ -8,7 +8,8 @@ Next.js 16 (App Router), Postgres med Drizzle, Vercel Blob for bilder og Vercel 
 
 ```bash
 pnpm install
-cp .env.example .env.local        # fyll inn DATABASE_URL og QR_SECRET
+docker compose up -d --wait       # lokal Postgres, passer med DATABASE_URL i .env.example
+cp .env.example .env.local        # fyll inn QR_SECRET
 pnpm db:migrate
 pnpm db:seed                   # oppdiktede testbrukere og en testsesong
 pnpm dev
