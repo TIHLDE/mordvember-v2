@@ -121,7 +121,6 @@ export const players = pgTable(
     status: playerStatusEnum("status").notNull().default("alive"),
     killCount: integer("kill_count").notNull().default(0),
     eliminatedAt: ts("eliminated_at"),
-    revealAt: ts("reveal_at"),
     requirementsFromWeek: text("requirements_from_week"),
     consentAt: ts("consent_at").notNull(),
     winnerConsent: boolean("winner_consent").notNull().default(false),
