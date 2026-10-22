@@ -1,0 +1,21 @@
+# Lokal database for utvikling. Appen kjøres med `pnpm dev` utenfor Docker.
+# Bilder trenger ingen tjeneste her: uten BLOB_READ_WRITE_TOKEN lagres de i .data/uploads.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: mordvember
+      POSTGRES_PASSWORD: mordvember
+      POSTGRES_DB: mordvember
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mordvember -d mordvember"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  db:

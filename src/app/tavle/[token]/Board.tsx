@@ -1,97 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Portrait } from "@/components/Portrait";
-import type { BoardData } from "@/server/board";
-
-type Live = { qrSvg: string | null; scans: { key: string; playerId: string; name: string; kind: "in" | "out" }[] };
-type Shown = Live["scans"][number] & { leaving?: boolean };
-
-function since(iso: string, now: number) {
-  const minutes = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 48) return `${hours} t ${minutes % 60} min`;
-  return `${Math.floor(hours / 24)} dager`;
-}
+import { Announcement, BoardMessage, boardImage, ScanToasts, since, useBoard, useNow } from "@/components/BoardLive";
 
 export function Board({ token }: { token: string }) {
-  const [data, setData] = useState<BoardData | null>(null);
-  const [live, setLive] = useState<Live>({ qrSvg: null, scans: [] });
-  const [shown, setShown] = useState<Shown[]>([]);
-  const [now, setNow] = useState(() => Date.now());
-  const [error, setError] = useState<string | null>(null);
+  const api = `/api/tavle/${token}`;
+  const { data, live, shown, error } = useBoard(api);
+  const now = useNow(30_000);
 
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      fetch(`/api/tavle/${token}`, { cache: "no-store" })
-        .then(async (r) => {
-          if (!alive) return;
-          if (r.status === 404) {
-            setData(null);
-            setError("Lenken er ikke gyldig lenger");
-            return;
-          }
-          if (r.ok) {
-            setData((await r.json()) as BoardData);
-            setError(null);
-          }
-        })
-        .catch(() => undefined);
-    void load();
-    const id = setInterval(load, 10_000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [token]);
+  if (error) return <BoardMessage>{error}</BoardMessage>;
+  if (!data) return <BoardMessage>Laster …</BoardMessage>;
 
-  useEffect(() => {
-    let alive = true;
-    const seen = new Set<string>();
-    const timers = new Set<ReturnType<typeof setTimeout>>();
-    const load = () =>
-      fetch(`/api/tavle/${token}/live`, { cache: "no-store" })
-        .then((r) => (r.status === 404 ? { qrSvg: null, scans: [] } : r.ok ? r.json() : null))
-        .then((d: Live | null) => {
-          if (!alive || !d) return;
-          setLive(d);
-          const fresh = d.scans.filter((s) => !seen.has(s.key));
-          fresh.forEach((s) => seen.add(s.key));
-          if (fresh.length) {
-            setShown((cur) => [...fresh, ...cur].slice(0, 4));
-            const isFresh = (s: Shown) => fresh.some((f) => f.key === s.key);
-            const later = (ms: number, fn: () => void) => {
-              const timer = setTimeout(() => {
-                timers.delete(timer);
-                fn();
-              }, ms);
-              timers.add(timer);
-            };
-            later(6000, () => setShown((cur) => cur.map((s) => (isFresh(s) ? { ...s, leaving: true } : s))));
-            later(6300, () => setShown((cur) => cur.filter((s) => !isFresh(s))));
-          }
-        })
-        .catch(() => undefined);
-    void load();
-    const id = setInterval(load, 4000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-      timers.forEach(clearTimeout);
-    };
-  }, [token]);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (error) return <div className="flex min-h-dvh items-center justify-center text-2xl text-zinc-500">{error}</div>;
-  if (!data) return <div className="flex min-h-dvh items-center justify-center text-zinc-500">Laster …</div>;
-
-  const img = (id: string) => `/api/tavle/${token}/bilde/${id}`;
+  const img = (id: string) => boardImage(api, id);
 
   return (
     <div className="flex min-h-dvh gap-6 p-6">
@@ -128,27 +48,8 @@ export function Board({ token }: { token: string }) {
         </div>
       </aside>
 
-      {shown.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 flex -translate-x-1/2 gap-4">
-          {shown.map((s) => (
-            <div key={s.key} data-leaving={s.leaving || undefined} className="toast glass flex items-center gap-3 rounded-xl p-3 pr-6 shadow-2xl ring-1 ring-white/20">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img(s.playerId)} alt="" className="h-16 w-16 rounded-lg object-cover" />
-              <div>
-                <p className="text-lg font-semibold text-white">{s.name}</p>
-                <p className={s.kind === "in" ? "text-emerald-400" : "text-amber-400"}>{s.kind === "in" ? "Sjekket inn" : "Sjekket ut"}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(data.milestone || data.winner) && (
-        <div className="overlay fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-center backdrop-blur-xl">
-          <p className="font-display text-8xl text-blood">{data.winner ? "Vi har en vinner" : data.milestone?.label}</p>
-          <p className="mt-6 text-5xl text-white">{data.winner ?? `${data.alive} spillere igjen`}</p>
-        </div>
-      )}
+      <ScanToasts api={api} shown={shown} />
+      <Announcement data={data} />
     </div>
   );
 }
