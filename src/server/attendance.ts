@@ -22,8 +22,8 @@ export function boardQr(seasonId: string, now = Date.now()) {
   return { code, url: `${env.appUrl}/api/sjekkinn?k=${encodeURIComponent(code)}` };
 }
 
-export function boardQrSvg(seasonId: string) {
-  return QRCode.toString(boardQr(seasonId).url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+export function boardQrSvg(seasonId: string, now = Date.now()) {
+  return QRCode.toString(boardQr(seasonId, now).url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
 }
 
 export function verifyScan(seasonId: string, code: string, now = Date.now()) {
@@ -61,6 +61,7 @@ const toSession = (c: typeof checkins.$inferSelect): AttendanceSession => ({
 export async function toggleCheckin(
   viewer: Viewer,
   position: { lat: number; lng: number } | null,
+  intent: "in" | "out",
 ): Promise<{ kind: "in" | "out"; at: Date }> {
   if (!viewer.season || !viewer.player) throw new AccessError("Du er ikke påmeldt");
   if (viewer.season.phase !== "running") throw new GameError("Oppmøte registreres bare mens spillet pågår");
@@ -80,9 +81,11 @@ export async function toggleCheckin(
       .orderBy(desc(checkins.checkInAt))
       .limit(1);
     if (open && osloDate(open.checkInAt) === today) {
+      if (intent === "in") throw new GameError("Du er allerede sjekket inn");
       await tx.update(checkins).set({ checkOutAt: now }).where(eq(checkins.id, open.id));
       return { kind: "out" as const, at: now };
     }
+    if (intent === "out") throw new GameError("Du er ikke sjekket inn");
     // The QR code is public on the status screen, so the position is what proves the player is there.
     if (!position) throw new GameError("Fant ikke posisjonen din. Tillat posisjon i nettleseren og last inn siden på nytt.");
     const distance = Math.round(distanceMeters(position, office));

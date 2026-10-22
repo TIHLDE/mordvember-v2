@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { LinkButton, PageTitle } from "@/components/ui";
-import { PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } from "@/server/attendance";
+import { myAttendance, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } from "@/server/attendance";
 import { getViewer } from "@/server/auth/session";
 import { completeScanAction } from "../actions";
-import { CompleteScan } from "./CompleteScan";
+import { CheckinButton } from "./CheckinButton";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ export default async function CheckinPage({ searchParams }: { searchParams: Prom
   const season = viewer?.season;
   const done = jar.get(SCAN_RESULT_COOKIE)?.value;
   const pending = season ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id) : !!jar.get(PENDING_SCAN_COOKIE);
+  const attendance = pending && viewer?.player ? await myAttendance(viewer) : null;
 
   return (
     <div className="mx-auto max-w-md py-8 text-center">
@@ -32,7 +33,10 @@ export default async function CheckinPage({ searchParams }: { searchParams: Prom
       ) : !pending ? (
         <p className="text-zinc-400">Skann QR-koden på statusskjermen for å sjekke inn eller ut.</p>
       ) : (
-        <CompleteScan complete={completeScanAction} />
+        <div className="space-y-4">
+          <p className="text-zinc-300">{attendance?.open ? "Du er sjekket inn nå." : "Du er ikke sjekket inn."}</p>
+          <CheckinButton intent={attendance?.open ? "out" : "in"} complete={completeScanAction} />
+        </div>
       )}
     </div>
   );

@@ -3,7 +3,6 @@ import { Badge, Card, PageTitle } from "@/components/ui";
 import { formatOslo, formatOsloDate } from "@/game/time";
 import { myAttendance } from "@/server/attendance";
 import { getViewer } from "@/server/auth/session";
-import { Scanner } from "./Scanner";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +21,7 @@ export default async function AttendancePage() {
         Oppmøte
       </PageTitle>
       <Card>
-        <Scanner />
-        <p className="mt-4 text-xs text-zinc-500">Første skanning sjekker deg inn, neste sjekker deg ut. Du kan også bruke mobilens vanlige kamera.</p>
+        <p className="text-sm text-zinc-300">Skann QR-koden på statusskjermen med mobilkameraet for å sjekke inn eller ut.</p>
       </Card>
       <Card title="I dag">
         {todays.length === 0 ? (

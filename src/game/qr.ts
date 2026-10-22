@@ -1,10 +1,15 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export const QR_WINDOW_MS = 15_000;
-export const QR_GRACE_MS = 5_000;
+export const QR_WINDOW_MS = 60 * 60 * 1000;
+export const QR_GRACE_MS = 60_000;
 
 export function windowOf(at: number): number {
   return Math.floor(at / QR_WINDOW_MS);
+}
+
+/** Milliseconds until the code shown at `at` is replaced by the next one. */
+export function msUntilNextCode(at: number): number {
+  return (windowOf(at) + 1) * QR_WINDOW_MS - at;
 }
 
 function signature(secret: string, seasonId: string, window: number): string {

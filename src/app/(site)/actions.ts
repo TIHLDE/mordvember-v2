@@ -114,7 +114,7 @@ export async function disputeKillAction(_: ActionState, form: FormData) {
   });
 }
 
-export async function completeScanAction(position: { lat: number; lng: number } | null): Promise<ActionState> {
+export async function completeScanAction(intent: "in" | "out", position: { lat: number; lng: number } | null): Promise<ActionState> {
   return run(async () => {
     const viewer = await requirePlayer();
     const jar = await cookies();
@@ -125,7 +125,7 @@ export async function completeScanAction(position: { lat: number; lng: number } 
       position && Number.isFinite(position.lat) && Number.isFinite(position.lng) && Math.abs(position.lat) <= 90 && Math.abs(position.lng) <= 180
         ? position
         : null;
-    const result = await toggleCheckin(viewer, valid);
+    const result = await toggleCheckin(viewer, valid, intent === "out" ? "out" : "in");
     jar.delete(PENDING_SCAN_COOKIE);
     jar.set(SCAN_RESULT_COOKIE, result.kind, {
       httpOnly: true,

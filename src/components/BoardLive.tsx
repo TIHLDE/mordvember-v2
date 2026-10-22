@@ -23,6 +23,9 @@ export function useNow(everyMs: number) {
   return now;
 }
 
+const QR_FALLBACK_MS = 60_000;
+const QR_RETRY_MS = 5_000;
+
 export function useBoard(api: string, { refreshMs = 10_000 } = {}) {
   const [data, setData] = useState<BoardData | null>(null);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
@@ -53,21 +56,28 @@ export function useBoard(api: string, { refreshMs = 10_000 } = {}) {
     };
   }, [api, refreshMs]);
 
-  // The QR code changes every 15 seconds, so it is polled far more often than the rest.
+  // The QR code changes every hour. The server says when the next one starts, so the board
+  // fetches it right then. The fallback poll picks up the game starting or ending and failed requests.
   useEffect(() => {
     let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const load = () =>
-      fetch(`${api}/live`, { cache: "no-store" })
-        .then((r) => (r.ok ? (r.json() as Promise<{ qrSvg: string | null }>) : null))
+      // The timeout also covers reading the body, so a stalled response still ends in a retry.
+      fetch(`${api}/live`, { cache: "no-store", signal: AbortSignal.timeout(QR_RETRY_MS * 2) })
+        .then((r) => (r.ok ? (r.json() as Promise<{ qrSvg: string | null; nextCodeInMs: number }>) : null))
         .then((d) => {
-          if (alive && d) setQrSvg(d.qrSvg);
+          if (!alive) return;
+          if (d) setQrSvg(d.qrSvg);
+          const next = d ? Math.min(d.nextCodeInMs + 1000, QR_FALLBACK_MS) : QR_RETRY_MS;
+          timer = setTimeout(load, next);
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (alive) timer = setTimeout(load, QR_RETRY_MS);
+        });
     void load();
-    const id = setInterval(load, 4000);
     return () => {
       alive = false;
-      clearInterval(id);
+      clearTimeout(timer);
     };
   }, [api]);
 

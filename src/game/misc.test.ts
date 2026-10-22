@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { crossedMilestones, DEFAULT_MILESTONES } from "./milestones";
-import { qrCode, QR_WINDOW_MS, verifyQrCode } from "./qr";
+import { msUntilNextCode, qrCode, QR_WINDOW_MS, verifyQrCode } from "./qr";
 
 describe("milepæler", () => {
   const none = new Set<string>();
@@ -38,6 +38,13 @@ describe("QR-kode", () => {
     expect(verifyQrCode(secret, "s1", code, now)).toBe(true);
     expect(verifyQrCode(secret, "s1", code, now + QR_WINDOW_MS)).toBe(true);
     expect(verifyQrCode(secret, "s1", code, now + QR_WINDOW_MS * 3)).toBe(false);
+  });
+
+  it("vet når neste kode starter", () => {
+    const start = Math.ceil(now / QR_WINDOW_MS) * QR_WINDOW_MS;
+    expect(msUntilNextCode(start)).toBe(QR_WINDOW_MS);
+    expect(msUntilNextCode(start + QR_WINDOW_MS - 1)).toBe(1);
+    expect(qrCode(secret, "s1", start + 5 + msUntilNextCode(start + 5))).not.toBe(qrCode(secret, "s1", start + 5));
   });
 
   it("avviser feil sesong, feil hemmelighet og tukling", () => {

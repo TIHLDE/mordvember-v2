@@ -195,7 +195,7 @@ async function main() {
   log("E-post om første offer lagt i kø for 24 deltakere");
 
   const alfa = await as("test-alfa");
-  const window = Math.floor(Date.now() / 15000);
+  const window = Math.floor(Date.now() / 3_600_000);
   const sig = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${window}`).digest("base64url").slice(0, 22);
   const scanCtx = await browser.newContext({ geolocation: { latitude: 63.4175, longitude: 10.4035 }, permissions: ["geolocation"] });
   const scanPage = await scanCtx.newPage();
@@ -203,23 +203,26 @@ async function main() {
   assert((await scanPage.locator("text=Logg inn innen ti minutter").count()) === 1, "QR uten innlogging huskes");
   await scanPage.goto(`${BASE}/dev?next=/sjekkinn`);
   await scanPage.locator("form", { has: scanPage.locator('input[value="test-alfa"]') }).getByRole("button").click();
+  await scanPage.getByRole("button", { name: "Sjekk inn" }).click();
   await scanPage.locator("text=Du er sjekket inn").waitFor({ timeout: 20000 });
   log("QR-lenke åpnet uten innlogging, innsjekk fullført etter innlogging");
   await scanCtx.close();
-  const w2 = Math.floor(Date.now() / 15000);
+  const w2 = Math.floor(Date.now() / 3_600_000);
   const sig2 = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${w2}`).digest("base64url").slice(0, 22);
   await alfa.goto(`${BASE}/api/sjekkinn?k=${w2}.${sig2}`);
+  await alfa.getByRole("button", { name: "Sjekk ut" }).click();
   await alfa.locator("text=Du er sjekket ut").waitFor({ timeout: 20000 });
   await alfa.goto(`${BASE}/api/sjekkinn?k=1.ugyldig`);
   assert((await alfa.locator("text=QR-koden er utløpt eller ugyldig").count()) === 1, "ugyldig QR avvises");
   log("Utsjekk og avvisning av ugyldig kode virker");
   const farCtx = await browser.newContext({ geolocation: { latitude: 63.4305, longitude: 10.3951 }, permissions: ["geolocation"] });
   const farPage = await farCtx.newPage();
-  const w3 = Math.floor(Date.now() / 15000);
+  const w3 = Math.floor(Date.now() / 3_600_000);
   const sig3 = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${w3}`).digest("base64url").slice(0, 22);
   await farPage.goto(`${BASE}/api/sjekkinn?k=${w3}.${sig3}`);
   await farPage.goto(`${BASE}/dev?next=/sjekkinn`);
   await farPage.locator("form", { has: farPage.locator('input[value="test-alfa"]') }).getByRole("button").click();
+  await farPage.getByRole("button", { name: "Sjekk inn" }).click();
   await farPage.locator("text=Du må være på Gløshaugen").waitFor({ timeout: 20000 });
   await farCtx.close();
   log("Innsjekk fra Trondheim sentrum avvises");

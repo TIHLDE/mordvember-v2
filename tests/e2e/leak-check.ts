@@ -149,7 +149,7 @@ async function main() {
   const victimOnBoard = board.players.find((p) => p.id === victim.id);
   assert(victimOnBoard?.out === true, "statusskjermen viser drapet med en gang det er bekreftet");
   const statusLive = (await (await anon.get(`${BASE}/api/status/live`)).json()) as Record<string, unknown>;
-  assert(Object.keys(statusLive).join() === "qrSvg", "statusskjermen sender bare QR-koden, ingen innsjekker");
+  assert(Object.keys(statusLive).sort().join() === "nextCodeInMs,qrSvg", "statusskjermen sender bare QR-koden og når den byttes, ingen innsjekker");
 
   console.log(`Sjekket ${checked} sider for ${roles.length} roller. Ingen lekkasje av sirkelen funnet.`);
   console.log("Statusskjermen: alfabetisk rekkefølge, bare id/navn/ute, eliminering vises med en gang.");
