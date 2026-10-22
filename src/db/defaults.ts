@@ -10,7 +10,7 @@ export function defaultSettings(): SeasonSettings {
     office: null,
     info: {
       rules:
-        "Hver deltaker får ett offer. Når du tar offeret ditt, melder du drapet i appen, og offerets offer blir ditt nye offer. Siste spiller igjen vinner. Spillmesterne fyller inn de fulle reglene her.\n\nDu må møte opp på kontoret minst to dager i uka, minst to timer sammenhengende mellom 08 og 16. Sjekk inn og ut med QR-koden på tavla.",
+        "Hver deltaker får ett offer. Når du tar offeret ditt, melder du drapet i appen, og offerets offer blir ditt nye offer. Siste spiller igjen vinner. Spillmesterne fyller inn de fulle reglene her.\n\nDu må møte opp på kontoret minst to dager i uka, minst to timer sammenhengende mellom 08 og 16. Sjekk inn og ut med QR-koden på statusskjermen.",
       dates: "",
     },
   };

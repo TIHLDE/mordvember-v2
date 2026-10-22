@@ -69,7 +69,7 @@ export function Scanner() {
         </>
       ) : (
         <Button type="button" onClick={() => setActive(true)}>
-          Skann QR-koden på tavla
+          Skann QR-koden på statusskjermen
         </Button>
       )}
       {error && <p className="appear text-sm text-red-400">{error}</p>}

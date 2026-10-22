@@ -1,9 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import QRCode from "qrcode";
 import { and, asc, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { checkins, players } from "@/db/schema";
-import { type AttendanceSession, closeTimeFor, dayResults, distanceMeters } from "@/game/attendance";
+import { type AttendanceSession, closeTimeFor, dayResults, distanceMeters, GLOSHAUGEN } from "@/game/attendance";
 import { qrCode, verifyQrCode } from "@/game/qr";
 import { addDays, osloDate, osloTime, weekStartOf } from "@/game/time";
 import { audit } from "./audit";
@@ -19,6 +20,10 @@ export const PENDING_SCAN_MS = 10 * 60 * 1000;
 export function boardQr(seasonId: string, now = Date.now()) {
   const code = qrCode(env.qrSecret, seasonId, now);
   return { code, url: `${env.appUrl}/api/sjekkinn?k=${encodeURIComponent(code)}` };
+}
+
+export function boardQrSvg(seasonId: string) {
+  return QRCode.toString(boardQr(seasonId).url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
 }
 
 export function verifyScan(seasonId: string, code: string, now = Date.now()) {
@@ -64,7 +69,7 @@ export async function toggleCheckin(
   const today = osloDate(now);
   const seasonId = viewer.season.id;
   const playerId = viewer.player.id;
-  const settings = viewer.season.settings;
+  const office = viewer.season.settings.office ?? GLOSHAUGEN;
 
   return db.transaction(async (tx) => {
     await tx.select({ id: players.id }).from(players).where(eq(players.id, playerId)).for("update");
@@ -78,14 +83,11 @@ export async function toggleCheckin(
       await tx.update(checkins).set({ checkOutAt: now }).where(eq(checkins.id, open.id));
       return { kind: "out" as const, at: now };
     }
-    const flags: string[] = [];
-    let distance: number | null = null;
-    if (!position) flags.push("Posisjon nektet eller utilgjengelig");
-    else if (settings.office) {
-      distance = Math.round(distanceMeters(position, settings.office));
-      if (distance > settings.office.radiusMeters) flags.push(`Langt fra kontoret (${distance} m)`);
-    }
-    await tx.insert(checkins).values({ seasonId, playerId, checkInAt: now, flags, distanceMeters: distance });
+    // The QR code is public on the status screen, so the position is what proves the player is there.
+    if (!position) throw new GameError("Fant ikke posisjonen din. Tillat posisjon i nettleseren og last inn siden på nytt.");
+    const distance = Math.round(distanceMeters(position, office));
+    if (distance > office.radiusMeters) throw new GameError(`Du må være på Gløshaugen for å sjekke inn. Du er ${distance} m unna.`);
+    await tx.insert(checkins).values({ seasonId, playerId, checkInAt: now, flags: [], distanceMeters: distance });
     return { kind: "in" as const, at: now };
   });
 }
@@ -197,19 +199,4 @@ export async function addManualCheckin(viewer: Viewer, playerId: string, checkIn
     editedBy: viewer.user.id,
   });
   await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: "oppmote.manuell", details: { playerId } });
-}
-
-export async function recentBoardScans(seasonId: string, now = new Date(), windowMs = 8000) {
-  const since = new Date(now.getTime() - windowMs);
-  const rows = await db
-    .select({ playerId: checkins.playerId, name: players.name, checkInAt: checkins.checkInAt, checkOutAt: checkins.checkOutAt, autoClosed: checkins.autoClosed })
-    .from(checkins)
-    .innerJoin(players, eq(players.id, checkins.playerId))
-    .where(and(eq(checkins.seasonId, seasonId), gte(checkins.createdAt, new Date(now.getTime() - 12 * 3600_000))));
-  const events: { playerId: string; name: string; kind: "in" | "out"; at: Date }[] = [];
-  for (const r of rows) {
-    if (r.checkInAt >= since) events.push({ playerId: r.playerId, name: r.name, kind: "in", at: r.checkInAt });
-    if (r.checkOutAt && !r.autoClosed && r.checkOutAt >= since) events.push({ playerId: r.playerId, name: r.name, kind: "out", at: r.checkOutAt });
-  }
-  return events.sort((a, b) => b.at.getTime() - a.at.getTime());
 }

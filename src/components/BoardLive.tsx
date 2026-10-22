@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import type { BoardData } from "@/server/board";
 
-type Live = { qrSvg: string | null; scans: { key: string; playerId: string; name: string; kind: "in" | "out" }[] };
-type Shown = Live["scans"][number] & { leaving?: boolean };
-
-/** `api` is the board endpoint: `/api/tavle/<token>` for the office board, `/api/status` for the public screen. */
+/** `api` is the board endpoint, `/api/status`. */
 export const boardImage = (api: string, id: string) => `${api}/bilde/${id}`;
 
 export function since(iso: string, now: number) {
@@ -26,10 +23,9 @@ export function useNow(everyMs: number) {
   return now;
 }
 
-export function useBoard(api: string, { withLive = true } = {}) {
+export function useBoard(api: string, { refreshMs = 10_000 } = {}) {
   const [data, setData] = useState<BoardData | null>(null);
-  const [live, setLive] = useState<Live>({ qrSvg: null, scans: [] });
-  const [shown, setShown] = useState<Shown[]>([]);
+  const [qrSvg, setQrSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,39 +46,21 @@ export function useBoard(api: string, { withLive = true } = {}) {
         })
         .catch(() => undefined);
     void load();
-    const id = setInterval(load, 10_000);
+    const id = setInterval(load, refreshMs);
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, [api]);
+  }, [api, refreshMs]);
 
+  // The QR code changes every 15 seconds, so it is polled far more often than the rest.
   useEffect(() => {
-    if (!withLive) return;
     let alive = true;
-    const seen = new Set<string>();
-    const timers = new Set<ReturnType<typeof setTimeout>>();
     const load = () =>
       fetch(`${api}/live`, { cache: "no-store" })
-        .then((r) => (r.status === 404 ? { qrSvg: null, scans: [] } : r.ok ? r.json() : null))
-        .then((d: Live | null) => {
-          if (!alive || !d) return;
-          setLive(d);
-          const fresh = d.scans.filter((s) => !seen.has(s.key));
-          fresh.forEach((s) => seen.add(s.key));
-          if (fresh.length) {
-            setShown((cur) => [...fresh, ...cur].slice(0, 4));
-            const isFresh = (s: Shown) => fresh.some((f) => f.key === s.key);
-            const later = (ms: number, fn: () => void) => {
-              const timer = setTimeout(() => {
-                timers.delete(timer);
-                fn();
-              }, ms);
-              timers.add(timer);
-            };
-            later(6000, () => setShown((cur) => cur.map((s) => (isFresh(s) ? { ...s, leaving: true } : s))));
-            later(6300, () => setShown((cur) => cur.filter((s) => !isFresh(s))));
-          }
+        .then((r) => (r.ok ? (r.json() as Promise<{ qrSvg: string | null }>) : null))
+        .then((d) => {
+          if (alive && d) setQrSvg(d.qrSvg);
         })
         .catch(() => undefined);
     void load();
@@ -90,33 +68,14 @@ export function useBoard(api: string, { withLive = true } = {}) {
     return () => {
       alive = false;
       clearInterval(id);
-      timers.forEach(clearTimeout);
     };
-  }, [api, withLive]);
+  }, [api]);
 
-  return { data, live, shown, error };
+  return { data, qrSvg, error };
 }
 
 export function BoardMessage({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh items-center justify-center text-2xl text-zinc-500">{children}</div>;
-}
-
-export function ScanToasts({ api, shown }: { api: string; shown: Shown[] }) {
-  if (!shown.length) return null;
-  return (
-    <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 gap-4">
-      {shown.map((s) => (
-        <div key={s.key} data-leaving={s.leaving || undefined} className="toast glass flex items-center gap-3 rounded-xl p-3 pr-6 shadow-2xl ring-1 ring-white/20">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={boardImage(api, s.playerId)} alt="" className="h-16 w-16 rounded-lg object-cover" />
-          <div>
-            <p className="text-lg font-semibold text-white">{s.name}</p>
-            <p className={s.kind === "in" ? "text-emerald-400" : "text-amber-400"}>{s.kind === "in" ? "Sjekket inn" : "Sjekket ut"}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export function Announcement({ data }: { data: BoardData }) {

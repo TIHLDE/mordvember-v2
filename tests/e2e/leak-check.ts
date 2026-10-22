@@ -141,32 +141,18 @@ async function main() {
   const [{ views } = { views: 0 }] = await sql<{ views: number }[]>`select count(*)::int as views from audit_log where action = 'sirkel.vist'`;
   assert(views >= 3, "visninger av sirkelen logges");
 
-  const token = await (async () => {
-    const ctx = await browser.newContext();
-    const page = await ctx.newPage();
-    page.on("dialog", (d) => void d.accept());
-    await page.goto(`${BASE}/dev?next=/admin/sesong`);
-    const card = page.locator("form", { has: page.locator(`input[name=username][value="test-kokleder"]`) });
-    await card.locator("input[name=kok]").check();
-    await card.getByRole("button").click();
-    await page.waitForURL(`${BASE}/admin/sesong`);
-    await page.getByRole("button", { name: "Lag ny lenke" }).click();
-    const text = await page.locator("[role=status]").first().textContent({ timeout: 20000 });
-    await ctx.close();
-    return /\/tavle\/([\w-]+)/.exec(text ?? "")?.[1];
-  })();
-  assert(token, "skjermlenke");
   const anon = roles.at(-1)!.request;
-  const board = (await (await anon.get(`${BASE}/api/tavle/${token}`)).json()) as { players: Record<string, unknown>[] };
+  const board = (await (await anon.get(`${BASE}/api/status`)).json()) as { players: Record<string, unknown>[] };
   const names = board.players.map((p) => String(p.name));
-  assert(JSON.stringify(names) === JSON.stringify([...names].sort((a, b) => a.localeCompare(b, "nb"))), "tavla sorterer alfabetisk, ikke i sirkelrekkefølge");
-  for (const p of board.players) assert(Object.keys(p).sort().join() === "id,name,out", "tavla sender bare id, navn og ute");
+  assert(JSON.stringify(names) === JSON.stringify([...names].sort((a, b) => a.localeCompare(b, "nb"))), "statusskjermen sorterer alfabetisk, ikke i sirkelrekkefølge");
+  for (const p of board.players) assert(Object.keys(p).sort().join() === "id,name,out", "statusskjermen sender bare id, navn og ute");
   const victimOnBoard = board.players.find((p) => p.id === victim.id);
-  assert(victimOnBoard?.out === false, "tavla viser drapet før forsinkelsen er over");
-  assert((await anon.get(`${BASE}/api/tavle/feil-lenke-som-ikke-finnes-123`)).status() === 404, "ugyldig skjermlenke avvises");
+  assert(victimOnBoard?.out === false, "statusskjermen viser drapet før forsinkelsen er over");
+  const statusLive = (await (await anon.get(`${BASE}/api/status/live`)).json()) as Record<string, unknown>;
+  assert(Object.keys(statusLive).join() === "qrSvg", "statusskjermen sender bare QR-koden, ingen innsjekker");
 
   console.log(`Sjekket ${checked} sider for ${roles.length} roller. Ingen lekkasje av sirkelen funnet.`);
-  console.log("Tavla: alfabetisk rekkefølge, bare id/navn/ute, eliminering skjult til forsinkelsen er over.");
+  console.log("Statusskjermen: alfabetisk rekkefølge, bare id/navn/ute, eliminering skjult til forsinkelsen er over.");
   await browser.close();
   await sql.end();
 }
