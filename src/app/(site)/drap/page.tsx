@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { DateTimePicker } from "@/components/DateTimePicker";
@@ -12,15 +13,19 @@ import { confirmKillAction, disputeKillAction, reportKillAction } from "../actio
 
 export const dynamic = "force-dynamic";
 
+const killer = alias(players, "killer");
+const victim = alias(players, "victim");
+
 export default async function KillsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/login?next=/drap");
   if (!viewer.player || !viewer.season) redirect("/");
   const me = viewer.player.id;
   const mine = await db
-    .select({ kill: kills, victimName: players.name })
+    .select({ kill: kills, killerName: killer.name, victimName: victim.name })
     .from(kills)
-    .innerJoin(players, eq(players.id, kills.victimId))
+    .innerJoin(killer, eq(killer.id, kills.killerId))
+    .innerJoin(victim, eq(victim.id, kills.victimId))
     .where(and(eq(kills.seasonId, viewer.season.id), or(eq(kills.killerId, me), eq(kills.victimId, me)), inArray(kills.status, ["pending", "escalated", "applied", "rejected"])))
     .orderBy(desc(kills.reportedAt));
   const open = mine.filter((m) => m.kill.status === "pending" || m.kill.status === "escalated");
@@ -35,7 +40,7 @@ export default async function KillsPage() {
       {open.length > 0 && (
         <Card title="Åpne saker">
           <ul className="divide-y divide-white/5">
-            {open.map(({ kill, victimName }) => {
+            {open.map(({ kill, killerName, victimName }) => {
               const iAmVictim = kill.victimId === me;
               const iConfirm = (kill.reportedBy === "killer" ? kill.victimId : kill.killerId) === me;
               return (
@@ -43,7 +48,7 @@ export default async function KillsPage() {
                   <p className="text-sm">
                     {iAmVictim
                       ? kill.reportedBy === "killer"
-                        ? `Noen har meldt at de tok deg ${formatOslo(kill.killedAt)}.`
+                        ? `${killerName} har meldt at hen tok deg ${formatOslo(kill.killedAt)}.`
                         : `Du meldte at du ble tatt ${formatOslo(kill.killedAt)}.`
                       : kill.reportedBy === "victim"
                         ? `${victimName} har meldt at du tok hen ${formatOslo(kill.killedAt)}.`
