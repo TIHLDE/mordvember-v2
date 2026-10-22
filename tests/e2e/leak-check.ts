@@ -147,12 +147,12 @@ async function main() {
   assert(JSON.stringify(names) === JSON.stringify([...names].sort((a, b) => a.localeCompare(b, "nb"))), "statusskjermen sorterer alfabetisk, ikke i sirkelrekkefølge");
   for (const p of board.players) assert(Object.keys(p).sort().join() === "id,name,out", "statusskjermen sender bare id, navn og ute");
   const victimOnBoard = board.players.find((p) => p.id === victim.id);
-  assert(victimOnBoard?.out === false, "statusskjermen viser drapet før forsinkelsen er over");
+  assert(victimOnBoard?.out === true, "statusskjermen viser drapet med en gang det er bekreftet");
   const statusLive = (await (await anon.get(`${BASE}/api/status/live`)).json()) as Record<string, unknown>;
   assert(Object.keys(statusLive).join() === "qrSvg", "statusskjermen sender bare QR-koden, ingen innsjekker");
 
   console.log(`Sjekket ${checked} sider for ${roles.length} roller. Ingen lekkasje av sirkelen funnet.`);
-  console.log("Statusskjermen: alfabetisk rekkefølge, bare id/navn/ute, eliminering skjult til forsinkelsen er over.");
+  console.log("Statusskjermen: alfabetisk rekkefølge, bare id/navn/ute, eliminering vises med en gang.");
   await browser.close();
   await sql.end();
 }

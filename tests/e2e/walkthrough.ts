@@ -311,7 +311,6 @@ async function main() {
   }
   log(`Spillet avgjort etter ${round} drap til i løkka`);
 
-  await sql`update players set reveal_at = now() - interval '1 minute' where season_id = ${season.id} and reveal_at > now()`;
   const [winner] = await alivePlayers(season.id);
   assert(winner, "vinner");
   const winnerPage = await as(usernameOf(winner.name));

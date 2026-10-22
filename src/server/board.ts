@@ -9,12 +9,11 @@ import { gridPlayers, visibleAliveCount } from "./players";
 const MILESTONE_SHOW_MS = 30_000;
 
 export async function boardData(season: Season, now = new Date()) {
-  const grid = await gridPlayers(season.id, now);
+  const grid = await gridPlayers(season.id);
   const visibleKills = await db
     .select({ killerId: kills.killerId, killedAt: kills.killedAt })
     .from(kills)
-    .innerJoin(players, eq(players.id, kills.victimId))
-    .where(and(eq(kills.seasonId, season.id), eq(kills.status, "applied"), lte(players.revealAt, now)))
+    .where(and(eq(kills.seasonId, season.id), eq(kills.status, "applied")))
     .orderBy(desc(kills.killedAt));
   const killers = await db
     .select({ id: players.id, name: players.name })
@@ -35,12 +34,11 @@ export async function boardData(season: Season, now = new Date()) {
     ),
     orderBy: desc(milestoneEvents.showAt),
   });
-  // Uses revealAt, not killedAt, so the time shown is no more precise than the grid going grey.
   const [lastOut] = await db
-    .select({ id: players.id, name: players.name, at: players.revealAt })
+    .select({ id: players.id, name: players.name, at: players.eliminatedAt })
     .from(players)
-    .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.revealAt), lte(players.revealAt, now)))
-    .orderBy(desc(players.revealAt))
+    .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.eliminatedAt)))
+    .orderBy(desc(players.eliminatedAt))
     .limit(1);
   const winnerVisible = season.winnerPlayerId && grid.filter((p) => !p.out).length === 1;
 

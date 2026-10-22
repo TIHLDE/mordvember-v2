@@ -10,7 +10,6 @@ import {
   type KillCase,
 } from "@/game/kills";
 import { crossedMilestones } from "@/game/milestones";
-import { revealAt } from "@/game/reveal";
 import {
   applyKill,
   generateRing,
@@ -226,10 +225,9 @@ async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSele
     throw error;
   }
   const now = new Date();
-  const reveal = revealAt(now, rng);
   await tx
     .update(players)
-    .set({ status: "eliminated", eliminatedAt: kill.killedAt, revealAt: reveal })
+    .set({ status: "eliminated", eliminatedAt: now })
     .where(eq(players.id, kill.victimId));
   const [killer] = await tx.select().from(players).where(eq(players.id, kill.killerId));
   await tx
@@ -258,7 +256,7 @@ async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSele
   const victim = await userOfPlayer(tx, kill.victimId);
   await notify(tx, [{ userId: victim.userId, seasonId: season.id, text: "Drapet på deg er bekreftet. Du er ute av spillet.", href: "/" }]);
   await queueEmail(tx, "eliminated", [victim.email]);
-  await recordMilestones(tx, season, before.length, after.length, reveal);
+  await recordMilestones(tx, season, before.length, after.length, now);
   await crownIfWinner(tx, season.id, after);
 }
 
@@ -362,7 +360,7 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
     }
     await tx
       .update(players)
-      .set({ status: "alive", eliminatedAt: null, revealAt: null })
+      .set({ status: "alive", eliminatedAt: null })
       .where(eq(players.id, kill.victimId));
     const [killer] = await tx.select().from(players).where(eq(players.id, kill.killerId));
     await tx
@@ -403,7 +401,7 @@ export async function grantMercy(viewer: Viewer, playerId: string, afterId: stri
     const nextWeek = addDays(weekStartOf(new Date()), 7);
     await tx
       .update(players)
-      .set({ status: "alive", eliminatedAt: null, revealAt: null, requirementsFromWeek: nextWeek })
+      .set({ status: "alive", eliminatedAt: null, requirementsFromWeek: nextWeek })
       .where(eq(players.id, playerId));
     await commitRing(tx, {
       seasonId,
@@ -439,10 +437,9 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
     const inRing = playerIds.filter((id) => before.includes(id));
     const after = inRing.length ? removePlayers(before, inRing) : before;
     const now = new Date();
-    const reveal = revealAt(now, rng);
     await tx
       .update(players)
-      .set({ status: "disqualified", eliminatedAt: now, revealAt: season.phase === "running" ? reveal : now })
+      .set({ status: "disqualified", eliminatedAt: now })
       .where(and(eq(players.seasonId, seasonId), inArray(players.id, playerIds)));
     if (inRing.length) {
       await commitRing(tx, {
@@ -455,7 +452,7 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
         announce: season.phase === "running",
       });
       if (season.phase === "running") {
-        await recordMilestones(tx, season, before.length, after.length, reveal);
+        await recordMilestones(tx, season, before.length, after.length, now);
         await crownIfWinner(tx, seasonId, after);
       }
     }
@@ -487,7 +484,6 @@ export async function addPlayerAsGamemaster(viewer: Viewer, userId: string) {
         studyStartYear: user.studyStartYear,
         consentAt: new Date(),
         status: season.phase === "running" ? "eliminated" : "alive",
-        revealAt: season.phase === "running" ? new Date() : null,
         eliminatedAt: season.phase === "running" ? new Date() : null,
       })
       .onConflictDoNothing()

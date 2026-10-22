@@ -2,7 +2,6 @@ import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { players, staff, users } from "@/db/schema";
-import { isVisiblyOut } from "@/game/reveal";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
 import { queueEmail } from "./email";
@@ -119,13 +118,13 @@ export async function approveImage(viewer: Viewer, playerId: string) {
 
 export type GridPlayer = { id: string; name: string; out: boolean };
 
-export async function gridPlayers(seasonId: string, now = new Date()): Promise<GridPlayer[]> {
+export async function gridPlayers(seasonId: string): Promise<GridPlayer[]> {
   const rows = await db
-    .select({ id: players.id, name: players.name, status: players.status, revealAt: players.revealAt })
+    .select({ id: players.id, name: players.name, status: players.status })
     .from(players)
     .where(eq(players.seasonId, seasonId))
     .orderBy(asc(players.name));
-  return rows.map((r) => ({ id: r.id, name: r.name, out: isVisiblyOut(r, now) }));
+  return rows.map((r) => ({ id: r.id, name: r.name, out: r.status !== "alive" }));
 }
 
 export function visibleAliveCount(grid: GridPlayer[]): number {
