@@ -4,6 +4,7 @@ import { ActionForm } from "@/components/ActionForm";
 import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
+import { BIO_FIELDS, parseBio } from "@/game/bio";
 import { guard } from "@/lib/guard";
 import { usersWithoutPlayer } from "@/server/admin";
 import { addPlayerAction } from "../actions";
@@ -25,52 +26,29 @@ export default async function PlayersAdmin() {
       imageApprovedAt: players.imageApprovedAt,
       imageRejectedReason: players.imageRejectedReason,
       imageDeleted: players.imageDeleted,
+      bio: players.bio,
     })
     .from(players)
     .where(eq(players.seasonId, viewer.season.id))
     .orderBy(asc(players.name));
-  const waiting = rows.filter((p) => imageStatus(p)?.tone === "amber").length;
+  const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
+  const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
+  const waiting = pending.length;
+  const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
   const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
   return (
     <div className="space-y-6">
-      <PageTitle sub={`${rows.length} påmeldt${waiting ? ` · ${waiting} bilder venter på godkjenning` : ""}. Trykk på en deltaker for å se bildet og gjøre endringer.`}>
+      <PageTitle sub={`${rows.length} påmeldt${waiting ? ` · ${waiting} bilder venter på godkjenning` : ""}${noBio ? ` · ${noBio} mangler utseende` : ""}. Trykk på en deltaker for å se bildet og gjøre endringer.`}>
         Deltakere
       </PageTitle>
-      <Card>
+      {pending.length > 0 && (
+        <Card title={`Venter på godkjenning (${pending.length})`}>
+          <PlayerList rows={pending} />
+        </Card>
+      )}
+      <Card title={pending.length > 0 ? `Alle andre (${rest.length})` : undefined}>
         {rows.length === 0 && <Empty>Ingen påmeldt ennå.</Empty>}
-        <ul className="-mx-2 divide-y divide-white/5 text-sm">
-          {rows.map((p) => {
-            const image = imageStatus(p);
-            return (
-              <li key={p.id}>
-                <Link
-                  href={`/admin/deltakere/${p.id}`}
-                  className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`}
-                    alt=""
-                    loading="lazy"
-                    className="size-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-white">{p.name}</span>
-                      <Badge tone={STATUS[p.status][1]}>{STATUS[p.status][0]}</Badge>
-                      {image && image.tone !== "green" && <Badge tone={image.tone}>{image.label}</Badge>}
-                    </p>
-                    <p className="mt-0.5 truncate text-zinc-500">
-                      {p.studyProgram ?? "Studie mangler"}
-                      {p.studyStartYear ? ` · ${p.studyStartYear}` : ""} · <span className="tabular-nums">{p.killCount}</span> drap
-                    </p>
-                  </div>
-                  <span aria-hidden className="text-zinc-600">›</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <PlayerList rows={rest} />
       </Card>
       {viewer.isGamemaster && (
         <Card title="Legg til deltaker">
@@ -90,5 +68,67 @@ export default async function PlayersAdmin() {
         </Card>
       )}
     </div>
+  );
+}
+
+type PlayerRow = {
+  id: string;
+  name: string;
+  status: keyof typeof STATUS;
+  killCount: number;
+  studyProgram: string | null;
+  studyStartYear: number | null;
+  imageKey: string | null;
+  imageApprovedAt: Date | null;
+  imageRejectedReason: string | null;
+  imageDeleted: boolean;
+  bio: string | null;
+};
+
+function bioFilled(bio: string | null) {
+  return Object.values(parseBio(bio)).filter(Boolean).length;
+}
+
+function PlayerList({ rows }: { rows: PlayerRow[] }) {
+  return (
+    <ul className="-mx-2 divide-y divide-white/5 text-sm">
+      {rows.map((p) => {
+        const image = imageStatus(p);
+        const filled = bioFilled(p.bio);
+        return (
+          <li key={p.id}>
+            <Link
+              href={`/admin/deltakere/${p.id}`}
+              className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`}
+                alt=""
+                loading="lazy"
+                className="size-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-white">{p.name}</span>
+                  <Badge tone={STATUS[p.status][1]}>{STATUS[p.status][0]}</Badge>
+                  {image && image.tone !== "green" && <Badge tone={image.tone}>{image.label}</Badge>}
+                  {filled === 0 ? (
+                    <Badge tone="amber">Utseende mangler</Badge>
+                  ) : filled < BIO_FIELDS.length ? (
+                    <Badge>Utseende {filled}/{BIO_FIELDS.length}</Badge>
+                  ) : null}
+                </p>
+                <p className="mt-0.5 truncate text-zinc-500">
+                  {p.studyProgram ?? "Studie mangler"}
+                  {p.studyStartYear ? ` · ${p.studyStartYear}` : ""} · <span className="tabular-nums">{p.killCount}</span> drap
+                </p>
+              </div>
+              <span aria-hidden className="text-zinc-600">›</span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
