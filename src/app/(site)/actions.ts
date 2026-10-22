@@ -94,10 +94,9 @@ export async function revealTargetAction(): Promise<{ name: string; image: strin
 
 export async function reportKillAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const role = text(form, "role") === "victim" ? "victim" : "killer";
     const when = osloInput(text(form, "killedAt"));
-    await reportKill(await requirePlayer(), role, when);
-    return "Drapet er meldt. Den andre parten må bekrefte.";
+    await reportKill(await requirePlayer(), "killer", when);
+    return "Drapet er meldt. Offeret ditt må bekrefte.";
   });
 }
 

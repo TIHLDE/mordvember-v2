@@ -79,26 +79,14 @@ export default async function KillsPage() {
       )}
 
       {running && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card title="Jeg har tatt offeret mitt">
-            <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde drap på offeret ditt?">
-              <input type="hidden" name="role" value="killer" />
-              <Field label="Når skjedde det?">
-                <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
-              </Field>
-              <Button type="submit">Meld drap</Button>
-            </ActionForm>
-          </Card>
-          <Card title="Jeg er tatt">
-            <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde at du er tatt?">
-              <input type="hidden" name="role" value="victim" />
-              <Field label="Når skjedde det?">
-                <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
-              </Field>
-              <Button type="submit" variant="ghost">Meld at jeg er tatt</Button>
-            </ActionForm>
-          </Card>
-        </div>
+        <Card title="Jeg har tatt offeret mitt">
+          <ActionForm action={reportKillAction} className="space-y-4" confirm="Melde drap på offeret ditt?">
+            <Field label="Når skjedde det?">
+              <DateTimePicker name="killedAt" defaultValue={now} max={now} required />
+            </Field>
+            <Button type="submit">Meld drap</Button>
+          </ActionForm>
+        </Card>
       )}
 
       <Card title="Min historikk">
