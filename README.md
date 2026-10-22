@@ -1,6 +1,6 @@
 # Mordvember
 
-Nettsiden for Mordvember i TIHLDE. Spesifikasjonen ligger i [docs/SPEC.md](docs/SPEC.md), og designsystemet i [docs/design.md](docs/design.md).
+Nettsiden for Mordvember i TIHLDE.
 
 Next.js 16 (App Router), Postgres med Drizzle, Vercel Blob for bilder og Vercel Cron for tidsstyrte jobber. All datatilgang skjer på serveren.
 

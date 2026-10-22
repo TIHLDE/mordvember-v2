@@ -3,7 +3,7 @@ import { Badge, Button, Card, Checkbox, Empty, inputClass, PageTitle } from "@/c
 import { formatOslo } from "@/game/time";
 import { guard } from "@/lib/guard";
 import { inbox } from "@/server/questions";
-import { answerAction, publishAction } from "../actions";
+import { answerAction, deleteQuestionAction, publishAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export default async function QuestionsAdmin() {
   const rows = await inbox(viewer);
   return (
     <div className="space-y-6">
-      <PageTitle sub="Svar går privat til den som spurte. Du kan publisere spørsmål og svar anonymt.">Spørsmål</PageTitle>
+      <PageTitle sub="Spørsmål og svar vises uten navn for alle innloggede på spørsmålssiden. Du kan også publisere dem anonymt i ofte stilte spørsmål.">Spørsmål</PageTitle>
       {rows.length === 0 && <Empty>Ingen spørsmål.</Empty>}
       {rows.map(({ q, asker }) => (
         <Card key={q.id}>
@@ -38,6 +38,10 @@ export default async function QuestionsAdmin() {
               </ActionForm>
             </details>
           )}
+          <ActionForm action={deleteQuestionAction} confirm="Slette spørsmålet? Dette kan ikke angres." className="mt-5 border-t border-white/5 pt-4">
+            <input type="hidden" name="id" value={q.id} />
+            <Button type="submit" variant="danger-ghost" size="sm">Slett spørsmål</Button>
+          </ActionForm>
         </Card>
       ))}
     </div>

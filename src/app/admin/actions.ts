@@ -37,7 +37,7 @@ import {
   undoKillAsGamemaster,
 } from "@/server/game";
 import { approveImage, rejectImage } from "@/server/players";
-import { answerQuestion, publishQuestion } from "@/server/questions";
+import { answerQuestion, deleteQuestion, publishQuestion } from "@/server/questions";
 import type { Phase } from "@/server/season";
 import { buildFridayList, decideReview } from "@/server/weekly";
 import { weekStartOf } from "@/game/time";
@@ -136,6 +136,10 @@ export async function publishAction(_: ActionState, form: FormData) {
   return run(async () =>
     publishQuestion(await requireStaff(), text(form, "id"), text(form, "publicQuestion"), text(form, "publicAnswer"), form.get("published") === "on"),
   );
+}
+
+export async function deleteQuestionAction(_: ActionState, form: FormData) {
+  return run(async () => deleteQuestion(await requireStaff(), text(form, "id")), "Spørsmålet er slettet");
 }
 
 export async function generateCircleAction(_: ActionState) {

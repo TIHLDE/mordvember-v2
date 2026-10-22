@@ -21,13 +21,14 @@ export async function askQuestion(viewer: Viewer, text: string) {
   });
 }
 
-export async function myQuestions(viewer: Viewer) {
+export async function seasonQuestions(viewer: Viewer) {
   if (!viewer.season) return [];
-  return db
-    .select({ id: questions.id, question: questions.question, answer: questions.answer, answeredAt: questions.answeredAt, createdAt: questions.createdAt })
+  const rows = await db
+    .select({ id: questions.id, userId: questions.userId, question: questions.question, answer: questions.answer, answeredAt: questions.answeredAt, createdAt: questions.createdAt })
     .from(questions)
-    .where(and(eq(questions.seasonId, viewer.season.id), eq(questions.userId, viewer.user.id)))
+    .where(eq(questions.seasonId, viewer.season.id))
     .orderBy(desc(questions.createdAt));
+  return rows.map(({ userId, ...q }) => ({ ...q, mine: userId === viewer.user.id }));
 }
 
 export async function inbox(viewer: Viewer) {
@@ -64,6 +65,18 @@ export async function publishQuestion(viewer: Viewer, id: string, publicQuestion
     .update(questions)
     .set({ published, publicQuestion: publicQuestion.trim() || null, publicAnswer: publicAnswer.trim() || null })
     .where(and(eq(questions.id, id), eq(questions.seasonId, viewer.season.id)));
+}
+
+export async function deleteQuestion(viewer: Viewer, id: string) {
+  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  await db.transaction(async (tx) => {
+    const [q] = await tx
+      .delete(questions)
+      .where(and(eq(questions.id, id), eq(questions.seasonId, viewer.season!.id)))
+      .returning();
+    if (!q) throw new GameError("Spørsmålet finnes ikke");
+    await audit(tx, { seasonId: q.seasonId, actorUserId: viewer.user.id, action: "sporsmal.slettet", details: { id, sporsmal: q.question } });
+  });
 }
 
 export async function faq(seasonId: string) {
