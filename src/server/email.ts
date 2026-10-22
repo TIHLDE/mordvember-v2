@@ -97,8 +97,9 @@ export function render(text: string, vars: Record<string, string | number>): str
   return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => String(vars[key] ?? ""));
 }
 
-export async function templateFor(key: TemplateKey) {
-  const override = await db.query.emailTemplates.findFirst({ where: eq(emailTemplates.key, key) });
+// Takes the caller's transaction: on Vercel the pool has a single connection, so reaching for `db` while a transaction holds it deadlocks.
+export async function templateFor(tx: Tx | typeof db, key: TemplateKey) {
+  const override = await tx.query.emailTemplates.findFirst({ where: eq(emailTemplates.key, key) });
   const base = DEFAULT_TEMPLATES[key];
   return { subject: override?.subject ?? base.subject, body: override?.body ?? base.body, button: base.button };
 }
@@ -111,7 +112,7 @@ export async function queueEmail(
 ) {
   const recipients = [...new Set(to.filter((t): t is string => !!t))];
   if (!recipients.length) return;
-  const template = await templateFor(key);
+  const template = await templateFor(tx, key);
   const content: EmailBlock[] = render(template.body, vars)
     .split(/\n{2,}/)
     .map((p) => p.trim())
