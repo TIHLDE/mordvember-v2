@@ -30,7 +30,7 @@ export default async function CheckinPage({ searchParams }: { searchParams: Prom
       ) : !pending && done ? (
         <p className="success-pop font-display text-4xl text-emerald-400">{done === "in" ? "Du er sjekket inn" : "Du er sjekket ut"}</p>
       ) : !pending ? (
-        <p className="text-zinc-400">Skann QR-koden på tavla for å sjekke inn eller ut.</p>
+        <p className="text-zinc-400">Skann QR-koden på statusskjermen for å sjekke inn eller ut.</p>
       ) : (
         <CompleteScan complete={completeScanAction} />
       )}

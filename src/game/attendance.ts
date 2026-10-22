@@ -110,6 +110,9 @@ export function closeTimeFor(checkInAt: Date, rules: WeekRules): Date {
   return osloTime(osloDate(checkInAt), rules.windowEnd);
 }
 
+/** Used when the season has no office position set: the middle of NTNU Gløshaugen. */
+export const GLOSHAUGEN = { lat: 63.4175, lng: 10.4035, radiusMeters: 500 };
+
 export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const r = 6371000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;

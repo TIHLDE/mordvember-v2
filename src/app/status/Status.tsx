@@ -13,10 +13,18 @@ const API = "/api/status";
 const CARD_REM = 14;
 const PAGE_MS = 8000;
 
-// Public, so no check-in toasts: they would tell anyone online when a player is at the office.
+// The screen runs unattended for weeks: poll once a minute, and reload the whole page once a day
+// to pick up new deploys and shed anything the browser has built up.
+const REFRESH_MS = 60_000;
+const RELOAD_MS = 24 * 60 * 60_000;
+// The big panel switches between the last player out and the check-in QR code.
+const FEATURE_MS = 30_000;
+
+// Public, so no check-ins are shown: they would tell anyone online when a player is at the office.
 export function Status() {
-  const { data, error } = useBoard(API, { withLive: false });
+  const { data, qrSvg, error } = useBoard(API, { refreshMs: REFRESH_MS });
   const now = useNow(30_000);
+  useDailyReload();
 
   if (error) return <BoardMessage>{error}</BoardMessage>;
   if (!data) return <BoardMessage>Laster …</BoardMessage>;
@@ -37,7 +45,7 @@ export function Status() {
             <p className="mt-2 text-3xl text-zinc-400">av {data.players.length} påmeldte</p>
             <Stats data={data} now={now} />
           </div>
-          <LastOut data={data} now={now} />
+          <Feature data={data} qrSvg={qrSvg} now={now} />
         </section>
 
         <PlayerStrip players={data.players} />
@@ -46,6 +54,22 @@ export function Status() {
       <Announcement data={data} />
     </div>
   );
+}
+
+// Only reload when the server answers, so a brief outage doesn't leave a browser error page on the screen.
+function useDailyReload() {
+  useEffect(() => {
+    let id: ReturnType<typeof setTimeout>;
+    const reload = () =>
+      fetch(location.href, { method: "HEAD", cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) throw new Error();
+          location.reload();
+        })
+        .catch(() => (id = setTimeout(reload, REFRESH_MS)));
+    id = setTimeout(reload, RELOAD_MS);
+    return () => clearTimeout(id);
+  }, []);
 }
 
 // red-400 rather than the brand red: plain text on the dark panel needs it for WCAG AA contrast.
@@ -70,6 +94,31 @@ function Stats({ data, now }: { data: BoardData; now: number }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+function Feature({ data, qrSvg, now }: { data: BoardData; qrSvg: string | null; now: number }) {
+  const [showQr, setShowQr] = useState(false);
+  useEffect(() => {
+    const id = setInterval(() => setShowQr((s) => !s), FEATURE_MS);
+    return () => clearInterval(id);
+  }, []);
+  // With nobody out yet, the QR code is more useful than "Ingen er ute ennå".
+  if (qrSvg && (showQr || !data.lastOut)) return <CheckinQr svg={qrSvg} />;
+  return <LastOut data={data} now={now} />;
+}
+
+function CheckinQr({ svg }: { svg: string }) {
+  return (
+    <div className="flex h-full max-h-[34rem] w-[30rem] shrink-0 flex-col">
+      <Label>Oppmøte</Label>
+      <div className="appear mt-6 flex min-h-0 flex-1 flex-col items-center">
+        <div className="aspect-square min-h-0 flex-1 rounded-2xl bg-white p-4 shadow-2xl [&>div]:h-full [&_svg]:h-full [&_svg]:w-full">
+          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        </div>
+        <p className="mt-5 text-center text-2xl text-zinc-400">Skann for å sjekke inn eller ut</p>
+      </div>
+    </div>
   );
 }
 

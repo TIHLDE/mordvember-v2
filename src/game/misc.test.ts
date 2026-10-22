@@ -52,7 +52,7 @@ describe("QR-kode", () => {
   });
 });
 
-describe("forsinket visning på tavla", () => {
+describe("forsinket visning på statusskjermen", () => {
   it("forsinkelsen er mellom 15 og 60 minutter", () => {
     const rng = seeded(7);
     const base = new Date(0);

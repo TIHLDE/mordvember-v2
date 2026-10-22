@@ -68,7 +68,7 @@ describe("tilgang til sirkelen", () => {
     for (const [, name, body] of exported) {
       expect(body, name).toMatch(/require(Gamemaster|Staff|Season|Viewer)\(\)/);
     }
-    const gmOnly = ["undoKillAction", "generateCircleAction", "startGameAction", "moveAction", "mercyAction", "screenLinkAction", "deleteSeasonDataAction", "setPhaseAction"];
+    const gmOnly = ["undoKillAction", "generateCircleAction", "startGameAction", "moveAction", "mercyAction", "deleteSeasonDataAction", "setPhaseAction"];
     for (const name of gmOnly) {
       const match = exported.find(([, n]) => n === name);
       expect(match?.[2], name).toMatch(/requireGamemaster\(\)/);

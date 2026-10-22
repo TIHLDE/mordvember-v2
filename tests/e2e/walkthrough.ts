@@ -22,7 +22,7 @@ async function as(username: string, flags: { kok?: boolean; index?: boolean } = 
   const key = `${username}:${flags.kok ? 1 : 0}${flags.index ? 1 : 0}`;
   let ctx = contexts.get(key);
   if (!ctx) {
-    ctx = await browser.newContext({ geolocation: { latitude: 63.4305, longitude: 10.3951 }, permissions: ["geolocation"] });
+    ctx = await browser.newContext({ geolocation: { latitude: 63.4175, longitude: 10.4035 }, permissions: ["geolocation"] });
     const page = await ctx.newPage();
     page.on("dialog", (d) => void d.accept());
     await page.goto(`${BASE}/dev`);
@@ -181,18 +181,14 @@ async function main() {
   await gm.goto(`${BASE}/admin/sirkel`);
   await submit(gm, formWith(gm, "Start spillet"), "Start spillet");
   log("Sirkel trukket to ganger og spillet startet");
-  await gm.goto(`${BASE}/admin/sesong`);
-  const linkText = await submit(gm, formWith(gm, "Lag ny lenke"), "Lag ny lenke");
-  const token = /\/tavle\/([\w-]+)/.exec(linkText)?.[1];
-  assert(token, "skjermlenke");
 
   const board = await browser.newPage();
   await board.setViewportSize({ width: 1600, height: 900 });
-  await board.goto(`${BASE}/tavle/${token}`);
-  await board.locator("text=spillere igjen").waitFor({ timeout: 20000 });
+  await board.goto(`${BASE}/status`);
+  await board.locator("text=Spillere igjen").waitFor({ timeout: 20000 });
+  // Nobody is out yet, so the QR code is shown without waiting for the panel to switch.
   await board.locator("text=Skann for å sjekke inn eller ut").waitFor({ timeout: 20000 });
-  const boardJson = await (await board.request.get(`${BASE}/api/tavle/${token}`)).text();
-  log("Tavla viser rutenett, antall og QR-kode");
+  log("Statusskjermen viser antall og QR-kode");
 
   const [{ count: firstMails } = { count: -1 }] = await sql<{ count: number }[]>`select count(*)::int as count from email_outbox where subject = 'Mordvember har startet'`;
   assert(firstMails === 24, `e-post om første offer til alle (fikk ${firstMails})`);
@@ -201,7 +197,7 @@ async function main() {
   const alfa = await as("test-alfa");
   const window = Math.floor(Date.now() / 15000);
   const sig = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${window}`).digest("base64url").slice(0, 22);
-  const scanCtx = await browser.newContext({ geolocation: { latitude: 63.4305, longitude: 10.3951 }, permissions: ["geolocation"] });
+  const scanCtx = await browser.newContext({ geolocation: { latitude: 63.4175, longitude: 10.4035 }, permissions: ["geolocation"] });
   const scanPage = await scanCtx.newPage();
   await scanPage.goto(`${BASE}/api/sjekkinn?k=${window}.${sig}`);
   assert((await scanPage.locator("text=Logg inn innen ti minutter").count()) === 1, "QR uten innlogging huskes");
@@ -209,9 +205,7 @@ async function main() {
   await scanPage.locator("form", { has: scanPage.locator('input[value="test-alfa"]') }).getByRole("button").click();
   await scanPage.locator("text=Du er sjekket inn").waitFor({ timeout: 20000 });
   log("QR-lenke åpnet uten innlogging, innsjekk fullført etter innlogging");
-  await board.locator("text=Sjekket inn").waitFor({ timeout: 15000 });
-  await board.screenshot({ path: `${SHOTS}/02-tavle-innsjekk.png` });
-  log("Tavla viser innsjekken med navn og bilde");
+  await scanCtx.close();
   const w2 = Math.floor(Date.now() / 15000);
   const sig2 = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${w2}`).digest("base64url").slice(0, 22);
   await alfa.goto(`${BASE}/api/sjekkinn?k=${w2}.${sig2}`);
@@ -219,6 +213,16 @@ async function main() {
   await alfa.goto(`${BASE}/api/sjekkinn?k=1.ugyldig`);
   assert((await alfa.locator("text=QR-koden er utløpt eller ugyldig").count()) === 1, "ugyldig QR avvises");
   log("Utsjekk og avvisning av ugyldig kode virker");
+  const farCtx = await browser.newContext({ geolocation: { latitude: 63.4305, longitude: 10.3951 }, permissions: ["geolocation"] });
+  const farPage = await farCtx.newPage();
+  const w3 = Math.floor(Date.now() / 15000);
+  const sig3 = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${w3}`).digest("base64url").slice(0, 22);
+  await farPage.goto(`${BASE}/api/sjekkinn?k=${w3}.${sig3}`);
+  await farPage.goto(`${BASE}/dev?next=/sjekkinn`);
+  await farPage.locator("form", { has: farPage.locator('input[value="test-alfa"]') }).getByRole("button").click();
+  await farPage.locator("text=Du må være på Gløshaugen").waitFor({ timeout: 20000 });
+  await farCtx.close();
+  log("Innsjekk fra Trondheim sentrum avvises");
 
   const organizer = await as("test-arrangor");
   let alive = await alivePlayers(season.id);
@@ -314,10 +318,10 @@ async function main() {
   await winnerPage.goto(BASE);
   assert((await winnerPage.locator(`text=Vinner: ${winner.name}`).count()) === 1, "vinneren vises");
   await winnerPage.screenshot({ path: `${SHOTS}/03-vinner.png`, fullPage: true });
-  await board.goto(`${BASE}/tavle/${token}`);
+  await board.goto(`${BASE}/status`);
   await board.locator("text=Vi har en vinner").waitFor({ timeout: 20000 });
-  await board.screenshot({ path: `${SHOTS}/04-tavle-vinner.png` });
-  log(`Vinner: ${winner.name}, vist på forsiden og tavla`);
+  await board.screenshot({ path: `${SHOTS}/04-status-vinner.png` });
+  log(`Vinner: ${winner.name}, vist på forsiden og statusskjermen`);
 
   const [{ count: milestones } = { count: -1 }] = await sql<{ count: number }[]>`select count(*)::int as count from milestone_events where season_id = ${season.id}`;
   log(`Milepæler registrert: ${milestones}`);
@@ -337,7 +341,6 @@ async function main() {
   const res = await fetch(`${BASE}/api/cron`, { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } });
   assert(res.ok, "cron svarer");
   log("Cron kjørt:", await res.text());
-  assert(boardJson.length > 0, "tavle-json");
 
   await browser.close();
   await sql.end();

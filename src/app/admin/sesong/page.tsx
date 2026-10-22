@@ -5,8 +5,8 @@ import { NumberStepper } from "@/components/NumberStepper";
 import { Badge, Button, Card, Checkbox, Field, inputBase, inputClass, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { seasons } from "@/db/schema";
-import type { WeekRules } from "@/game/attendance";
-import { addDays, formatOslo, formatOsloDate, osloTime, weekStartOf } from "@/game/time";
+import { GLOSHAUGEN, type WeekRules } from "@/game/attendance";
+import { addDays, formatOsloDate, osloTime, weekStartOf } from "@/game/time";
 import { osloInputValue } from "@/lib/action";
 import { guard } from "@/lib/guard";
 import { PHASES, phaseLabel, rulesForWeek } from "@/server/season";
@@ -16,8 +16,6 @@ import {
   deleteSeasonDataAction,
   milestonesAction,
   officeAction,
-  revokeScreenAction,
-  screenLinkAction,
   setPhaseAction,
   statsAction,
   updateBasicsAction,
@@ -138,7 +136,7 @@ export default async function SeasonAdmin() {
         </ActionForm>
       </Card>
 
-      <Card title="Statistikk på tavla">
+      <Card title="Statistikk på statusskjermen">
         <ActionForm action={statsAction} className="space-y-3">
           <Checkbox name="killsToday" defaultChecked={settings.stats.killsToday}>Drap i dag</Checkbox>
           <Checkbox name="sinceLastKill" defaultChecked={settings.stats.sinceLastKill}>Tid siden siste drap</Checkbox>
@@ -148,29 +146,13 @@ export default async function SeasonAdmin() {
       </Card>
 
       <Card title="Kontorets posisjon">
-        <p className="mb-4 text-sm text-zinc-400">Innsjekk lenger unna enn radiusen merkes for arrangørene. Tomme felt slår av avstandssjekken.</p>
+        <p className="mb-4 text-sm text-zinc-400">Innsjekk utenfor radiusen avvises. Tomme felt bruker Gløshaugen.</p>
         <ActionForm action={officeAction} className="grid gap-3 sm:grid-cols-3">
-          <Field label="Breddegrad"><input name="lat" defaultValue={settings.office?.lat ?? ""} className={inputClass} /></Field>
-          <Field label="Lengdegrad"><input name="lng" defaultValue={settings.office?.lng ?? ""} className={inputClass} /></Field>
-          <Field label="Radius (m)"><input name="radius" defaultValue={settings.office?.radiusMeters ?? 300} className={inputClass} /></Field>
+          <Field label="Breddegrad"><input name="lat" defaultValue={(settings.office ?? GLOSHAUGEN).lat} className={inputClass} /></Field>
+          <Field label="Lengdegrad"><input name="lng" defaultValue={(settings.office ?? GLOSHAUGEN).lng} className={inputClass} /></Field>
+          <Field label="Radius (m)"><input name="radius" defaultValue={(settings.office ?? GLOSHAUGEN).radiusMeters} className={inputClass} /></Field>
           <Button type="submit" className="w-fit sm:col-span-3">Lagre</Button>
         </ActionForm>
-      </Card>
-
-      <Card title="Skjermlenke for tavla">
-        <p className="mb-4 text-sm text-zinc-400">
-          {season.screenTokenCreatedAt ? `Aktiv lenke laget ${formatOslo(season.screenTokenCreatedAt)}.` : "Ingen aktiv lenke."}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <ActionForm action={screenLinkAction} confirm={season.screenTokenCreatedAt ? "Lage ny lenke? Den gamle slutter å virke." : undefined}>
-            <Button type="submit">Lag ny lenke</Button>
-          </ActionForm>
-          {season.screenTokenCreatedAt && (
-            <ActionForm action={revokeScreenAction} confirm="Trekke tilbake skjermlenken?">
-              <Button type="submit" variant="ghost">Trekk tilbake</Button>
-            </ActionForm>
-          )}
-        </div>
       </Card>
 
       <Card title="Ny sesong">

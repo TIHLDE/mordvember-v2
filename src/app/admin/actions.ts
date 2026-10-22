@@ -6,13 +6,11 @@ import type { WeekRules } from "@/game/attendance";
 import { type ActionState, osloInput, run, text } from "@/lib/action";
 import {
   addStaff,
-  createScreenLink,
   createSeason,
   deleteSeasonData,
   endEmergencyAccess,
   removeStaff,
   resetTemplate,
-  revokeScreenLink,
   saveTemplate,
   setPhase,
   setWeekRules,
@@ -234,17 +232,6 @@ export async function officeAction(_: ActionState, form: FormData) {
       office: { lat: num(form, "lat", -90, 90), lng: num(form, "lng", -180, 180), radiusMeters: num(form, "radius", 20, 5000) },
     });
   });
-}
-
-export async function screenLinkAction(_: ActionState) {
-  return run(async () => {
-    const token = await createScreenLink(await requireGamemaster());
-    return `Ny skjermlenke: /tavle/${token} — kopier den nå, den vises bare én gang. Gamle lenker virker ikke lenger.`;
-  });
-}
-
-export async function revokeScreenAction(_: ActionState) {
-  return run(async () => revokeScreenLink(await requireGamemaster()), "Skjermlenken er trukket tilbake");
 }
 
 export async function deleteSeasonDataAction(_: ActionState, form: FormData) {

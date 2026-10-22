@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, isNotNull, notExists, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -108,27 +107,6 @@ export async function setWeekRules(viewer: Viewer, weekStart: string, rules: Wee
       .onConflictDoUpdate({ target: [weekRules.seasonId, weekRules.weekStart], set: { rules } });
   }
   await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "uke.regler", details: { weekStart } });
-}
-
-const tokenHash = (t: string) => createHash("sha256").update(t).digest("hex");
-
-export async function createScreenLink(viewer: Viewer): Promise<string> {
-  const season = gm(viewer);
-  const token = randomBytes(24).toString("base64url");
-  await db.update(seasons).set({ screenTokenHash: tokenHash(token), screenTokenCreatedAt: new Date() }).where(eq(seasons.id, season.id));
-  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "tavle.ny_lenke" });
-  return token;
-}
-
-export async function revokeScreenLink(viewer: Viewer) {
-  const season = gm(viewer);
-  await db.update(seasons).set({ screenTokenHash: null, screenTokenCreatedAt: null }).where(eq(seasons.id, season.id));
-  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "tavle.trukket_tilbake" });
-}
-
-export async function seasonForScreenToken(token: string) {
-  if (!token || token.length < 20) return null;
-  return (await db.query.seasons.findFirst({ where: eq(seasons.screenTokenHash, tokenHash(token)) })) ?? null;
 }
 
 export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirmName: string) {
