@@ -6,5 +6,5 @@
       "schedule": "*/10 * * * *"
     }
   ],
-  "buildCommand": "npm run build:vercel"
+  "buildCommand": "pnpm build:vercel"
 }

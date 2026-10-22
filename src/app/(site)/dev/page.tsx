@@ -36,7 +36,7 @@ export default async function DevLoginPage({ searchParams }: { searchParams: Pro
   return (
     <div className="mx-auto max-w-2xl">
       <PageTitle sub="Bare tilgjengelig i lokal utvikling. Finnes ikke i produksjonsbygget.">Testbrukere</PageTitle>
-      {!testUsers.length && <p className="text-zinc-400">Ingen testbrukere. Kjør npm run db:seed.</p>}
+      {!testUsers.length && <p className="text-zinc-400">Ingen testbrukere. Kjør pnpm db:seed.</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         {testUsers.map((u) => (
           <Card key={u.id}>
