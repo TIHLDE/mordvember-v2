@@ -52,7 +52,7 @@ describe("tilgang til sirkelen", () => {
     expect(body).toMatch(/viewer\.player\.status !== "alive"/);
     expect(body).toMatch(/phase !== "running"/);
     expect(body).toMatch(/targetOf\(ring, viewer\.player\.id\)/);
-    expect(body).toMatch(/columns: \{ id: true, name: true \}/);
+    expect(body).toMatch(/columns: \{ id: true, name: true, bio: true \}/);
   });
 
   it("game.ts returnerer aldri sirkelen", () => {

@@ -79,7 +79,7 @@ export async function ringForServer(seasonId: string): Promise<Ring> {
   return row?.ring ?? [];
 }
 
-export async function myTarget(viewer: Viewer): Promise<{ id: string; name: string } | null> {
+export async function myTarget(viewer: Viewer): Promise<{ id: string; name: string; bio: string | null } | null> {
   if (!viewer.season || !viewer.player || viewer.player.status !== "alive") return null;
   if (viewer.season.phase !== "running") return null;
   const ring = await ringForServer(viewer.season.id);
@@ -87,7 +87,7 @@ export async function myTarget(viewer: Viewer): Promise<{ id: string; name: stri
   if (!targetId) return null;
   const target = await db.query.players.findFirst({
     where: eq(players.id, targetId),
-    columns: { id: true, name: true },
+    columns: { id: true, name: true, bio: true },
   });
   return target ?? null;
 }

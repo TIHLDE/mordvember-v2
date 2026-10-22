@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
+import { BioFields } from "@/components/BioFields";
 import { Button, Card, Checkbox, Field, inputClass, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 import { getViewer } from "@/server/auth/session";
@@ -36,22 +37,30 @@ export default async function SignupPage() {
           <Button variant="ghost" type="submit">Dette stemmer ikke</Button>
         </ActionForm>
       </Card>
-      <Card title="Bilde">
-        <ActionForm action={signUpAction} className="space-y-5">
-          <p className="text-sm text-zinc-400">
-            Vi bruker profilbildet ditt fra TIHLDE. Bruk helst et bilde der ansiktet vises tydelig og utildekket. Du kan laste opp et annet
-            bilde her. Det lagres bare hos Mordvember og endrer ingenting i TIHLDE.
+      <ActionForm action={signUpAction} className="space-y-4">
+        <Card title="Utseende">
+          <p className="mb-4 text-sm text-zinc-400">
+            Vises bare til den som har deg som offer, så de finner deg. Alle feltene er valgfrie, og du kan endre dem senere på profilen.
           </p>
-          <Field label="Last opp et annet bilde (valgfritt)" hint="JPG, PNG eller WebP, maks 5 MB">
-            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" className={inputClass} />
-          </Field>
-          <Checkbox name="consent" required>
-            Jeg godtar at navnet og bildet mitt vises for innloggede TIHLDE-medlemmer og på skjermen på kontoret mens spillet pågår, og at det
-            slettes etter arrangementet.
-          </Checkbox>
-          <Button type="submit">Meld meg på</Button>
-        </ActionForm>
-      </Card>
+          <BioFields values={{ study: user.studyProgram ?? "", year: user.classYear ? `${user.classYear}. klasse` : "" }} />
+        </Card>
+        <Card title="Bilde">
+          <div className="space-y-5">
+            <p className="text-sm text-zinc-400">
+              Vi bruker profilbildet ditt fra TIHLDE. Bruk helst et bilde der ansiktet vises tydelig og utildekket. Du kan laste opp et annet
+              bilde her. Det lagres bare hos Mordvember og endrer ingenting i TIHLDE.
+            </p>
+            <Field label="Last opp et annet bilde (valgfritt)" hint="JPG, PNG eller WebP, maks 5 MB">
+              <input type="file" name="image" accept="image/jpeg,image/png,image/webp" className={inputClass} />
+            </Field>
+            <Checkbox name="consent" required>
+              Jeg godtar at navnet og bildet mitt vises for innloggede TIHLDE-medlemmer og på skjermen på kontoret mens spillet pågår, og at det
+              slettes etter arrangementet.
+            </Checkbox>
+            <Button type="submit">Meld meg på</Button>
+          </div>
+        </Card>
+      </ActionForm>
     </div>
   );
 }

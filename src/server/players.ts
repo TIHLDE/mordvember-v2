@@ -12,7 +12,7 @@ import { deleteImages, storeImage } from "./images";
 import { notify } from "./notify";
 import { signupOpen } from "./season";
 
-export async function signUp(viewer: Viewer, input: { consent: boolean; image: File | null }) {
+export async function signUp(viewer: Viewer, input: { consent: boolean; image: File | null; bio: string | null }) {
   const season = viewer.season;
   if (!season || !signupOpen(season)) throw new GameError("Påmeldingen er ikke åpen");
   if (viewer.isGamemaster) throw new GameError("Spillmestere kan ikke delta");
@@ -26,6 +26,7 @@ export async function signUp(viewer: Viewer, input: { consent: boolean; image: F
       name: viewer.user.name,
       studyProgram: viewer.user.studyProgram,
       studyStartYear: viewer.user.studyStartYear,
+      bio: input.bio,
       consentAt: new Date(),
     })
     .onConflictDoNothing()
@@ -70,6 +71,12 @@ export async function deleteOwnImage(viewer: Viewer) {
     .update(players)
     .set({ imageKey: null, useDefaultImage: false, imageDeleted: true })
     .where(eq(players.id, viewer.player.id));
+}
+
+export async function setBio(viewer: Viewer, bio: string | null) {
+  if (!viewer.player) throw new GameError("Du er ikke påmeldt");
+  if (viewer.player.status !== "alive") throw new GameError("Du er ute av spillet");
+  await db.update(players).set({ bio }).where(eq(players.id, viewer.player.id));
 }
 
 export async function setWinnerConsent(viewer: Viewer, consent: boolean) {

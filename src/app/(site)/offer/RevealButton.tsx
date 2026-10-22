@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 
-export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string; image: string } | null> }) {
-  const [target, setTarget] = useState<{ name: string; image: string } | null>(null);
+type Target = { name: string; image: string; bio: string | null };
+
+export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> }) {
+  const [target, setTarget] = useState<Target | null>(null);
   const [empty, setEmpty] = useState(false);
   const [pressed, setPressed] = useState(false);
   const holding = useRef(false);
@@ -40,7 +42,10 @@ export function RevealButton({ reveal }: { reveal: () => Promise<{ name: string;
           </span>
         )}
       </div>
-      <p className="h-8 text-2xl font-semibold tracking-tight text-white">{target && <span className="appear inline-block">{target.name}</span>}</p>
+      <div className="min-h-8 space-y-2">
+        <p className="h-8 text-2xl font-semibold tracking-tight text-white">{target && <span className="appear inline-block">{target.name}</span>}</p>
+        {target?.bio && <p className="appear text-sm whitespace-pre-line text-zinc-300">{target.bio}</p>}
+      </div>
       <button
         type="button"
         onPointerDown={start}

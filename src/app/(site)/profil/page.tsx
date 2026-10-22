@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
+import { BioFields } from "@/components/BioFields";
 import { Portrait } from "@/components/Portrait";
 import { Badge, Button, Card, Checkbox, Field, inputClass, Notice, PageTitle } from "@/components/ui";
+import { parseBio } from "@/game/bio";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import {
+  bioAction,
   defaultImageAction,
   deleteImageAction,
   uploadImageAction,
@@ -62,6 +65,15 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           </div>
         </div>
       </Card>
+      {player.status === "alive" && (
+        <Card title="Utseende">
+          <ActionForm action={bioAction} className="space-y-4">
+            <p className="text-sm text-zinc-400">Vises bare til den som har deg som offer. La felt stå tomme hvis du ikke vil oppgi dem.</p>
+            <BioFields values={parseBio(player.bio)} />
+            <Button type="submit">Lagre</Button>
+          </ActionForm>
+        </Card>
+      )}
       {isWinner && (
         <Card title="Du vant!">
           <ActionForm action={winnerConsentAction} className="space-y-4">
