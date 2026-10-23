@@ -105,7 +105,7 @@ export async function setRules(viewer: Viewer, rules: WeekRules) {
 export async function resetGame(viewer: Viewer, confirm: string) {
   const season = gm(viewer);
   if (season.phase === "running") throw new GameError("Stopp spillet før du nullstiller");
-  if (confirm.trim().toLowerCase() !== "nullstill") throw new GameError("Skriv «nullstill» for å bekrefte");
+  if (confirm !== `Nullstill ${season.name}`) throw new GameError(`Skriv «Nullstill ${season.name}» for å bekrefte`);
   const rules = await rulesForWeek(season, weekStartOf(new Date()));
   const { all, photonCopies } = await db.transaction(async (tx) => {
     // Locked and checked again, so a game started in the meantime is not wiped.
