@@ -43,7 +43,9 @@ export async function runCron(now = new Date()) {
         .where(and(eq(kills.status, "pending"), lte(kills.reportedAt, new Date(now.getTime() - CONFIRM_TIMEOUT_MS))))
         .returning();
       // One notice and one e-mail to each staff member per overdue case.
-      const bySeason = Map.groupBy(overdue, (kill) => kill.seasonId);
+      // Grouped by hand: Map.groupBy needs Node 21, and Next 16 still runs on Node 20.
+      const bySeason = new Map<string, typeof overdue>();
+      for (const kill of overdue) bySeason.set(kill.seasonId, [...(bySeason.get(kill.seasonId) ?? []), kill]);
       await Promise.all(
         [...bySeason].map(async ([seasonId, cases]) => {
           const staff = await staffEmails(tx, seasonId);

@@ -19,6 +19,21 @@ async function searchUsers(url: string): Promise<Result[]> {
   return body.users ?? [];
 }
 
+// Searches 250 ms after typing stops. Only results for what is typed right now are returned,
+// never those of an earlier query.
+function useUserSearch(term: string, enabled: boolean) {
+  const [searchTerm, setSearchTerm] = useState(term);
+  useEffect(() => {
+    const id = setTimeout(() => setSearchTerm(term), 250);
+    return () => clearTimeout(id);
+  }, [term]);
+  const key = enabled && searchTerm.length >= 2 ? `/api/brukersok?q=${encodeURIComponent(searchTerm)}` : null;
+  const search = useSWR(key, searchUsers, { revalidateOnFocus: false, shouldRetryOnError: false });
+  const current = term === searchTerm;
+  const error = current && search.error instanceof Error ? search.error.message : null;
+  return { results: current && !error ? (search.data ?? []) : [], error, searching: !current || search.isLoading };
+}
+
 export function UserSearch({ name, className = "" }: { name: string; className?: string }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -27,15 +42,7 @@ export function UserSearch({ name, className = "" }: { name: string; className?:
   const listId = useId();
 
   const term = query.trim();
-  const [searchTerm, setSearchTerm] = useState(term);
-  useEffect(() => {
-    const id = setTimeout(() => setSearchTerm(term), 250);
-    return () => clearTimeout(id);
-  }, [term]);
-  const key = !picked && searchTerm.length >= 2 ? `/api/brukersok?q=${encodeURIComponent(searchTerm)}` : null;
-  const search = useSWR(key, searchUsers, { revalidateOnFocus: false, shouldRetryOnError: false, keepPreviousData: true });
-  const error = search.error instanceof Error ? search.error.message : null;
-  const results = error ? [] : (search.data ?? []);
+  const { results, error, searching } = useUserSearch(term, !picked);
   // New results can be shorter than the list the selection was made in.
   const selected = Math.min(active, Math.max(results.length - 1, 0));
 
@@ -70,6 +77,8 @@ export function UserSearch({ name, className = "" }: { name: string; className?:
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={(e) => {
+          // Enter submits the role form, so it must wait until the search for this text has answered.
+          if (showList && searching && e.key === "Enter") return e.preventDefault();
           if (!showList || results.length === 0) return;
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
@@ -107,7 +116,7 @@ export function UserSearch({ name, className = "" }: { name: string; className?:
             </li>
           ))}
           {results.length === 0 && (
-            <li className="px-3 py-2 text-zinc-500">{search.isLoading ? "Søker …" : error ?? "Ingen treff."}</li>
+            <li className="px-3 py-2 text-zinc-500">{searching ? "Søker …" : error ?? "Ingen treff."}</li>
           )}
         </ul>
       )}
