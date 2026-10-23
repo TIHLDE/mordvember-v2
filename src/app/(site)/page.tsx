@@ -17,28 +17,37 @@ export default async function Home() {
   const alive = visibleAliveCount(grid);
   const winner = season.winnerPlayerId && alive === 1 ? grid.find((p) => !p.out) : null;
   const info = season.settings.info;
+  const started = season.phase === "running" || season.phase === "ended";
 
   return (
     <div className="space-y-6">
-      <PageTitle sub={`${season.name} · ${phaseLabel(season.phase)}`}>Mordvember</PageTitle>
+      <PageTitle
+        sub={`${season.name} · ${phaseLabel(season.phase)}`}
+        aside={
+          <>
+            <p className="text-xs text-zinc-400 sm:text-sm">{started ? "Spillere igjen" : "Påmeldt"}</p>
+            <p className="mt-1 font-display text-5xl leading-none text-blood tabular-nums sm:text-6xl">{started ? alive : grid.length}</p>
+          </>
+        }
+      >
+        Mordvember
+      </PageTitle>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-2" title="Regler">
-          <div className="space-y-3 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{info.rules}</div>
-          {info.startDate && season.phase !== "running" && season.phase !== "ended" && <p className="mt-4 text-sm text-zinc-400">Spillet starter {formatOsloDate(info.startDate)}.</p>}
-          {info.dates && <p className="mt-4 whitespace-pre-line text-sm text-zinc-400">{info.dates}</p>}
-          {season.signupDeadline && season.phase === "signup" && (
-            <p className="mt-4 text-sm text-zinc-400">Påmeldingsfrist: {formatOslo(season.signupDeadline)}</p>
-          )}
-        </Card>
+      {winner && viewer && (
         <Card>
-          <p className="text-sm text-zinc-400">Spillere igjen</p>
-          <p className="mt-2 font-display text-6xl leading-none text-blood tabular-nums">{season.phase === "running" || season.phase === "ended" ? alive : grid.length}</p>
-          {season.phase !== "running" && season.phase !== "ended" && <p className="text-xs text-zinc-500">påmeldt</p>}
-          {winner && viewer && <p className="mt-3 text-sm">Vinner: <strong className="text-white">{winner.name}</strong></p>}
-          {season.dataDeletedAt && season.winnerName && <p className="mt-3 text-sm">Vinner: {season.winnerName}</p>}
+          <p className="text-sm text-zinc-400">Vinner</p>
+          <p className="mt-2 font-display text-4xl leading-none text-blood sm:text-5xl">{winner.name}</p>
         </Card>
-      </div>
+      )}
+
+      <Card title="Regler">
+        <div className="space-y-3 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{info.rules}</div>
+        {info.startDate && !started && <p className="mt-4 text-sm text-zinc-400">Spillet starter {formatOsloDate(info.startDate)}.</p>}
+        {info.dates && <p className="mt-4 whitespace-pre-line text-sm text-zinc-400">{info.dates}</p>}
+        {season.signupDeadline && season.phase === "signup" && (
+          <p className="mt-4 text-sm text-zinc-400">Påmeldingsfrist: {formatOslo(season.signupDeadline)}</p>
+        )}
+      </Card>
 
       {!viewer && (
         <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
