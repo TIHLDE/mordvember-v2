@@ -4,7 +4,7 @@ import { env } from "../env";
 const KOK_GROUP_SLUG = "kok";
 const INDEX_GROUP_SLUG = "index";
 
-export type PhotonGroup = { slug: string; name: string; membership: { role: "member" | "leader" } | null };
+type PhotonGroup = { slug: string; name: string; membership: { role: "member" | "leader" } | null };
 
 export type PhotonIdentity = {
   username: string;

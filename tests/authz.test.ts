@@ -79,12 +79,12 @@ describe.skipIf(!url)("tilgang mot database", async () => {
     expect(logged.filter((l) => l.action === "sirkel.vist")).toHaveLength(2);
   });
 
-  it("en deltaker får bare sitt eget offer, med id og navn", async () => {
+  it("en deltaker får bare sitt eget offer, med id, navn og bio", async () => {
     const full = await circle.circleForAdmin(viewers.gm!, "test");
     const mine = full.find((c) => c.id === ids[0])!;
     const target = await circle.myTarget(viewers.participant!);
-    expect(target).toEqual({ id: mine.targetId, name: expect.any(String) });
-    expect(Object.keys(target!).sort()).toEqual(["id", "name"]);
+    expect(target).toEqual({ id: mine.targetId, name: expect.any(String), bio: null });
+    expect(Object.keys(target!).sort()).toEqual(["bio", "id", "name"]);
     expect(await circle.myTarget(viewers.member!)).toBeNull();
   });
 

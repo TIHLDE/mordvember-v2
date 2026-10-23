@@ -59,7 +59,7 @@ export async function setImage(viewer: Viewer, file: File) {
     .where(eq(players.id, viewer.player.id));
 }
 
-export async function useDefaultImage(viewer: Viewer) {
+export async function chooseDefaultImage(viewer: Viewer) {
   if (!viewer.player) throw new GameError("Du er ikke påmeldt");
   if (viewer.player.imageKey) await deleteImages([viewer.player.imageKey]).catch(() => undefined);
   await db

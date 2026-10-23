@@ -22,7 +22,7 @@ export function NumberStepper({
   "aria-label"?: string;
 }) {
   const [value, setValue] = useState(defaultValue);
-  const [text, setText] = useState(format(defaultValue));
+  const [text, setText] = useState(() => format(defaultValue));
   const decimals = step % 1 === 0 ? 0 : 1;
 
   const clamp = (n: number) => Math.min(max ?? Infinity, Math.max(min, n));

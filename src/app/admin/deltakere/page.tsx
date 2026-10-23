@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 import { BIO_FIELDS, parseBio } from "@/game/bio";

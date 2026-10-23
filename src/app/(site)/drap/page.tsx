@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { kills, players } from "@/db/schema";
 import { formatOslo } from "@/game/time";
 import { osloInputValue } from "@/lib/action";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { confirmKillAction, disputeKillAction, reportKillAction } from "../actions";
 
@@ -18,7 +19,7 @@ const victim = alias(players, "victim");
 
 export default async function KillsPage() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/drap");
+  if (!viewer) return redirectToLogin();
   if (!viewer.player || !viewer.season) redirect("/");
   const me = viewer.player.id;
   const mine = await db

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { OAUTH_COOKIE, safeNext } from "@/lib/redirect";
+import { safeNext } from "@/lib/redirect";
 import { exchangeCode, fetchIdentity } from "@/server/auth/photon";
 import { onLogin } from "@/server/auth/login";
+import { redirectUri, clearOAuthState, readOAuthState } from "@/server/auth/oauth-state";
 
 export const dynamic = "force-dynamic";
 
@@ -13,19 +14,14 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const origin = request.nextUrl.origin;
-  let stored: { state?: string; verifier?: string; next?: string } = {};
-  try {
-    stored = JSON.parse(request.cookies.get(OAUTH_COOKIE)?.value ?? "{}");
-  } catch {
-    stored = {};
-  }
+  const stored = readOAuthState(request);
   if (!code) return fail(origin, "kode");
   if (!state || !stored.state || state !== stored.state || !stored.verifier) return fail(origin, "state");
 
   let identity;
   let tokens;
   try {
-    tokens = await exchangeCode(code, `${origin}/api/auth/callback`, stored.verifier);
+    tokens = await exchangeCode(code, redirectUri(origin), stored.verifier);
     identity = await fetchIdentity(tokens.accessToken);
   } catch (error) {
     console.error("Photon-innlogging feilet", error);
@@ -38,6 +34,6 @@ export async function GET(request: NextRequest) {
     return fail(origin, "lagring");
   }
   const response = NextResponse.redirect(`${origin}${safeNext(stored.next)}`);
-  response.cookies.delete(OAUTH_COOKIE);
+  clearOAuthState(response);
   return response;
 }

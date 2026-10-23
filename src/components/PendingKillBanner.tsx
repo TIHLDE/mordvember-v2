@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getViewer } from "@/server/auth/session";
 import { openKillsForPlayer } from "@/server/game";
-import { cx } from "./ui";
+import { cx } from "./styles";
 
 export async function PendingKillBanner({ className }: { className: string }) {
   const viewer = await getViewer();

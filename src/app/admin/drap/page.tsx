@@ -1,7 +1,8 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { kills, players } from "@/db/schema";
 import { isOverdue } from "@/game/kills";

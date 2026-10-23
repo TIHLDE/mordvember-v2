@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, inputBase, inputClass, PageTitle } from "@/components/ui";
+import { inputBase, inputClass } from "@/components/styles";
+import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOsloDate, weekStartOf } from "@/game/time";
 import { guard } from "@/lib/guard";
 import { evaluateSeasonWeek, reviews } from "@/server/weekly";

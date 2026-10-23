@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Button, Card, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 import { guard } from "@/lib/guard";
 import { emergencyEndAction, emergencyStartAction } from "../actions";

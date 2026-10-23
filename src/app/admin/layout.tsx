@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/admin");
+  if (!viewer) return redirectToLogin();
   if (!viewer.isGamemaster && !viewer.canManageRoles) redirect("/");
   const groups: AdminNavGroup[] = [
     { links: [{ href: "/admin", label: "Oversikt", show: true, exact: true }] },

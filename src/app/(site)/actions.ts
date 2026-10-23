@@ -16,7 +16,7 @@ import {
   setBio,
   setImage,
   signUp,
-  useDefaultImage,
+  chooseDefaultImage,
   withdraw,
 } from "@/server/players";
 import { askQuestion } from "@/server/questions";
@@ -59,7 +59,7 @@ export async function uploadImageAction(_: ActionState, form: FormData) {
 
 export async function defaultImageAction(_: ActionState) {
   return run(async () => {
-    await useDefaultImage(await requirePlayer());
+    await chooseDefaultImage(await requirePlayer());
     return "Du bruker profilbildet fra TIHLDE";
   });
 }

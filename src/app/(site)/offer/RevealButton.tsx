@@ -44,9 +44,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={target.image} alt="" className="reveal-image h-full w-full object-cover" draggable={false} />
         ) : (
-          <span key={empty ? "empty" : pressed ? "loading" : "idle"} className={`appear px-6 text-center text-sm text-zinc-500 ${pressed && !empty ? "reveal-pulse" : ""}`}>
-            {empty ? "Du har ikke noe offer nå" : pressed ? "Henter …" : "Skjult"}
-          </span>
+          <Placeholder state={empty ? "empty" : pressed ? "loading" : "idle"} />
         )}
       </div>
       <div className="min-h-8 space-y-2">
@@ -63,5 +61,15 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
         {pressed ? "Skjul" : "Vis offer"}
       </button>
     </div>
+  );
+}
+
+const PLACEHOLDER = { idle: "Skjult", loading: "Henter …", empty: "Du har ikke noe offer nå" };
+
+function Placeholder({ state }: { state: keyof typeof PLACEHOLDER }) {
+  return (
+    <span key={state} className={`appear px-6 text-center text-sm text-zinc-500 ${state === "loading" ? "reveal-pulse" : ""}`}>
+      {PLACEHOLDER[state]}
+    </span>
   );
 }

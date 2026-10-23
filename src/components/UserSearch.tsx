@@ -1,43 +1,50 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { inputClass } from "@/components/ui";
+import useSWR from "swr";
+import { inputClass } from "@/components/styles";
 
 type Result = { username: string; name: string };
 
+const SEARCH_FAILED = "Søket i Photon feilet. Prøv igjen.";
+// SWR reuses a pending request for the same query, so a stalled one must end for the query to be retried.
+const SEARCH_TIMEOUT_MS = 8_000;
+
+async function searchUsers(url: string): Promise<Result[]> {
+  // The timeout also covers reading the body.
+  const response = await fetch(url, { signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS) }).catch(() => null);
+  if (!response) throw new Error(SEARCH_FAILED);
+  const body = (await response.json().catch(() => null)) as { users?: Result[]; error?: string } | null;
+  if (!response.ok || !body) throw new Error(body?.error ?? SEARCH_FAILED);
+  return body.users ?? [];
+}
+
+// Searches 250 ms after typing stops. Only results for what is typed right now are returned,
+// never those of an earlier query.
+function useUserSearch(term: string, enabled: boolean) {
+  const [searchTerm, setSearchTerm] = useState(term);
+  useEffect(() => {
+    const id = setTimeout(() => setSearchTerm(term), 250);
+    return () => clearTimeout(id);
+  }, [term]);
+  const key = enabled && searchTerm.length >= 2 ? `/api/brukersok?q=${encodeURIComponent(searchTerm)}` : null;
+  const search = useSWR(key, searchUsers, { revalidateOnFocus: false, shouldRetryOnError: false });
+  const current = term === searchTerm;
+  const error = current && search.error instanceof Error ? search.error.message : null;
+  return { results: current && !error ? (search.data ?? []) : [], error, searching: !current || search.isLoading };
+}
+
 export function UserSearch({ name, className = "" }: { name: string; className?: string }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Result[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [picked, setPicked] = useState<Result | null>(null);
   const listId = useId();
 
   const term = query.trim();
-  useEffect(() => {
-    if (picked || term.length < 2) return;
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/brukersok?q=${encodeURIComponent(term)}`, { signal: controller.signal });
-        const body = (await response.json()) as { users?: Result[]; error?: string };
-        setResults(body.users ?? []);
-        setError(body.error ?? null);
-        setActive(0);
-      } catch (e) {
-        if (!controller.signal.aborted) setError(e instanceof Error ? "Søket i Photon feilet. Prøv igjen." : null);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    }, 250);
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [term, picked]);
+  const { results, error, searching } = useUserSearch(term, !picked);
+  // New results can be shorter than the list the selection was made in.
+  const selected = Math.min(active, Math.max(results.length - 1, 0));
 
   const pick = (user: Result) => {
     setPicked(user);
@@ -56,7 +63,7 @@ export function UserSearch({ name, className = "" }: { name: string; className?:
         aria-label="Søk etter navn eller brukernavn i Photon"
         aria-expanded={showList}
         aria-controls={listId}
-        aria-activedescendant={showList && results[active] ? `${listId}-${active}` : undefined}
+        aria-activedescendant={showList && results[selected] ? `${listId}-${selected}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         placeholder="Søk etter navn eller brukernavn"
@@ -65,17 +72,21 @@ export function UserSearch({ name, className = "" }: { name: string; className?:
           setQuery(e.target.value);
           setPicked(null);
           setOpen(true);
+          setActive(0);
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={(e) => {
+          // Enter submits the role form, so it must wait until the search for this text has answered.
+          if (showList && searching && e.key === "Enter") return e.preventDefault();
           if (!showList || results.length === 0) return;
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
-            setActive((i) => (i + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length);
+            setActive((selected + (e.key === "ArrowDown" ? 1 : results.length - 1)) % results.length);
           } else if (e.key === "Enter") {
             e.preventDefault();
-            pick(results[active]!);
+            const user = results[selected];
+            if (user) pick(user);
           } else if (e.key === "Escape") {
             setOpen(false);
           }
@@ -94,18 +105,18 @@ export function UserSearch({ name, className = "" }: { name: string; className?:
               key={user.username}
               id={`${listId}-${i}`}
               role="option"
-              aria-selected={i === active}
+              aria-selected={i === selected}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => pick(user)}
               onMouseEnter={() => setActive(i)}
-              className={`flex cursor-pointer items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${i === active ? "bg-white/10 text-white" : "text-zinc-300"}`}
+              className={`flex cursor-pointer items-baseline justify-between gap-3 rounded-lg px-3 py-2 ${i === selected ? "bg-white/10 text-white" : "text-zinc-300"}`}
             >
               <span className="truncate">{user.name}</span>
               <span className="shrink-0 text-xs text-zinc-500">{user.username}</span>
             </li>
           ))}
           {results.length === 0 && (
-            <li className="px-3 py-2 text-zinc-500">{loading ? "Søker …" : error ?? "Ingen treff."}</li>
+            <li className="px-3 py-2 text-zinc-500">{searching ? "Søker …" : error ?? "Ingen treff."}</li>
           )}
         </ul>
       )}

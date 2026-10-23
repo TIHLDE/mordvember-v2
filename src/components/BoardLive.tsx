@@ -1,18 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
+import { boardPolling } from "@/lib/board";
 import type { BoardData } from "@/server/board";
-
-/** `api` is the board endpoint, `/api/status`. */
-export const boardImage = (api: string, id: string) => `${api}/bilde/${id}`;
-
-export function since(iso: string, now: number) {
-  const minutes = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 48) return `${hours} t ${minutes % 60} min`;
-  return `${Math.floor(hours / 24)} dager`;
-}
 
 export function useNow(everyMs: number) {
   const [now, setNow] = useState(() => Date.now());
@@ -25,63 +16,49 @@ export function useNow(everyMs: number) {
 
 const QR_FALLBACK_MS = 60_000;
 const QR_RETRY_MS = 5_000;
+// SWR waits for a pending request before polling again, so a stalled response must time out.
+const BOARD_TIMEOUT_MS = 20_000;
+
+// A 404 means the board itself is gone, so it replaces the data instead of failing: a later
+// failure keeps showing the message. Other failures keep the last data on screen.
+type BoardState = { board: BoardData } | { gone: string };
+
+async function fetchBoard(api: string): Promise<BoardState> {
+  // The timeout also covers reading the body.
+  const response = await fetch(api, { cache: "no-store", signal: AbortSignal.timeout(BOARD_TIMEOUT_MS) });
+  if (response.status === 404) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    return { gone: body?.error ?? "Lenken er ikke gyldig lenger" };
+  }
+  if (!response.ok) throw new Error(`Statusskjermen svarte ${response.status}`);
+  return { board: (await response.json()) as BoardData };
+}
+
+type Live = { qrSvg: string | null; nextCodeInMs: number };
+
+async function fetchLive(url: string): Promise<Live> {
+  // The timeout also covers reading the body, so a stalled response still ends in a retry.
+  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(QR_RETRY_MS * 2) });
+  if (!response.ok) throw new Error(`QR-koden svarte ${response.status}`);
+  return (await response.json()) as Live;
+}
+
+// Module-level, because SWR restarts its polling timer whenever this function changes identity.
+const liveInterval = (live: Live | undefined) => (live ? Math.min(live.nextCodeInMs + 1000, QR_FALLBACK_MS) : QR_RETRY_MS);
 
 export function useBoard(api: string, { refreshMs = 10_000 } = {}) {
-  const [data, setData] = useState<BoardData | null>(null);
-  const [qrSvg, setQrSvg] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      fetch(api, { cache: "no-store" })
-        .then(async (r) => {
-          if (!alive) return;
-          if (r.status === 404) {
-            setData(null);
-            setError(((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? "Lenken er ikke gyldig lenger");
-            return;
-          }
-          if (r.ok) {
-            setData((await r.json()) as BoardData);
-            setError(null);
-          }
-        })
-        .catch(() => undefined);
-    void load();
-    const id = setInterval(load, refreshMs);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [api, refreshMs]);
+  const board = useSWR(api, fetchBoard, { ...boardPolling(refreshMs), refreshInterval: refreshMs });
 
   // The QR code changes every hour. The server says when the next one starts, so the board
-  // fetches it right then. The fallback poll picks up the game starting or ending and failed requests.
-  useEffect(() => {
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const load = () =>
-      // The timeout also covers reading the body, so a stalled response still ends in a retry.
-      fetch(`${api}/live`, { cache: "no-store", signal: AbortSignal.timeout(QR_RETRY_MS * 2) })
-        .then((r) => (r.ok ? (r.json() as Promise<{ qrSvg: string | null; nextCodeInMs: number }>) : null))
-        .then((d) => {
-          if (!alive) return;
-          if (d) setQrSvg(d.qrSvg);
-          const next = d ? Math.min(d.nextCodeInMs + 1000, QR_FALLBACK_MS) : QR_RETRY_MS;
-          timer = setTimeout(load, next);
-        })
-        .catch(() => {
-          if (alive) timer = setTimeout(load, QR_RETRY_MS);
-        });
-    void load();
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [api]);
+  // fetches it right then. The fallback poll picks up the game starting or ending.
+  const live = useSWR(`${api}/live`, fetchLive, { ...boardPolling(QR_RETRY_MS), refreshInterval: liveInterval });
 
-  return { data, qrSvg, error };
+  const state = board.data;
+  return {
+    data: state && "board" in state ? state.board : null,
+    qrSvg: live.data?.qrSvg ?? null,
+    error: state && "gone" in state ? state.gone : null,
+  };
 }
 
 export function BoardMessage({ children }: { children: React.ReactNode }) {

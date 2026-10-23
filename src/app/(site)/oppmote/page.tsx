@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Badge, Card, PageTitle } from "@/components/ui";
 import { formatOslo, formatOsloDate } from "@/game/time";
+import { redirectToLogin } from "@/lib/guard";
 import { myAttendance } from "@/server/attendance";
 import { getViewer } from "@/server/auth/session";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AttendancePage() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/oppmote");
+  if (!viewer) return redirectToLogin();
   if (!viewer.player) redirect("/");
   const status = await myAttendance(viewer);
   if (!status) redirect("/");

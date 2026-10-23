@@ -1,12 +1,13 @@
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, Field, inputClass, Notice, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Button, Card, Field, Notice, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { checkins, kills, players, questions } from "@/db/schema";
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
 import { formatOslo } from "@/game/time";
+import { redirectToLogin } from "@/lib/guard";
 import { msAgo } from "@/lib/time";
 import { getViewer } from "@/server/auth/session";
 import { phaseLabel } from "@/server/season";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/admin");
+  if (!viewer) return redirectToLogin();
   const season = viewer.season;
   if (!season) {
     return (
@@ -25,8 +26,8 @@ export default async function AdminHome() {
         <PageTitle>Admin</PageTitle>
         <Card title="Opprett spillet">
           <ActionForm action={createSeasonAction} className="space-y-4">
-            <Field label="Navn">
-              <input name="name" required className={inputClass} placeholder="Mordvember 2026" />
+            <Field label="Navn" hint="For eksempel Mordvember 2026">
+              <input name="name" required className={inputClass} />
             </Field>
             <Button type="submit">Opprett</Button>
           </ActionForm>

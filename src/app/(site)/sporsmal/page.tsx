@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { seasonQuestions } from "@/server/questions";
 import { deleteQuestionAction } from "../../admin/actions";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function QuestionsPage() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/sporsmal");
+  if (!viewer) return redirectToLogin();
   const all = await seasonQuestions(viewer);
   return (
     <div className="mx-auto max-w-2xl space-y-6">

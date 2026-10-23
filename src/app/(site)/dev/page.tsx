@@ -31,8 +31,10 @@ async function devLogin(form: FormData) {
 
 export default async function DevLoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   if (process.env.NODE_ENV !== "development") notFound();
-  const { next } = await searchParams;
-  const testUsers = await db.select().from(users).where(like(users.username, `${TEST_PREFIX}%`)).orderBy(asc(users.username));
+  const [{ next }, testUsers] = await Promise.all([
+    searchParams,
+    db.select().from(users).where(like(users.username, `${TEST_PREFIX}%`)).orderBy(asc(users.username)),
+  ]);
   return (
     <div className="mx-auto max-w-2xl">
       <PageTitle sub="Bare tilgjengelig i lokal utvikling. Finnes ikke i produksjonsbygget.">Testbrukere</PageTitle>

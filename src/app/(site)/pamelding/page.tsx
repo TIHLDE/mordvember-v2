@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
-import { Button, Card, Checkbox, Field, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import { signUpAction, wrongStudyAction } from "../actions";
@@ -10,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SignupPage() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/pamelding");
+  if (!viewer) return redirectToLogin();
   const season = viewer.season;
   if (viewer.player) redirect("/profil?pameldt=1");
   if (!season || !signupOpen(season)) {

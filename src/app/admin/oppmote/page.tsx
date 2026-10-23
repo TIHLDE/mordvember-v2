@@ -1,7 +1,8 @@
 import { asc, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
 import { DateTimePicker } from "@/components/DateTimePicker";
-import { Badge, Button, Card, Empty, Field, inputBase, LinkButton, PageTitle } from "@/components/ui";
+import { inputBase } from "@/components/styles";
+import { Badge, Button, Card, Empty, Field, LinkButton, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 import { addDays, formatOslo, formatOsloDate, weekStartOf } from "@/game/time";
@@ -16,8 +17,10 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
   const viewer = await guard("gamemaster");
   const { uke } = await searchParams;
   const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());
-  const rows = await weekSessions(viewer.season.id, week);
-  const roster = await db.select({ id: players.id, name: players.name }).from(players).where(eq(players.seasonId, viewer.season.id)).orderBy(asc(players.name));
+  const [rows, roster] = await Promise.all([
+    weekSessions(viewer.season.id, week),
+    db.select({ id: players.id, name: players.name }).from(players).where(eq(players.seasonId, viewer.season.id)).orderBy(asc(players.name)),
+  ]);
   const flagged = rows.filter((r) => !r.checkin.flagsReviewed && !r.checkin.rejected && (r.checkin.autoClosed || r.checkin.flags.length > 0));
 
   const row = (c: (typeof rows)[number]) => (

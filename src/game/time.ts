@@ -1,4 +1,4 @@
-export const TIME_ZONE = "Europe/Oslo";
+const TIME_ZONE = "Europe/Oslo";
 
 const partsFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: TIME_ZONE,
@@ -77,17 +77,20 @@ export function weekdaysOf(weekStart: string): string[] {
   return [0, 1, 2, 3, 4].map((i) => addDays(weekStart, i));
 }
 
+const timeFormat = new Intl.DateTimeFormat("nb-NO", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit" });
+const dateTimeFormat = new Intl.DateTimeFormat("nb-NO", {
+  timeZone: TIME_ZONE,
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const dateFormat = new Intl.DateTimeFormat("nb-NO", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
+
 export function formatOslo(at: Date, withDate = true): string {
-  return new Intl.DateTimeFormat("nb-NO", {
-    timeZone: TIME_ZONE,
-    ...(withDate ? { day: "numeric", month: "short" } : {}),
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(at);
+  return (withDate ? dateTimeFormat : timeFormat).format(at);
 }
 
 export function formatOsloDate(date: string): string {
-  return new Intl.DateTimeFormat("nb-NO", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" }).format(
-    new Date(`${date}T12:00:00Z`),
-  );
+  return dateFormat.format(new Date(`${date}T12:00:00Z`));
 }

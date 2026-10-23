@@ -10,7 +10,7 @@ import { getCurrentSeason } from "../season";
 import { type PhotonIdentity, type PhotonTokens, refreshTokens } from "./photon";
 import { seal, unseal } from "./token-box";
 
-export const SESSION_COOKIE = "mv_session";
+const SESSION_COOKIE = "mv_session";
 const SESSION_DAYS = 3;
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
