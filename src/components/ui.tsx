@@ -13,13 +13,22 @@ export function Card({ title, children, className = "" }: { title?: string; chil
   );
 }
 
-export function PageTitle({ children, sub, center = false }: { children: React.ReactNode; sub?: React.ReactNode; center?: boolean }) {
-  return (
-    <header className={cx("mb-8", center && "text-center")}>
+export function PageTitle({ children, sub, center = false, aside }: { children: React.ReactNode; sub?: React.ReactNode; center?: boolean; aside?: React.ReactNode }) {
+  const title = (
+    <>
       <h1 className="font-display text-4xl leading-none text-blood text-balance sm:text-5xl">{children}</h1>
       {sub && <p className={cx("mt-3 max-w-prose text-pretty text-zinc-400", center && "mx-auto")}>{sub}</p>}
-    </header>
+    </>
   );
+  if (aside) {
+    return (
+      <header className="mb-8 flex items-start justify-between gap-4">
+        <div className="min-w-0">{title}</div>
+        <div className="shrink-0 text-right">{aside}</div>
+      </header>
+    );
+  }
+  return <header className={cx("mb-8", center && "text-center")}>{title}</header>;
 }
 
 const variants = {
