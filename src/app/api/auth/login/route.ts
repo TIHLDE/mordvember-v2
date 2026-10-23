@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/redirect";
-import { callbackUrl, saveOAuthState } from "@/server/auth/oauth-state";
+import { redirectUri, saveOAuthState } from "@/server/auth/oauth-state";
 import { authorizeUrl, challengeFor, createVerifier } from "@/server/auth/photon";
 import { env } from "@/server/env";
 
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const state = crypto.randomUUID();
   const verifier = createVerifier();
   const next = safeNext(request.nextUrl.searchParams.get("next"));
-  const response = NextResponse.redirect(authorizeUrl(callbackUrl(request.nextUrl.origin), state, await challengeFor(verifier)));
+  const response = NextResponse.redirect(authorizeUrl(redirectUri(request.nextUrl.origin), state, await challengeFor(verifier)));
   saveOAuthState(response, { state, verifier, next });
   return response;
 }

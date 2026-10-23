@@ -3,10 +3,12 @@ import { ActionForm } from "@/components/ActionForm";
 import { TimeField } from "@/components/DateTimePicker";
 import { NumberStepper } from "@/components/NumberStepper";
 import { OfficeFields } from "@/components/OfficeFields";
-import { Badge, Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Field, PageTitle } from "@/components/ui";
 import { GLOSHAUGEN, type WeekRules } from "@/game/attendance";
 import { weekStartOf } from "@/game/time";
 import { guard } from "@/lib/guard";
+import type { Season } from "@/server/auth/session";
 import { hasRing } from "@/server/game";
 import { phaseLabel, rulesForWeek } from "@/server/season";
 import {
@@ -47,39 +49,8 @@ export default async function SeasonAdmin() {
 
       <Card title="Styring">
         <div className="divide-y divide-white/5">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-            <div className="flex items-center gap-3">
-              <span className="w-24 text-sm text-zinc-300">Påmelding</span>
-              <Badge tone={season.phase === "signup" ? "red" : "zinc"}>{season.phase === "signup" ? "Åpen" : "Stengt"}</Badge>
-            </div>
-            {(season.phase === "setup" || season.phase === "closed") && <PhaseButton phase="signup" label="Åpne påmelding" />}
-            {season.phase === "signup" && <PhaseButton phase="closed" label="Steng påmelding" />}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <div className="flex items-center gap-3">
-              <span className="w-24 text-sm text-zinc-300">Spillet</span>
-              <Badge tone={season.phase === "running" ? "red" : "zinc"}>
-                {season.phase === "running" ? "Pågår" : season.phase === "ended" ? "Stoppet" : "Ikke startet"}
-              </Badge>
-            </div>
-            {ringDrawn && (
-              <ActionForm action={startGameAction} confirm="Starte spillet? Alle deltakere får e-post om første offer.">
-                <Button type="submit">Start spillet</Button>
-              </ActionForm>
-            )}
-            {season.phase === "closed" && !ringDrawn && (
-              <p className="text-sm text-zinc-400">
-                Trekk sirkelen under <Link href="/admin/sirkel" className="underline">Sirkel</Link> før du starter.
-              </p>
-            )}
-            {(season.phase === "setup" || season.phase === "signup") && <p className="text-sm text-zinc-400">Steng påmeldingen før du starter.</p>}
-            {season.phase === "running" && <PhaseButton phase="ended" label="Stopp spillet" />}
-            {season.phase === "ended" && (
-              <ActionForm action={resumeGameAction} confirm="Starte spillet igjen?">
-                <Button type="submit" variant="ghost">Start spillet igjen</Button>
-              </ActionForm>
-            )}
-          </div>
+          <SignupControl phase={season.phase} />
+          <GameControl phase={season.phase} ringDrawn={ringDrawn} />
         </div>
       </Card>
 
@@ -127,6 +98,62 @@ export default async function SeasonAdmin() {
       </Card>
     </div>
   );
+}
+
+type Phase = Season["phase"];
+
+function SignupControl({ phase }: { phase: Phase }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+      <div className="flex items-center gap-3">
+        <span className="w-24 text-sm text-zinc-300">Påmelding</span>
+        <Badge tone={phase === "signup" ? "red" : "zinc"}>{phase === "signup" ? "Åpen" : "Stengt"}</Badge>
+      </div>
+      {(phase === "setup" || phase === "closed") && <PhaseButton phase="signup" label="Åpne påmelding" />}
+      {phase === "signup" && <PhaseButton phase="closed" label="Steng påmelding" />}
+    </div>
+  );
+}
+
+const GAME_STATE: Record<Phase, string> = { setup: "Ikke startet", signup: "Ikke startet", closed: "Ikke startet", running: "Pågår", ended: "Stoppet" };
+
+function GameControl({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+      <div className="flex items-center gap-3">
+        <span className="w-24 text-sm text-zinc-300">Spillet</span>
+        <Badge tone={phase === "running" ? "red" : "zinc"}>{GAME_STATE[phase]}</Badge>
+      </div>
+      <GameAction phase={phase} ringDrawn={ringDrawn} />
+    </div>
+  );
+}
+
+// The next step for the game in this phase.
+function GameAction({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) {
+  switch (phase) {
+    case "setup":
+    case "signup":
+      return <p className="text-sm text-zinc-400">Steng påmeldingen før du starter.</p>;
+    case "closed":
+      return ringDrawn ? (
+        <ActionForm action={startGameAction} confirm="Starte spillet? Alle deltakere får e-post om første offer.">
+          <Button type="submit">Start spillet</Button>
+        </ActionForm>
+      ) : (
+        <p className="text-sm text-zinc-400">
+          Trekk sirkelen under <Link href="/admin/sirkel" className="underline">Sirkel</Link> før du starter.
+        </p>
+      );
+    case "running":
+      return <PhaseButton phase="ended" label="Stopp spillet" />;
+    case "ended":
+      return (
+        <ActionForm action={resumeGameAction} confirm="Starte spillet igjen?">
+          <Button type="submit" variant="ghost">Start spillet igjen</Button>
+        </ActionForm>
+      );
+  }
 }
 
 function PhaseButton({ phase, label }: { phase: string; label: string }) {

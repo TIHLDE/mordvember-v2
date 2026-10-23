@@ -25,7 +25,7 @@ import { audit } from "./audit";
 import { AccessError, type Season, type Viewer } from "./auth/session";
 import { announceTargets, commitRing, lockRing } from "./circle";
 import { queueEmail } from "./email";
-import { notify } from "./notify";
+import { notify, playerRecipients } from "./notify";
 
 export { hasRing } from "./circle";
 
@@ -435,7 +435,8 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
       if (!canBeDisqualified(id, all)) throw new GameError("En deltaker har en uavklart drapssak. Avgjør den først.");
     }
     const before = await lockRing(tx, seasonId);
-    const inRing = playerIds.filter((id) => before.includes(id));
+    const ringIds = new Set(before);
+    const inRing = playerIds.filter((id) => ringIds.has(id));
     const after = inRing.length ? removePlayers(before, inRing) : before;
     const now = new Date();
     await tx
@@ -454,11 +455,9 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
       });
       if (season.phase === "running") await crownIfWinner(tx, seasonId, after);
     }
-    for (const id of playerIds) {
-      const p = await userOfPlayer(tx, id);
-      await notify(tx, [{ userId: p.userId, seasonId, text: `Du er diskvalifisert. Begrunnelse: ${reason}`, href: "/" }]);
-      await queueEmail(tx, "disqualified", [p.email], { grunn: reason });
-    }
+    const disqualified = await playerRecipients(tx, playerIds);
+    await notify(tx, disqualified.map((p) => ({ userId: p.userId, seasonId, text: `Du er diskvalifisert. Begrunnelse: ${reason}`, href: "/" })));
+    await queueEmail(tx, "disqualified", disqualified.map((p) => p.email), { grunn: reason });
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "deltaker.diskvalifisert", details: { playerIds, reason } });
   });
 }

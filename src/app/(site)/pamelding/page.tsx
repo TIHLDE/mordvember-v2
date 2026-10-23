@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
-import { Button, Card, Checkbox, Field, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";

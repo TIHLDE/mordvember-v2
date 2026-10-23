@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { and, asc, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { checkins, players } from "@/db/schema";
+import { checkins, players, seasons } from "@/db/schema";
 import { type AttendanceSession, closeTimeFor, dayResults, distanceMeters, GLOSHAUGEN } from "@/game/attendance";
 import { qrCode, verifyQrCode } from "@/game/qr";
 import { addDays, osloDate, osloTime, weekStartOf } from "@/game/time";
@@ -121,21 +121,27 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
 
 export async function closeForgottenSessions(now = new Date()) {
   const open = await db
-    .select({ checkin: checkins })
+    .select({ checkin: checkins, season: seasons })
     .from(checkins)
+    .innerJoin(seasons, eq(seasons.id, checkins.seasonId))
     .where(and(isNull(checkins.checkOutAt), eq(checkins.autoClosed, false)));
-  for (const { checkin } of open) {
-    const season = await db.query.seasons.findFirst({ where: (s, { eq: e }) => e(s.id, checkin.seasonId) });
-    if (!season) continue;
-    const rules = await rulesForWeek(season, weekStartOf(checkin.checkInAt));
-    const close = closeTimeFor(checkin.checkInAt, rules);
-    if (close <= now) {
+  // Open check-ins mostly share a season and week, so each set of rules is read once.
+  const rules = new Map<string, ReturnType<typeof rulesForWeek>>();
+  const rulesFor = (season: (typeof open)[number]["season"], weekStart: string) => {
+    const key = `${season.id}:${weekStart}`;
+    if (!rules.has(key)) rules.set(key, rulesForWeek(season, weekStart));
+    return rules.get(key)!;
+  };
+  await Promise.all(
+    open.map(async ({ checkin, season }) => {
+      const close = closeTimeFor(checkin.checkInAt, await rulesFor(season, weekStartOf(checkin.checkInAt)));
+      if (close > now) return;
       await db
         .update(checkins)
         .set({ checkOutAt: close < checkin.checkInAt ? checkin.checkInAt : close, autoClosed: true })
         .where(eq(checkins.id, checkin.id));
-    }
-  }
+    }),
+  );
 }
 
 export async function weekSessions(seasonId: string, weekStart: string) {

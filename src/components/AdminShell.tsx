@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserAvatar } from "./Avatar";
-import { cx } from "./ui";
+import { cx } from "./styles";
 
 export type AdminNavGroup = { label?: string; links: { href: string; label: string; exact?: boolean }[] };
 
@@ -52,8 +52,8 @@ export function AdminShell({
           <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-medium text-zinc-300">Admin</span>
         </div>
         <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-          {groups.map((g, i) => (
-            <div key={g.label ?? i}>
+          {groups.map((g) => (
+            <div key={g.label ?? g.links[0]?.href}>
               {g.label && <p className="mb-1 px-3 text-xs font-medium text-zinc-500">{g.label}</p>}
               <ul className="space-y-0.5">
                 {g.links.map((l) => {

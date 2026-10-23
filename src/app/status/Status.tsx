@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import { BloodCross } from "@/components/BloodCross";
+import { Announcement, BoardMessage, useBoard, useNow } from "@/components/BoardLive";
 import { Portrait } from "@/components/Portrait";
+import { boardImage, boardPolling, since } from "@/lib/board";
 import type { BoardData } from "@/server/board";
-import { Announcement, BoardMessage, boardImage, since, useBoard, useNow } from "@/components/BoardLive";
 
 const API = "/api/status";
 
@@ -57,24 +59,19 @@ export function Status() {
 
 // Only reload when the server answers, so a brief outage doesn't leave a browser error page on the screen.
 function useDailyReload() {
+  const [due, setDue] = useState(false);
   useEffect(() => {
-    let alive = true;
-    let id: ReturnType<typeof setTimeout>;
-    const reload = () =>
-      fetch(location.href, { method: "HEAD", cache: "no-store" })
-        .then((r) => {
-          if (!r.ok) throw new Error();
-          if (alive) location.reload();
-        })
-        .catch(() => {
-          if (alive) id = setTimeout(reload, REFRESH_MS);
-        });
-    id = setTimeout(reload, RELOAD_MS);
-    return () => {
-      alive = false;
-      clearTimeout(id);
-    };
+    const id = setTimeout(() => setDue(true), RELOAD_MS);
+    return () => clearTimeout(id);
   }, []);
+  const { data: serverUp } = useSWR(due ? "status-reload" : null, serverAnswers, { ...boardPolling(REFRESH_MS), refreshInterval: REFRESH_MS });
+  useEffect(() => {
+    if (serverUp) location.reload();
+  }, [serverUp]);
+}
+
+async function serverAnswers(): Promise<boolean> {
+  return (await fetch(location.href, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(REFRESH_MS / 2) })).ok;
 }
 
 // red-400 rather than the brand red: plain text on the dark panel needs it for WCAG AA contrast.
@@ -98,8 +95,10 @@ function CheckinQr({ svg }: { svg: string }) {
     <div className="flex h-full max-h-[34rem] w-[30rem] shrink-0 flex-col">
       <Label>Oppmøte</Label>
       <div className="appear mt-6 flex min-h-0 flex-1 flex-col items-center">
-        <div className="aspect-square min-h-0 flex-1 rounded-2xl bg-white p-4 shadow-2xl [&>div]:h-full [&_svg]:h-full [&_svg]:w-full">
-          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        <div className="aspect-square min-h-0 flex-1 rounded-2xl bg-white p-4 shadow-2xl">
+          {/* As an image, so the SVG markup is never parsed into the page. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`} alt="QR-kode for oppmøte" className="h-full w-full" />
         </div>
         <p className="mt-5 text-center text-2xl text-zinc-400">Skann for å sjekke inn eller ut</p>
       </div>

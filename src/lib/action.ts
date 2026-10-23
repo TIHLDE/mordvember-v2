@@ -7,14 +7,14 @@ import { AccessError } from "@/server/auth/session";
 import { deliverPendingEmails } from "@/server/email";
 import { GameError } from "@/server/game";
 
-export type ActionState = { ok?: string; error?: string; nonce?: number } | null;
+export type ActionState = { ok?: string; error?: string; nonce?: string } | null;
 
 export async function run(fn: () => Promise<string | void>, okMessage = "Lagret"): Promise<ActionState> {
   try {
     const result = await fn();
     revalidatePath("/", "layout");
     after(() => deliverPendingEmails().catch((e) => console.error("E-postutsending feilet", e)));
-    return { ok: result ?? okMessage, nonce: Math.random() };
+    return { ok: result ?? okMessage, nonce: crypto.randomUUID() };
   } catch (error) {
     if (error instanceof GameError || error instanceof AccessError || error instanceof RingError) {
       return { error: error.message };

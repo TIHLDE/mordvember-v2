@@ -1,7 +1,8 @@
 import { asc, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
 import { DateTimePicker } from "@/components/DateTimePicker";
-import { Badge, Button, Card, Empty, Field, inputBase, LinkButton, PageTitle } from "@/components/ui";
+import { inputBase } from "@/components/styles";
+import { Badge, Button, Card, Empty, Field, LinkButton, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 import { addDays, formatOslo, formatOsloDate, weekStartOf } from "@/game/time";

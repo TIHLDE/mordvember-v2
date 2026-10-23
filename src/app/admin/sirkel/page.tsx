@@ -1,6 +1,7 @@
 import { and, asc, eq, ne } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
-import { Button, Card, Empty, inputBase, PageTitle } from "@/components/ui";
+import { inputBase } from "@/components/styles";
+import { Button, Card, Empty, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
 import { formatOslo } from "@/game/time";
@@ -23,16 +24,18 @@ const EVENT_LABEL: Record<string, string> = {
 export default async function CirclePage() {
   const viewer = await guard("circle");
   const season = viewer.season;
-  const circle = await circleForAdmin(viewer, "sirkelside");
-  const events = await circleEventsForAdmin(viewer);
+  const [circle, events, out] = await Promise.all([
+    circleForAdmin(viewer, "sirkelside"),
+    circleEventsForAdmin(viewer),
+    viewer.isGamemaster
+      ? db
+          .select({ id: players.id, name: players.name })
+          .from(players)
+          .where(and(eq(players.seasonId, season.id), ne(players.status, "alive")))
+          .orderBy(asc(players.name))
+      : [],
+  ]);
   const names = new Map(circle.map((c) => [c.id, c.name]));
-  const out = viewer.isGamemaster
-    ? await db
-        .select({ id: players.id, name: players.name })
-        .from(players)
-        .where(and(eq(players.seasonId, season.id), ne(players.status, "alive")))
-        .orderBy(asc(players.name))
-    : [];
   const gm = viewer.isGamemaster;
 
   return (

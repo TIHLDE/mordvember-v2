@@ -1,5 +1,6 @@
 import { BIO_FIELD_MAX, BIO_FIELDS, bioOptions, type BioValues } from "@/game/bio";
-import { Field, inputClass } from "./ui";
+import { inputClass } from "./styles";
+import { Field } from "./ui";
 
 export function BioFields({ values }: { values: BioValues }) {
   return (

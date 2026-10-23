@@ -3,7 +3,8 @@
 import "leaflet/dist/leaflet.css";
 import type { Circle, Map as LeafletMap } from "leaflet";
 import { useEffect, useRef, useState } from "react";
-import { Field, inputClass } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Field } from "@/components/ui";
 
 type Office = { lat: number; lng: number; radiusMeters: number };
 
@@ -46,7 +47,7 @@ export function OfficeFields({ office }: { office: Office }) {
         setLng(e.latlng.lng.toFixed(5));
       });
       map.current = m;
-    });
+    }).catch((error: unknown) => console.error("Kartet kunne ikke lastes", error));
     return () => {
       cancelled = true;
       map.current?.remove();

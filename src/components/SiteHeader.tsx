@@ -6,7 +6,7 @@ import { getViewer } from "@/server/auth/session";
 import { UserAvatar } from "./Avatar";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { PendingKillBanner } from "./PendingKillBanner";
-import { buttonClass } from "./ui";
+import { buttonClass } from "./styles";
 
 export async function SiteHeader() {
   const viewer = await getViewer();

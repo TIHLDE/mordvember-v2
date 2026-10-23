@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/redirect";
 import { exchangeCode, fetchIdentity } from "@/server/auth/photon";
 import { onLogin } from "@/server/auth/login";
-import { callbackUrl, clearOAuthState, readOAuthState } from "@/server/auth/oauth-state";
+import { redirectUri, clearOAuthState, readOAuthState } from "@/server/auth/oauth-state";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   let identity;
   let tokens;
   try {
-    tokens = await exchangeCode(code, callbackUrl(origin), stored.verifier);
+    tokens = await exchangeCode(code, redirectUri(origin), stored.verifier);
     identity = await fetchIdentity(tokens.accessToken);
   } catch (error) {
     console.error("Photon-innlogging feilet", error);

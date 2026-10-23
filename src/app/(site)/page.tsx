@@ -1,6 +1,6 @@
 import { Card, LinkButton, PageTitle } from "@/components/ui";
 import { PlayerGrid } from "@/components/PlayerGrid";
-import { getViewer } from "@/server/auth/session";
+import { getViewer, type Season, type Viewer } from "@/server/auth/session";
 import { gridPlayers, visibleAliveCount } from "@/server/players";
 import { getCurrentSeason, phaseLabel, signupOpen } from "@/server/season";
 
@@ -43,34 +43,7 @@ export default async function Home() {
         <div className="space-y-3 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{info.rules}</div>
       </Card>
 
-      {!viewer && (
-        <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-300">Logg inn med TIHLDE-brukeren din for å se deltakerne og melde deg på.</p>
-          <LinkButton href="/login">Logg inn</LinkButton>
-        </Card>
-      )}
-
-      {viewer && !viewer.player && !viewer.isGamemaster && signupOpen(season) && (
-        <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-zinc-300">Påmeldingen er åpen.</p>
-          <LinkButton href="/pamelding">Meld deg på</LinkButton>
-        </Card>
-      )}
-
-      {viewer && viewer.player && (
-        <Card>
-          <p className="text-sm text-zinc-300">
-            Du er påmeldt.{" "}
-            {season.winnerPlayerId === viewer.player.id
-              ? "Du vant!"
-              : viewer.player.status === "alive"
-              ? season.phase === "running"
-                ? "Du er fortsatt med."
-                : "Spillet har ikke startet ennå."
-              : "Du er ute av spillet."}
-          </p>
-        </Card>
-      )}
+      <ViewerCard viewer={viewer} season={season} />
 
       {viewer && grid.length > 0 && (
         <section>
@@ -80,4 +53,36 @@ export default async function Home() {
       )}
     </div>
   );
+}
+
+// What the visitor can do next: log in, sign up, or see how they are doing.
+function ViewerCard({ viewer, season }: { viewer: Viewer | null; season: Season }) {
+  if (!viewer) {
+    return (
+      <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-zinc-300">Logg inn med TIHLDE-brukeren din for å se deltakerne og melde deg på.</p>
+        <LinkButton href="/login">Logg inn</LinkButton>
+      </Card>
+    );
+  }
+  if (viewer.player) {
+    return (
+      <Card>
+        <p className="text-sm text-zinc-300">Du er påmeldt. {playerStatus(viewer.player, season)}</p>
+      </Card>
+    );
+  }
+  if (viewer.isGamemaster || !signupOpen(season)) return null;
+  return (
+    <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-zinc-300">Påmeldingen er åpen.</p>
+      <LinkButton href="/pamelding">Meld deg på</LinkButton>
+    </Card>
+  );
+}
+
+function playerStatus(player: NonNullable<Viewer["player"]>, season: Season) {
+  if (season.winnerPlayerId === player.id) return "Du vant!";
+  if (player.status !== "alive") return "Du er ute av spillet.";
+  return season.phase === "running" ? "Du er fortsatt med." : "Spillet har ikke startet ennå.";
 }

@@ -6,7 +6,7 @@ const OAUTH_COOKIE = "mv_oauth";
 
 type OAuthState = { state: string; verifier: string; next: string };
 
-export const callbackUrl = (origin: string) => `${origin}/api/auth/callback`;
+export const redirectUri = (origin: string) => `${origin}/api/auth/callback`;
 
 export function saveOAuthState(response: NextResponse, value: OAuthState) {
   response.cookies.set(OAUTH_COOKIE, JSON.stringify(value), {

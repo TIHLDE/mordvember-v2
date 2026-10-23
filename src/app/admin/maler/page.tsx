@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Checkbox, Field, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 import { guard } from "@/lib/guard";
 import { templates } from "@/server/admin";
 import { saveTemplateAction } from "../actions";

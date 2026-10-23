@@ -58,7 +58,8 @@ export function applyKill(ring: Ring, killerId: string, victimId: string): Ring 
 
 export function removePlayers(ring: Ring, playerIds: readonly string[]): Ring {
   const remove = new Set(playerIds);
-  for (const id of remove) if (!ring.includes(id)) throw new RingError("Deltakeren er ikke i sirkelen");
+  const inRing = new Set(ring);
+  for (const id of remove) if (!inRing.has(id)) throw new RingError("Deltakeren er ikke i sirkelen");
   return ring.filter((id) => !remove.has(id));
 }
 

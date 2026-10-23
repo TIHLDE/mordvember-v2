@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Empty, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";

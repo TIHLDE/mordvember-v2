@@ -6,7 +6,7 @@ import { changedTargets, type Ring, targetOf } from "@/game/ring";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
 import { queueEmail } from "./email";
-import { notify } from "./notify";
+import { notify, playerRecipients } from "./notify";
 
 export async function lockRing(tx: Tx, seasonId: string): Promise<Ring> {
   const rows = await tx.execute<{ ring: string[] }>(
@@ -57,11 +57,7 @@ async function announceNewTargets(tx: Tx, seasonId: string, before: Ring, after:
 
 export async function announceTargets(tx: Tx, seasonId: string, playerIds: string[], template: "new_target" | "game_start") {
   if (!playerIds.length) return;
-  const rows = await tx
-    .select({ userId: players.userId, email: users.email })
-    .from(players)
-    .innerJoin(users, eq(users.id, players.userId))
-    .where(inArray(players.id, playerIds));
+  const rows = await playerRecipients(tx, playerIds);
   await notify(
     tx,
     rows.map((r) => ({

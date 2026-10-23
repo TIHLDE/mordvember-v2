@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/ActionForm";
-import { Badge, Button, Card, Checkbox, Empty, inputClass, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Checkbox, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 import { guard } from "@/lib/guard";
 import { inbox } from "@/server/questions";

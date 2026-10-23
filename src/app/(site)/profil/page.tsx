@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { Portrait } from "@/components/Portrait";
-import { Badge, Button, Card, Field, inputClass, Notice, PageTitle } from "@/components/ui";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Field, Notice, PageTitle } from "@/components/ui";
 import { parseBio } from "@/game/bio";
 import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+import { getViewer, type Viewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import {
   bioAction,
@@ -18,8 +19,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ pameldt?: string }> }) {
-  const { pameldt } = await searchParams;
-  const viewer = await getViewer();
+  const [{ pameldt }, viewer] = await Promise.all([searchParams, getViewer()]);
   if (!viewer) return redirectToLogin();
   const { player, season } = viewer;
   if (!player || !season) redirect("/");
@@ -29,41 +29,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         Profil
       </PageTitle>
       {pameldt && <Notice tone="green">Du er påmeldt! Du får e-post når spillet starter.</Notice>}
-      <Card title="Bilde">
-        <div className="flex flex-col gap-5 sm:flex-row">
-          <Portrait src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt="" className="size-36 shrink-0 rounded-xl border border-white/10 object-cover" />
-          <div className="min-w-0 flex-1 space-y-4">
-            {player.imageRejectedReason && (
-              <Notice tone="red">Bildet ble avvist: {player.imageRejectedReason}</Notice>
-            )}
-            {player.imageDeleted ? (
-              <Badge>Bildet er slettet</Badge>
-            ) : (
-              <p className="text-sm text-zinc-400">{player.useDefaultImage ? "Du bruker profilbildet fra TIHLDE." : "Du bruker et opplastet bilde."}</p>
-            )}
-            {player.status === "alive" && (
-              <>
-                <ActionForm action={uploadImageAction} className="space-y-3" resetOnSuccess>
-                  <Field label="Last opp nytt bilde" hint="Ansiktet skal vises tydelig og utildekket. Maks 5 MB.">
-                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
-                  </Field>
-                  <Button type="submit">Last opp</Button>
-                </ActionForm>
-                {!player.useDefaultImage && (
-                  <ActionForm action={defaultImageAction}>
-                    <Button type="submit" variant="ghost">Bruk profilbildet fra TIHLDE</Button>
-                  </ActionForm>
-                )}
-              </>
-            )}
-            {player.status !== "alive" && !player.imageDeleted && (
-              <ActionForm action={deleteImageAction} confirm="Slette bildet ditt fra Mordvember?">
-                <Button type="submit" variant="ghost">Slett bildet mitt</Button>
-              </ActionForm>
-            )}
-          </div>
-        </div>
-      </Card>
+      <ImageCard player={player} />
       {player.status === "alive" && (
         <Card title="Utseende">
           <ActionForm action={bioAction} className="space-y-4">
@@ -81,5 +47,48 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         </Card>
       )}
     </div>
+  );
+}
+
+type Player = NonNullable<Viewer["player"]>;
+
+function ImageCard({ player }: { player: Player }) {
+  const alive = player.status === "alive";
+  return (
+    <Card title="Bilde">
+      <div className="flex flex-col gap-5 sm:flex-row">
+        <Portrait src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt="" className="size-36 shrink-0 rounded-xl border border-white/10 object-cover" />
+        <div className="min-w-0 flex-1 space-y-4">
+          {player.imageRejectedReason && (
+            <Notice tone="red">Bildet ble avvist: {player.imageRejectedReason}</Notice>
+          )}
+          {player.imageDeleted ? (
+            <Badge>Bildet er slettet</Badge>
+          ) : (
+            <p className="text-sm text-zinc-400">{player.useDefaultImage ? "Du bruker profilbildet fra TIHLDE." : "Du bruker et opplastet bilde."}</p>
+          )}
+          {alive && (
+            <>
+              <ActionForm action={uploadImageAction} className="space-y-3" resetOnSuccess>
+                <Field label="Last opp nytt bilde" hint="Ansiktet skal vises tydelig og utildekket. Maks 5 MB.">
+                  <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
+                </Field>
+                <Button type="submit">Last opp</Button>
+              </ActionForm>
+              {!player.useDefaultImage && (
+                <ActionForm action={defaultImageAction}>
+                  <Button type="submit" variant="ghost">Bruk profilbildet fra TIHLDE</Button>
+                </ActionForm>
+              )}
+            </>
+          )}
+          {!alive && !player.imageDeleted && (
+            <ActionForm action={deleteImageAction} confirm="Slette bildet ditt fra Mordvember?">
+              <Button type="submit" variant="ghost">Slett bildet mitt</Button>
+            </ActionForm>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }

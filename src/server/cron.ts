@@ -42,34 +42,37 @@ export async function runCron(now = new Date()) {
         .set({ status: "escalated", escalationReasons: ["Ikke bekreftet innen 12 timer"] })
         .where(and(eq(kills.status, "pending"), lte(kills.reportedAt, new Date(now.getTime() - CONFIRM_TIMEOUT_MS))))
         .returning();
-      for (const kill of overdue) {
-        const staff = await staffEmails(tx, kill.seasonId);
-        await notify(tx, staff.map((s) => ({ userId: s.userId, seasonId: kill.seasonId, text: "En drapssak er ikke bekreftet innen 12 timer.", href: "/admin/drap" })));
-        await queueEmail(tx, "staff_case", staff.map((s) => s.email), { grunn: "Ikke bekreftet innen 12 timer" });
-      }
+      // One notice and one e-mail to each staff member per overdue case.
+      const bySeason = Map.groupBy(overdue, (kill) => kill.seasonId);
+      await Promise.all(
+        [...bySeason].map(async ([seasonId, cases]) => {
+          const staff = await staffEmails(tx, seasonId);
+          const text = "En drapssak er ikke bekreftet innen 12 timer.";
+          await notify(tx, cases.flatMap(() => staff.map((s) => ({ userId: s.userId, seasonId, text, href: "/admin/drap" }))));
+          await Promise.all(cases.map(() => queueEmail(tx, "staff_case", staff.map((s) => s.email), { grunn: "Ikke bekreftet innen 12 timer" })));
+        }),
+      );
       return overdue.length;
     });
     if (escalated) done.push(`eskalert:${escalated}`);
   });
 
   await step("ukejobber", async () => {
-    const running = await db.select().from(seasons).where(eq(seasons.phase, "running"));
+    // Thursday 16:00 to Friday 16:00 is warning time, and the Friday list is due after that.
     const p = osloParts(now);
-    for (const season of running) {
-      const weekStart = weekStartOf(now);
-      const thursdayDue = (p.isoWeekday === 4 && p.hour >= 16) || (p.isoWeekday === 5 && p.hour < 16);
-      if (thursdayDue) {
-        await step(`torsdag:${season.id}`, async () => {
-          if (await runOnce(`torsdag:${season.id}:${weekStart}`, () => sendThursdayWarnings(season, weekStart, now))) done.push("torsdag");
-        });
-      }
-      const fridayDue = (p.isoWeekday === 5 && p.hour >= 16) || p.isoWeekday >= 6;
-      if (fridayDue) {
-        await step(`fredag:${season.id}`, async () => {
-          if (await runOnce(`fredag:${season.id}:${weekStart}`, () => buildFridayList(season, weekStart, now))) done.push("fredag");
-        });
-      }
-    }
+    const thursdayDue = (p.isoWeekday === 4 && p.hour >= 16) || (p.isoWeekday === 5 && p.hour < 16);
+    const fridayDue = (p.isoWeekday === 5 && p.hour >= 16) || p.isoWeekday >= 6;
+    const job = thursdayDue ? { name: "torsdag", run: sendThursdayWarnings } : fridayDue ? { name: "fredag", run: buildFridayList } : null;
+    if (!job) return;
+    const weekStart = weekStartOf(now);
+    const running = await db.select().from(seasons).where(eq(seasons.phase, "running"));
+    await Promise.all(
+      running.map((season) =>
+        step(`${job.name}:${season.id}`, async () => {
+          if (await runOnce(`${job.name}:${season.id}:${weekStart}`, () => job.run(season, weekStart, now))) done.push(job.name);
+        }),
+      ),
+    );
   });
 
   await step("e-post", async () => {
