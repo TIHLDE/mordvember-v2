@@ -4,6 +4,7 @@ import { BioFields } from "@/components/BioFields";
 import { Portrait } from "@/components/Portrait";
 import { Badge, Button, Card, Field, inputClass, Notice, PageTitle } from "@/components/ui";
 import { parseBio } from "@/game/bio";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import {
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ pameldt?: string }> }) {
   const { pameldt } = await searchParams;
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/profil");
+  if (!viewer) return redirectToLogin();
   const { player, season } = viewer;
   if (!player || !season) redirect("/");
   return (

@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const QR_WINDOW_MS = 60 * 60 * 1000;
-export const QR_GRACE_MS = 60_000;
+const QR_GRACE_MS = 60_000;
 
-export function windowOf(at: number): number {
+function windowOf(at: number): number {
   return Math.floor(at / QR_WINDOW_MS);
 }
 

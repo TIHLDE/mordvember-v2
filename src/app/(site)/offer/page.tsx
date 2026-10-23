@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { PageTitle } from "@/components/ui";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { revealTargetAction } from "../actions";
 import { RevealButton } from "./RevealButton";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TargetPage() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/offer");
+  if (!viewer) return redirectToLogin();
   if (!viewer.player) redirect("/");
   const running = viewer.season?.phase === "running";
   return (

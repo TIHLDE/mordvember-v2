@@ -45,7 +45,7 @@ export async function SiteHeader() {
               {viewer ? (
                 <>
                   <form action="/api/auth/logout" method="post">
-                    <button className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+                    <button type="submit" className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
                       Logg ut
                     </button>
                   </form>

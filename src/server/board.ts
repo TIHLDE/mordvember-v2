@@ -6,13 +6,15 @@ import type { Season } from "./auth/session";
 import { gridPlayers, visibleAliveCount } from "./players";
 
 export async function boardData(season: Season) {
-  const grid = await gridPlayers(season.id);
-  const [lastOut] = await db
-    .select({ id: players.id, name: players.name, at: players.eliminatedAt })
-    .from(players)
-    .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.eliminatedAt)))
-    .orderBy(desc(players.eliminatedAt))
-    .limit(1);
+  const [grid, [lastOut]] = await Promise.all([
+    gridPlayers(season.id),
+    db
+      .select({ id: players.id, name: players.name, at: players.eliminatedAt })
+      .from(players)
+      .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.eliminatedAt)))
+      .orderBy(desc(players.eliminatedAt))
+      .limit(1),
+  ]);
   const winnerVisible = season.winnerPlayerId && grid.filter((p) => !p.out).length === 1;
 
   return {

@@ -3,6 +3,7 @@ import { deflateSync } from "node:zlib";
 import { mkdirSync } from "node:fs";
 import { type Browser, type BrowserContext, chromium, type Page } from "playwright";
 import postgres from "postgres";
+import { devLogin, type LeaderFlags } from "./dev-login";
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:3000";
 const sql = postgres(process.env.DATABASE_URL!, { max: 2, onnotice: () => undefined });
@@ -18,21 +19,13 @@ function assert(cond: unknown, message: string): asserts cond {
 let browser: Browser;
 const contexts = new Map<string, BrowserContext>();
 
-async function as(username: string, flags: { kok?: boolean; index?: boolean } = {}): Promise<Page> {
+async function as(username: string, flags: LeaderFlags = {}): Promise<Page> {
   const key = `${username}:${flags.kok ? 1 : 0}${flags.index ? 1 : 0}`;
   let ctx = contexts.get(key);
   if (!ctx) {
     ctx = await browser.newContext({ geolocation: { latitude: 63.416162, longitude: 10.405852 }, permissions: ["geolocation"] });
     const page = await ctx.newPage();
-    page.on("dialog", (d) => void d.accept());
-    await page.goto(`${BASE}/dev`);
-    const card = page.locator("form", { has: page.locator(`input[name=username][value="${username}"]`) });
-    const kok = card.locator("input[name=kok]");
-    const index = card.locator("input[name=index]");
-    if ((await kok.isChecked()) !== !!flags.kok) await kok.click();
-    if ((await index.isChecked()) !== !!flags.index) await index.click();
-    await card.getByRole("button").click();
-    await page.waitForURL(`${BASE}/`);
+    await devLogin(page, BASE, username, flags);
     contexts.set(key, ctx);
     return page;
   }
@@ -113,22 +106,17 @@ async function revealTarget(page: Page): Promise<string> {
   return name;
 }
 
-async function reportAndConfirm(killerName: string, opts: { victimReports?: boolean; dispute?: boolean } = {}) {
+// Only the killer reports a kill. The victim sees who reported it, and confirms or disputes.
+async function reportAndConfirm(killerName: string, opts: { dispute?: boolean } = {}) {
   const killer = await as(usernameOf(killerName));
   const targetName = await revealTarget(killer);
-  const victim = await as(usernameOf(targetName));
-  const reporter = opts.victimReports ? victim : killer;
-  const confirmer = opts.victimReports ? killer : victim;
-  await reporter.goto(`${BASE}/drap`);
-  await submit(reporter, formWith(reporter, opts.victimReports ? "Meld at jeg er tatt" : "Meld drap"), opts.victimReports ? "Meld at jeg er tatt" : "Meld drap");
+  const confirmer = await as(usernameOf(targetName));
+  await killer.goto(`${BASE}/drap`);
+  await submit(killer, formWith(killer, "Meld drap"), "Meld drap");
   await confirmer.goto(`${BASE}/drap`);
-  if (!opts.victimReports) {
-    const banner = await confirmer.locator("text=Et drap du er part i venter på svar fra deg").count();
-    assert(banner === 1, "offeret ser ikke varselet øverst");
-    const html = await confirmer.content();
-    assert(!html.includes(killerName), "offeret får se navnet på morderen");
-  }
-  const open = confirmer.locator("li").filter({ hasText: opts.victimReports ? "har meldt at du tok hen" : "Noen har meldt at de tok deg" }).first();
+  const banner = await confirmer.locator("text=Et drap du er part i venter på svar fra deg").count();
+  assert(banner === 1, "offeret ser ikke varselet øverst");
+  const open = confirmer.locator("li").filter({ hasText: `${killerName} har meldt at hen tok deg` }).first();
   if (opts.dispute) {
     await submit(confirmer, open.locator("form").filter({ hasText: "Dette stemmer ikke" }), "Dette stemmer ikke");
   } else {
@@ -200,9 +188,10 @@ async function main() {
   const scanCtx = await browser.newContext({ geolocation: { latitude: 63.416162, longitude: 10.405852 }, permissions: ["geolocation"] });
   const scanPage = await scanCtx.newPage();
   await scanPage.goto(`${BASE}/api/sjekkinn?k=${window}.${sig}`);
-  assert((await scanPage.locator("text=Logg inn innen ti minutter").count()) === 1, "QR uten innlogging huskes");
-  await scanPage.goto(`${BASE}/dev?next=/sjekkinn`);
+  assert(scanPage.url() === `${BASE}/login?next=%2Fsjekkinn`, `QR uten innlogging sender til innlogging (fikk ${scanPage.url()})`);
+  await scanPage.getByRole("link", { name: "velg testbruker" }).click();
   await scanPage.locator("form", { has: scanPage.locator('input[value="test-alfa"]') }).getByRole("button").click();
+  await scanPage.waitForURL(`${BASE}/sjekkinn`);
   await scanPage.getByRole("button", { name: "Sjekk inn" }).click();
   await scanPage.locator("text=Du er sjekket inn").waitFor({ timeout: 20000 });
   log("QR-lenke åpnet uten innlogging, innsjekk fullført etter innlogging");
@@ -234,8 +223,8 @@ async function main() {
 
   alive = await alivePlayers(season.id);
   const killer2 = alive[1]!.name;
-  const v2 = await reportAndConfirm(killer2, { victimReports: true });
-  log(`Offeret meldte selv, morderen bekreftet: ${killer2} tok ${v2}`);
+  const v2 = await reportAndConfirm(killer2);
+  log(`Drap bekreftet av offeret: ${killer2} tok ${v2}`);
 
   alive = await alivePlayers(season.id);
   const killer3 = alive[2]!.name;
@@ -257,21 +246,20 @@ async function main() {
   await submit(gm, mercyForm, "Gi nåde");
   log(`Nåde gitt til ${v1}`);
 
+  // Disqualifying is done from the player's own admin page.
+  const disqualify = async (player: { id: string }) => {
+    await gm2.goto(`${BASE}/admin/deltakere/${player.id}`);
+    const form = formWith(gm2, "Diskvalifiser");
+    await form.locator("input[name=reason]").fill("Testdiskvalifisering");
+    await submit(gm2, form, "Diskvalifiser");
+  };
   alive = await alivePlayers(season.id);
-  const dqName = alive[3]!.name;
-  await gm2.goto(`${BASE}/admin/deltakere`);
-  const dqRow = gm2.locator("li").filter({ hasText: dqName });
-  await dqRow.locator("input[name=reason]").fill("Testdiskvalifisering");
-  await submit(gm2, dqRow.locator("form"), "Diskvalifiser");
+  const dq1 = alive[3]!;
+  await disqualify(dq1);
   alive = await alivePlayers(season.id);
-  const dq2 = alive.slice(0, 2).map((p) => p.name);
-  for (const name of dq2) {
-    await gm2.goto(`${BASE}/admin/deltakere`);
-    const row = gm2.locator("li").filter({ hasText: name });
-    await row.locator("input[name=reason]").fill("Testdiskvalifisering");
-    await submit(gm2, row.locator("form"), "Diskvalifiser");
-  }
-  log(`Diskvalifisert: ${[dqName, ...dq2].join(", ")}`);
+  const dq2 = alive.slice(0, 2);
+  for (const player of dq2) await disqualify(player);
+  log(`Diskvalifisert: ${[dq1, ...dq2].map((p) => p.name).join(", ")}`);
 
   await gm2.goto(`${BASE}/admin/fredag`);
   await submit(gm2, formWith(gm2, "Lag lista for denne uka nå"), "Lag lista for denne uka nå");
@@ -316,7 +304,9 @@ async function main() {
   assert(winner, "vinner");
   const winnerPage = await as(usernameOf(winner.name));
   await winnerPage.goto(BASE);
-  assert((await winnerPage.locator(`text=Vinner: ${winner.name}`).count()) === 1, "vinneren vises");
+  const winnerCard = winnerPage.locator("p", { hasText: /^Vinner$/ }).locator("xpath=..");
+  assert((await winnerCard.textContent())?.includes(winner.name), "vinneren vises");
+  assert((await winnerPage.getByText("Du vant!").count()) === 1, "vinneren får vite at hen vant");
   await winnerPage.screenshot({ path: `${SHOTS}/03-vinner.png`, fullPage: true });
   await board.goto(`${BASE}/status`);
   await board.locator("text=Vi har en vinner").waitFor({ timeout: 20000 });

@@ -22,25 +22,27 @@ export async function releaseJob(key: string) {
 }
 
 export async function evaluateSeasonWeek(season: Season, weekStart: string, now = new Date()) {
-  const rules = await rulesForWeek(season, weekStart);
-  const alive = await db
-    .select({ id: players.id, name: players.name, userId: players.userId, email: users.email, requirementsFromWeek: players.requirementsFromWeek })
-    .from(players)
-    .innerJoin(users, eq(users.id, players.userId))
-    .where(and(eq(players.seasonId, season.id), eq(players.status, "alive")))
-    .orderBy(asc(players.name));
-  const sessions = await sessionsForPlayers(season.id, weekStart);
-  const applied = await db
-    .select({ killerId: kills.killerId, killedAt: kills.killedAt })
-    .from(kills)
-    .where(
-      and(
-        eq(kills.seasonId, season.id),
-        eq(kills.status, "applied"),
-        gte(kills.killedAt, osloTime(weekStart, "00:00")),
-        lt(kills.killedAt, osloTime(addDays(weekStart, 7), "00:00")),
+  const [rules, alive, sessions, applied] = await Promise.all([
+    rulesForWeek(season, weekStart),
+    db
+      .select({ id: players.id, name: players.name, userId: players.userId, email: users.email, requirementsFromWeek: players.requirementsFromWeek })
+      .from(players)
+      .innerJoin(users, eq(users.id, players.userId))
+      .where(and(eq(players.seasonId, season.id), eq(players.status, "alive")))
+      .orderBy(asc(players.name)),
+    sessionsForPlayers(season.id, weekStart),
+    db
+      .select({ killerId: kills.killerId, killedAt: kills.killedAt })
+      .from(kills)
+      .where(
+        and(
+          eq(kills.seasonId, season.id),
+          eq(kills.status, "applied"),
+          gte(kills.killedAt, osloTime(weekStart, "00:00")),
+          lt(kills.killedAt, osloTime(addDays(weekStart, 7), "00:00")),
+        ),
       ),
-    );
+  ]);
   return alive.map((p) => ({
     player: p,
     evaluation: evaluateWeek({

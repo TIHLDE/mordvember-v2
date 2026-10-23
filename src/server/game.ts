@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { kills, players, seasons, staff, users } from "@/db/schema";
 import {
@@ -74,14 +74,7 @@ export async function generateCircle(viewer: Viewer) {
     const season = await lockSeason(tx, seasonId);
     if (season.phase !== "closed") throw new GameError("Sirkelen kan bare trekkes når påmeldingen er stengt");
     const before = await lockRing(tx, seasonId);
-    const alive = await tx
-      .select({ id: players.id })
-      .from(players)
-      .where(and(eq(players.seasonId, seasonId), eq(players.status, "alive")));
-    const after = generateRing(
-      alive.map((p) => p.id),
-      rng,
-    );
+    const after = generateRing(await aliveIds(tx, seasonId), rng);
     await commitRing(tx, { seasonId, before, after, type: "trukket", actorUserId: viewer.user.id, announce: false });
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sirkel.trukket", details: { deltakere: after.length } });
   });
@@ -138,14 +131,18 @@ export async function resumeGame(viewer: Viewer) {
 
 // The circle must hold exactly the living players.
 async function assertRingMatchesPlayers(tx: Tx, seasonId: string, ring: Ring, minPlayers = 2) {
-  const alive = await tx
+  const alive = new Set(await aliveIds(tx, seasonId));
+  if (ring.length < minPlayers || ring.length !== alive.size || !ring.every((id) => alive.has(id))) {
+    throw new GameError("Sirkelen stemmer ikke med deltakerlista. Trekk sirkelen på nytt.");
+  }
+}
+
+async function aliveIds(tx: Tx, seasonId: string): Promise<string[]> {
+  const rows = await tx
     .select({ id: players.id })
     .from(players)
     .where(and(eq(players.seasonId, seasonId), eq(players.status, "alive")));
-  const aliveIds = new Set(alive.map((p) => p.id));
-  if (ring.length < minPlayers || ring.length !== aliveIds.size || !ring.every((id) => aliveIds.has(id))) {
-    throw new GameError("Sirkelen stemmer ikke med deltakerlista. Trekk sirkelen på nytt.");
-  }
+  return rows.map((p) => p.id);
 }
 
 async function crownIfWinner(tx: Tx, seasonId: string, ring: Ring) {
@@ -231,10 +228,9 @@ async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSele
     .update(players)
     .set({ status: "eliminated", eliminatedAt: now })
     .where(eq(players.id, kill.victimId));
-  const [killer] = await tx.select().from(players).where(eq(players.id, kill.killerId));
   await tx
     .update(players)
-    .set({ killCount: (killer?.killCount ?? 0) + 1 })
+    .set({ killCount: sql`${players.killCount} + 1` })
     .where(eq(players.id, kill.killerId));
   await tx
     .update(kills)
@@ -261,12 +257,17 @@ async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSele
   await crownIfWinner(tx, season.id, after);
 }
 
-async function loadOpenKill(tx: Tx, seasonId: string, killId: string) {
+async function lockKill(tx: Tx, seasonId: string, killId: string) {
   const [kill] = await tx
     .select()
     .from(kills)
     .where(and(eq(kills.id, killId), eq(kills.seasonId, seasonId)))
     .for("update");
+  return kill;
+}
+
+async function loadOpenKill(tx: Tx, seasonId: string, killId: string) {
+  const kill = await lockKill(tx, seasonId, killId);
   if (!kill || !isOpen(toCase(kill))) throw new GameError("Saken er allerede avgjort");
   return kill;
 }
@@ -349,7 +350,7 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
-    const [kill] = await tx.select().from(kills).where(and(eq(kills.id, killId), eq(kills.seasonId, seasonId))).for("update");
+    const kill = await lockKill(tx, seasonId, killId);
     if (!kill || kill.status !== "applied") throw new GameError("Bare gjennomførte drap kan angres");
     const before = await lockRing(tx, seasonId);
     let after: Ring;
@@ -363,10 +364,9 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
       .update(players)
       .set({ status: "alive", eliminatedAt: null })
       .where(eq(players.id, kill.victimId));
-    const [killer] = await tx.select().from(players).where(eq(players.id, kill.killerId));
     await tx
       .update(players)
-      .set({ killCount: Math.max(0, (killer?.killCount ?? 1) - 1) })
+      .set({ killCount: sql`greatest(${players.killCount} - 1, 0)` })
       .where(eq(players.id, kill.killerId));
     await tx.update(kills).set({ status: "undone", resolvedAt: new Date() }).where(eq(kills.id, kill.id));
     if (season.winnerPlayerId) await tx.update(seasons).set({ winnerPlayerId: null }).where(eq(seasons.id, seasonId));

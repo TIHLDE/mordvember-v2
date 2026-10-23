@@ -1,10 +1,10 @@
 import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Card, Empty, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { formatOslo } from "@/game/time";
+import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { MarkRead } from "./MarkRead";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NotificationsPage() {
   const viewer = await getViewer();
-  if (!viewer) redirect("/login?next=/varsler");
+  if (!viewer) return redirectToLogin();
   const rows = await db
     .select()
     .from(notifications)

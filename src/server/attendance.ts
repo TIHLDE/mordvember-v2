@@ -17,7 +17,7 @@ export const PENDING_SCAN_COOKIE = "mv_scan";
 export const SCAN_RESULT_COOKIE = "mv_scan_result";
 export const PENDING_SCAN_MS = 10 * 60 * 1000;
 
-export function boardQr(seasonId: string, now = Date.now()) {
+function boardQr(seasonId: string, now = Date.now()) {
   const code = qrCode(env.qrSecret, seasonId, now);
   return { code, url: `${env.appUrl}/api/sjekkinn?k=${encodeURIComponent(code)}` };
 }
@@ -98,18 +98,20 @@ export async function toggleCheckin(
 export async function myAttendance(viewer: Viewer, now = new Date()) {
   if (!viewer.season || !viewer.player) return null;
   const weekStart = weekStartOf(now);
-  const rules = await rulesForWeek(viewer.season, weekStart);
-  const rows = await db
-    .select()
-    .from(checkins)
-    .where(
-      and(
-        eq(checkins.playerId, viewer.player.id),
-        gte(checkins.checkInAt, osloTime(weekStart, "00:00")),
-        lt(checkins.checkInAt, osloTime(addDays(weekStart, 7), "00:00")),
-      ),
-    )
-    .orderBy(asc(checkins.checkInAt));
+  const [rules, rows] = await Promise.all([
+    rulesForWeek(viewer.season, weekStart),
+    db
+      .select()
+      .from(checkins)
+      .where(
+        and(
+          eq(checkins.playerId, viewer.player.id),
+          gte(checkins.checkInAt, osloTime(weekStart, "00:00")),
+          lt(checkins.checkInAt, osloTime(addDays(weekStart, 7), "00:00")),
+        ),
+      )
+      .orderBy(asc(checkins.checkInAt)),
+  ]);
   const days = dayResults(rows.map(toSession), weekStart, rules, now);
   const today = osloDate(now);
   const todays = rows.filter((r) => osloDate(r.checkInAt) === today);

@@ -81,12 +81,12 @@ export const DEFAULT_TEMPLATES = {
   },
 } as const;
 
-export function render(text: string, vars: Record<string, string | number>): string {
+function render(text: string, vars: Record<string, string | number>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => String(vars[key] ?? ""));
 }
 
 // Takes the caller's transaction: on Vercel the pool has a single connection, so reaching for `db` while a transaction holds it deadlocks.
-export async function templateFor(tx: Tx | typeof db, key: TemplateKey) {
+async function templateFor(tx: Tx | typeof db, key: TemplateKey) {
   const override = await tx.query.emailTemplates.findFirst({ where: eq(emailTemplates.key, key) });
   const base = DEFAULT_TEMPLATES[key];
   return { subject: override?.subject ?? base.subject, body: override?.body ?? base.body, button: base.button };

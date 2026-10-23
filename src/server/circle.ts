@@ -74,7 +74,7 @@ export async function announceTargets(tx: Tx, seasonId: string, playerIds: strin
   await queueEmail(tx, template, rows.map((r) => r.email));
 }
 
-export async function ringForServer(seasonId: string): Promise<Ring> {
+async function ringForServer(seasonId: string): Promise<Ring> {
   const row = await db.query.circles.findFirst({ where: eq(circles.seasonId, seasonId) });
   return row?.ring ?? [];
 }

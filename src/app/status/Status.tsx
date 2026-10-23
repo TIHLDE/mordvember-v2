@@ -58,16 +58,22 @@ export function Status() {
 // Only reload when the server answers, so a brief outage doesn't leave a browser error page on the screen.
 function useDailyReload() {
   useEffect(() => {
+    let alive = true;
     let id: ReturnType<typeof setTimeout>;
     const reload = () =>
       fetch(location.href, { method: "HEAD", cache: "no-store" })
         .then((r) => {
           if (!r.ok) throw new Error();
-          location.reload();
+          if (alive) location.reload();
         })
-        .catch(() => (id = setTimeout(reload, REFRESH_MS)));
+        .catch(() => {
+          if (alive) id = setTimeout(reload, REFRESH_MS);
+        });
     id = setTimeout(reload, RELOAD_MS);
-    return () => clearTimeout(id);
+    return () => {
+      alive = false;
+      clearTimeout(id);
+    };
   }, []);
 }
 

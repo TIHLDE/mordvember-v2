@@ -16,8 +16,10 @@ export default async function AttendanceAdmin({ searchParams }: { searchParams: 
   const viewer = await guard("gamemaster");
   const { uke } = await searchParams;
   const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());
-  const rows = await weekSessions(viewer.season.id, week);
-  const roster = await db.select({ id: players.id, name: players.name }).from(players).where(eq(players.seasonId, viewer.season.id)).orderBy(asc(players.name));
+  const [rows, roster] = await Promise.all([
+    weekSessions(viewer.season.id, week),
+    db.select({ id: players.id, name: players.name }).from(players).where(eq(players.seasonId, viewer.season.id)).orderBy(asc(players.name)),
+  ]);
   const flagged = rows.filter((r) => !r.checkin.flagsReviewed && !r.checkin.rejected && (r.checkin.autoClosed || r.checkin.flags.length > 0));
 
   const row = (c: (typeof rows)[number]) => (

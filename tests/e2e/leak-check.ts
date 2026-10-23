@@ -1,5 +1,6 @@
 import { type APIRequestContext, type Browser, chromium } from "playwright";
 import postgres from "postgres";
+import { devLogin, type LeaderFlags } from "./dev-login";
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:3000";
 const sql = postgres(process.env.DATABASE_URL!, { max: 2, onnotice: () => undefined });
@@ -17,28 +18,16 @@ const GM_ONLY = ["/admin/sirkel", "/admin/sesong", "/admin/maler", "/admin/logg"
 
 let browser: Browser;
 
-async function login(username: string, flags: { kok?: boolean; index?: boolean } = {}): Promise<APIRequestContext> {
+async function login(username: string, flags: LeaderFlags = {}): Promise<APIRequestContext> {
   const ctx = await browser.newContext();
-  const page = await ctx.newPage();
-  page.on("dialog", (d) => void d.accept());
-  await page.goto(`${BASE}/dev`);
-  const card = page.locator("form", { has: page.locator(`input[name=username][value="${username}"]`) });
-  if ((await card.locator("input[name=kok]").isChecked()) !== !!flags.kok) await card.locator("input[name=kok]").click();
-  if ((await card.locator("input[name=index]").isChecked()) !== !!flags.index) await card.locator("input[name=index]").click();
-  await card.getByRole("button").click();
-  await page.waitForURL(`${BASE}/`);
+  await devLogin(await ctx.newPage(), BASE, username, flags);
   return ctx.request;
 }
 
 async function gmClick(username: string, path: string, button: string) {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
-  page.on("dialog", (d) => void d.accept());
-  await page.goto(`${BASE}/dev?next=${encodeURIComponent(path)}`);
-  const card = page.locator("form", { has: page.locator(`input[name=username][value="${username}"]`) });
-  await card.locator("input[name=kok]").check();
-  await card.getByRole("button").click();
-  await page.waitForURL(`${BASE}${path}`);
+  await devLogin(page, BASE, username, { kok: true }, path);
   await page.getByRole("button", { name: button }).click();
   await page.waitForTimeout(1500);
   await ctx.close();
