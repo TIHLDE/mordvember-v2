@@ -100,7 +100,7 @@ export async function reviews(seasonId: string) {
 }
 
 export async function decideReview(viewer: Viewer, reviewId: string, decision: "disqualified" | "exception", reason: string) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (!reason.trim()) throw new GameError("Skriv en begrunnelse");
   const review = await db.query.weeklyReviews.findFirst({
     where: and(eq(weeklyReviews.id, reviewId), eq(weeklyReviews.seasonId, viewer.season.id)),

@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { Button, Card, Checkbox, Field, inputClass, PageTitle } from "@/components/ui";
-import { formatOslo } from "@/game/time";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import { signUpAction, wrongStudyAction } from "../actions";
@@ -23,7 +22,7 @@ export default async function SignupPage() {
   const user = viewer.user;
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <PageTitle sub={season.signupDeadline ? `Frist: ${formatOslo(season.signupDeadline)}` : undefined}>Påmelding</PageTitle>
+      <PageTitle>Påmelding</PageTitle>
       <Card title="Dette henter vi fra TIHLDE">
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <dt className="text-zinc-500">Navn</dt>

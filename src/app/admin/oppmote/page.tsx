@@ -13,7 +13,7 @@ import { addCheckinAction, editCheckinAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function AttendanceAdmin({ searchParams }: { searchParams: Promise<{ uke?: string }> }) {
-  const viewer = await guard("staff");
+  const viewer = await guard("gamemaster");
   const { uke } = await searchParams;
   const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());
   const rows = await weekSessions(viewer.season.id, week);

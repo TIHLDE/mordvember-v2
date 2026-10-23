@@ -1,12 +1,11 @@
 import "server-only";
-import { and, desc, eq, inArray, isNotNull, notExists, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, like, notExists, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   auditLog,
   emailTemplates,
   emergencyAccess,
-  kills,
-  milestoneEvents,
+  jobRuns,
   notifications,
   players,
   questions,
@@ -17,44 +16,38 @@ import {
   weekRules,
 } from "@/db/schema";
 import type { WeekRules } from "@/game/attendance";
+import { weekStartOf } from "@/game/time";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
 import { DEFAULT_TEMPLATES, queueEmail, type TemplateKey } from "./email";
 import { GameError } from "./game";
 import { deleteImages } from "./images";
 import { notify } from "./notify";
-import { defaultSettings, type Phase, PHASES } from "./season";
+import { defaultSettings, type Phase, PHASES, rulesForWeek } from "./season";
 
 function gm(viewer: Viewer) {
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError("Bare spillmestere kan gjøre dette");
   return viewer.season;
 }
 
+// Only for a fresh install. After that there is one game, which is reset instead of replaced.
 export async function createSeason(viewer: Viewer, name: string) {
-  const first = !viewer.season;
-  if (!first && !viewer.isGamemaster) throw new AccessError("Bare spillmestere kan opprette sesonger");
-  if (first && !(viewer.isKokLeader || viewer.isIndexLeader || viewer.isGamemaster)) {
-    throw new AccessError("Bare KoK-leder eller Index-leder kan opprette den første sesongen");
+  if (viewer.season) throw new GameError("Spillet finnes allerede");
+  if (!(viewer.isKokLeader || viewer.isIndexLeader || viewer.isGamemaster)) {
+    throw new AccessError("Bare KoK-leder eller Index-leder kan opprette spillet");
   }
-  if (!name.trim()) throw new GameError("Gi sesongen et navn");
-  if (viewer.season?.phase === "running") throw new GameError("Avslutt sesongen som pågår før du oppretter en ny");
+  if (!name.trim()) throw new GameError("Gi spillet et navn");
   const [season] = await db.insert(seasons).values({ name: name.trim(), settings: defaultSettings() }).returning();
-  if (!season) throw new GameError("Kunne ikke opprette sesongen");
-  if (viewer.season) {
-    const carry = await db.select().from(staff).where(eq(staff.seasonId, viewer.season.id));
-    if (carry.length) {
-      await db.insert(staff).values(carry.map((s) => ({ seasonId: season.id, username: s.username, role: s.role, addedBy: s.addedBy }))).onConflictDoNothing();
-    }
-  }
+  if (!season) throw new GameError("Kunne ikke opprette spillet");
   if (viewer.isKokLeader || viewer.isSuperadmin) {
-    await db.insert(staff).values({ seasonId: season.id, username: viewer.user.username, role: "gamemaster" }).onConflictDoNothing();
+    await db.insert(staff).values({ seasonId: season.id, username: viewer.user.username }).onConflictDoNothing();
   }
-  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "sesong.opprettet", details: { name } });
+  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "spill.opprettet", details: { name } });
 }
 
 const ALLOWED_MOVES: Record<Phase, Phase[]> = {
   setup: ["signup"],
-  signup: ["setup", "closed"],
+  signup: ["closed"],
   closed: ["signup"],
   running: ["ended"],
   ended: [],
@@ -66,24 +59,19 @@ export async function setPhase(viewer: Viewer, phase: Phase) {
   if (!ALLOWED_MOVES[season.phase].includes(phase)) {
     throw new GameError(`Kan ikke gå fra ${PHASES.find((p) => p.key === season.phase)?.label} til ${PHASES.find((p) => p.key === phase)?.label}`);
   }
-  const set: Partial<typeof seasons.$inferInsert> = { phase };
-  if (phase === "ended") set.endedAt = new Date();
-  if (phase === "signup" && season.signupDeadline && season.signupDeadline <= new Date()) {
-    throw new GameError("Fristen er passert. Sett en ny frist først.");
-  }
-  await db.update(seasons).set(set).where(eq(seasons.id, season.id));
+  await db.update(seasons).set({ phase }).where(eq(seasons.id, season.id));
   await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "sesong.fase", details: { phase } });
 }
 
 export async function updateSeasonBasics(
   viewer: Viewer,
-  input: { name: string; signupDeadline: Date | null; startDate: string | null; rulesText: string; dates: string },
+  input: { name: string; rulesText: string },
 ) {
   const season = gm(viewer);
-  const settings: SeasonSettings = { ...season.settings, info: { rules: input.rulesText, dates: input.dates, startDate: input.startDate } };
+  const settings: SeasonSettings = { ...season.settings, info: { rules: input.rulesText } };
   await db
     .update(seasons)
-    .set({ name: input.name.trim() || season.name, signupDeadline: input.signupDeadline, settings })
+    .set({ name: input.name.trim() || season.name, settings })
     .where(eq(seasons.id, season.id));
   await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "sesong.endret" });
 }
@@ -95,93 +83,87 @@ export async function updateSettings(viewer: Viewer, patch: Partial<SeasonSettin
   await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "sesong.innstillinger", details: { felt: Object.keys(patch) } });
 }
 
-export async function setWeekRules(viewer: Viewer, weekStart: string, rules: WeekRules | null) {
+export async function setRules(viewer: Viewer, rules: WeekRules) {
   const season = gm(viewer);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) throw new GameError("Ugyldig uke");
-  if (rules === null) {
-    await db.delete(weekRules).where(and(eq(weekRules.seasonId, season.id), eq(weekRules.weekStart, weekStart)));
-  } else {
+  const weekStart = weekStartOf(new Date());
+  if (season.phase === "running" || season.phase === "ended") {
     await db
       .insert(weekRules)
       .values({ seasonId: season.id, weekStart, rules })
       .onConflictDoUpdate({ target: [weekRules.seasonId, weekRules.weekStart], set: { rules } });
+    // Rows for later weeks would override this change when their week comes.
+    await db.delete(weekRules).where(and(eq(weekRules.seasonId, season.id), gt(weekRules.weekStart, weekStart)));
+  } else {
+    await db.transaction(async (tx) => {
+      await tx.update(seasons).set({ settings: { ...season.settings, defaultRules: rules } }).where(eq(seasons.id, season.id));
+      await tx.delete(weekRules).where(eq(weekRules.seasonId, season.id));
+    });
   }
-  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "uke.regler", details: { weekStart } });
+  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "regler.endret", details: { fra: weekStart } });
 }
 
-export async function deleteSeasonData(viewer: Viewer, seasonId: string, confirmName: string) {
-  if (!viewer.isGamemaster) throw new AccessError();
-  const season = await db.query.seasons.findFirst({ where: eq(seasons.id, seasonId) });
-  if (!season) throw new GameError("Sesongen finnes ikke");
-  if (season.phase !== "ended") throw new GameError("Sesongen må være avsluttet før data slettes");
-  if (confirmName.trim() !== season.name) throw new GameError("Skriv inn sesongnavnet nøyaktig for å bekrefte");
-  const all = await db.select().from(players).where(eq(players.seasonId, seasonId));
-  const killCount = await db.$count(kills, and(eq(kills.seasonId, seasonId), eq(kills.status, "applied")));
-  const winner = all.find((p) => p.id === season.winnerPlayerId);
-  const durationDays =
-    season.startedAt && season.endedAt ? Math.max(1, Math.round((season.endedAt.getTime() - season.startedAt.getTime()) / 86400_000)) : 0;
-  const photonCopies = await db.transaction(async (tx) => {
-    await tx.delete(players).where(eq(players.seasonId, seasonId));
+export async function resetGame(viewer: Viewer, confirm: string) {
+  const season = gm(viewer);
+  if (season.phase === "running") throw new GameError("Stopp spillet før du nullstiller");
+  if (confirm.trim().toLowerCase() !== "nullstill") throw new GameError("Skriv «nullstill» for å bekrefte");
+  const rules = await rulesForWeek(season, weekStartOf(new Date()));
+  const { all, photonCopies } = await db.transaction(async (tx) => {
+    // Locked and checked again, so a game started in the meantime is not wiped.
+    const [locked] = await tx.select({ phase: seasons.phase }).from(seasons).where(eq(seasons.id, season.id)).for("update");
+    if (locked?.phase === "running") throw new GameError("Stopp spillet før du nullstiller");
+    const all = await tx.select({ imageKey: players.imageKey }).from(players).where(eq(players.seasonId, season.id));
+    await tx.delete(players).where(eq(players.seasonId, season.id));
     const unused = await tx
       .select({ id: users.id, key: users.photonImageKey })
       .from(users)
       .where(and(isNotNull(users.photonImageKey), notExists(tx.select().from(players).where(eq(players.userId, users.id)))));
     if (unused.length) await tx.update(users).set({ photonImageKey: null }).where(inArray(users.id, unused.map((u) => u.id)));
-    await tx.delete(questions).where(eq(questions.seasonId, seasonId));
-    await tx.delete(notifications).where(eq(notifications.seasonId, seasonId));
-    await tx.delete(auditLog).where(eq(auditLog.seasonId, seasonId));
-    await tx.delete(milestoneEvents).where(eq(milestoneEvents.seasonId, seasonId));
-    await tx.execute(dsql`delete from circles where season_id = ${seasonId}`);
-    await tx.execute(dsql`delete from circle_events where season_id = ${seasonId}`);
+    await tx.delete(questions).where(eq(questions.seasonId, season.id));
+    await tx.delete(notifications).where(eq(notifications.seasonId, season.id));
+    await tx.delete(auditLog).where(eq(auditLog.seasonId, season.id));
+    await tx.execute(dsql`delete from circles where season_id = ${season.id}`);
+    await tx.execute(dsql`delete from circle_events where season_id = ${season.id}`);
+    await tx.delete(weekRules).where(eq(weekRules.seasonId, season.id));
+    // Weekly job claims are keyed by season and week, and would stop a new game's jobs from running.
+    await tx.delete(jobRuns).where(like(jobRuns.key, `%:${season.id}:%`));
     await tx
       .update(seasons)
-      .set({
-        dataDeletedAt: new Date(),
-        summary: { participants: all.length, kills: killCount, durationDays },
-        winnerName: winner?.winnerConsent ? winner.name : null,
-        winnerPlayerId: null,
-        screenTokenHash: null,
-      })
-      .where(eq(seasons.id, seasonId));
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.data_slettet" });
-    return unused.map((u) => u.key);
+      .set({ settings: { ...season.settings, defaultRules: rules }, phase: "setup", startedAt: null, winnerPlayerId: null })
+      .where(eq(seasons.id, season.id));
+    await audit(tx, { seasonId: season.id, actorUserId: viewer.user.id, action: "spill.nullstilt", details: { deltakere: all.length } });
+    return { all, photonCopies: unused.map((u) => u.key) };
   });
   await deleteImages([...all.map((p) => p.imageKey), ...photonCopies].filter((k): k is string => !!k));
 }
 
-export async function addStaff(viewer: Viewer, username: string, role: "gamemaster" | "organizer") {
+export async function addStaff(viewer: Viewer, username: string) {
   if (!viewer.season || !viewer.canManageRoles) throw new AccessError();
   const clean = username.trim().toLowerCase();
   if (!/^[a-z0-9._-]{2,64}$/.test(clean)) throw new GameError("Ugyldig brukernavn");
-  if (role === "gamemaster") {
-    const user = await db.query.users.findFirst({ where: eq(users.username, clean) });
-    if (user) {
-      const isPlayer = await db.query.players.findFirst({ where: and(eq(players.seasonId, viewer.season.id), eq(players.userId, user.id)) });
-      if (isPlayer) throw new GameError("En deltaker kan ikke være spillmester i samme sesong");
-    }
+  const user = await db.query.users.findFirst({ where: eq(users.username, clean) });
+  if (user) {
+    const isPlayer = await db.query.players.findFirst({ where: and(eq(players.seasonId, viewer.season.id), eq(players.userId, user.id)) });
+    if (isPlayer) throw new GameError("En deltaker kan ikke være spillmester");
   }
-  await db
-    .insert(staff)
-    .values({ seasonId: viewer.season.id, username: clean, role, addedBy: viewer.user.id })
-    .onConflictDoUpdate({ target: [staff.seasonId, staff.username], set: { role } });
-  await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: "rolle.lagt_til", details: { username: clean, role } });
+  await db.insert(staff).values({ seasonId: viewer.season.id, username: clean, addedBy: viewer.user.id }).onConflictDoNothing();
+  await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: "rolle.lagt_til", details: { username: clean } });
 }
 
 export async function removeStaff(viewer: Viewer, staffId: string) {
   if (!viewer.season || !viewer.canManageRoles) throw new AccessError();
   const [removed] = await db.delete(staff).where(and(eq(staff.id, staffId), eq(staff.seasonId, viewer.season.id))).returning();
   if (removed) {
-    await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: "rolle.fjernet", details: { username: removed.username, role: removed.role } });
+    await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: "rolle.fjernet", details: { username: removed.username } });
   }
 }
 
 export async function listStaff(seasonId: string) {
   return db
-    .select({ id: staff.id, username: staff.username, role: staff.role, name: users.name })
+    .select({ id: staff.id, username: staff.username, name: users.name })
     .from(staff)
     .leftJoin(users, eq(users.username, staff.username))
     .where(eq(staff.seasonId, seasonId))
-    .orderBy(staff.role, staff.username);
+    .orderBy(staff.username);
 }
 
 export async function startEmergencyAccess(viewer: Viewer, reason: string) {
@@ -194,7 +176,7 @@ export async function startEmergencyAccess(viewer: Viewer, reason: string) {
       .select({ userId: users.id, email: users.email })
       .from(staff)
       .innerJoin(users, eq(users.username, staff.username))
-      .where(and(eq(staff.seasonId, viewer.season!.id), eq(staff.role, "gamemaster")));
+      .where(eq(staff.seasonId, viewer.season!.id));
     await notify(tx, gmRows.map((g) => ({ userId: g.userId, seasonId: viewer.season!.id, text: `Index-leder har slått på nødtilgang: ${reason.trim()}`, href: "/admin/logg" })));
     await queueEmail(tx, "emergency_access", gmRows.map((g) => g.email), {
       navn: viewer.user.name,
@@ -244,13 +226,6 @@ export async function templates() {
     const d = DEFAULT_TEMPLATES[key];
     return { key, label: d.label, subject: o?.subject ?? d.subject, body: o?.body ?? d.body, custom: !!o };
   });
-}
-
-export async function seasonsNeedingDeletion() {
-  return db
-    .select()
-    .from(seasons)
-    .where(and(eq(seasons.phase, "ended"), isNotNull(seasons.endedAt), dsql`${seasons.dataDeletedAt} is null`));
 }
 
 export async function usersWithoutPlayer(seasonId: string) {

@@ -8,7 +8,7 @@ import { answerAction, deleteQuestionAction, publishAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 export default async function QuestionsAdmin() {
-  const viewer = await guard("staff");
+  const viewer = await guard("gamemaster");
   const rows = await inbox(viewer);
   return (
     <div className="space-y-6">

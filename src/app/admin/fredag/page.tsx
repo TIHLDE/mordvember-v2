@@ -8,7 +8,7 @@ import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../
 export const dynamic = "force-dynamic";
 
 export default async function FridayList() {
-  const viewer = await guard("staff");
+  const viewer = await guard("gamemaster");
   const all = await reviews(viewer.season.id);
   const pending = all.filter((r) => r.review.decision === "pending");
   const decided = all.filter((r) => r.review.decision !== "pending");

@@ -78,6 +78,11 @@ html:has(.status-screen) {
   filter: grayscale(1) brightness(0.55);
 }
 
+/* OpenStreetMap only has a light style; this turns it dark to match the admin panel. */
+.map-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9) saturate(0.6);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

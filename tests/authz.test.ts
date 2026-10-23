@@ -29,10 +29,7 @@ describe.skipIf(!url)("tilgang mot database", async () => {
       isSuperadmin: false,
       season,
       player: null,
-      staffRole: null,
       isGamemaster: false,
-      isOrganizer: false,
-      isStaff: false,
       emergencyUntil: null,
       canSeeCircle: false,
       canManageRoles: false,
@@ -54,8 +51,7 @@ describe.skipIf(!url)("tilgang mot database", async () => {
       .returning();
     ids = players.map((p) => p.id);
     const gmUser = users[5]!;
-    viewers.gm = viewer(gmUser, { isGamemaster: true, isStaff: true, canSeeCircle: true, canManageRoles: true, staffRole: "gamemaster" });
-    viewers.organizer = viewer(users[6]!, { isOrganizer: true, isStaff: true, staffRole: "organizer" });
+    viewers.gm = viewer(gmUser, { isGamemaster: true, canSeeCircle: true, canManageRoles: true });
     viewers.member = viewer(users[7]!, {});
     viewers.participant = viewer(users[0]!, { player: players[0]! });
     viewers.indexNoEmergency = viewer(users[1]!, { player: players[1]!, isIndexLeader: true, canManageRoles: true });
@@ -73,7 +69,7 @@ describe.skipIf(!url)("tilgang mot database", async () => {
   });
 
   it("bare spillmester og Index-leder med nødtilgang ser sirkelen", async () => {
-    for (const role of ["organizer", "member", "participant", "indexNoEmergency"]) {
+    for (const role of ["member", "participant", "indexNoEmergency"]) {
       await expect(circle.circleForAdmin(viewers[role]!, "test"), role).rejects.toBeInstanceOf(AccessError);
       await expect(circle.circleEventsForAdmin(viewers[role]!), role).rejects.toBeInstanceOf(AccessError);
     }
@@ -90,11 +86,10 @@ describe.skipIf(!url)("tilgang mot database", async () => {
     expect(target).toEqual({ id: mine.targetId, name: expect.any(String) });
     expect(Object.keys(target!).sort()).toEqual(["id", "name"]);
     expect(await circle.myTarget(viewers.member!)).toBeNull();
-    expect(await circle.myTarget(viewers.organizer!)).toBeNull();
   });
 
-  it("arrangører og deltakere kan ikke endre sirkelen", async () => {
-    for (const role of ["organizer", "participant", "member", "indexEmergency"]) {
+  it("deltakere, medlemmer og Index-leder kan ikke endre sirkelen", async () => {
+    for (const role of ["participant", "member", "indexEmergency"]) {
       const v = viewers[role]!;
       await expect(game.moveInCircle(v, ids[0]!, ids[2]!), role).rejects.toBeInstanceOf(AccessError);
       await expect(game.grantMercy(v, ids[0]!, null), role).rejects.toBeInstanceOf(AccessError);

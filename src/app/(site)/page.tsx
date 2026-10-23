@@ -3,7 +3,6 @@ import { PlayerGrid } from "@/components/PlayerGrid";
 import { getViewer } from "@/server/auth/session";
 import { gridPlayers, visibleAliveCount } from "@/server/players";
 import { getCurrentSeason, phaseLabel, signupOpen } from "@/server/season";
-import { formatOslo, formatOsloDate } from "@/game/time";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +10,9 @@ export default async function Home() {
   const viewer = await getViewer();
   const season = viewer?.season ?? (await getCurrentSeason());
   if (!season) {
-    return <PageTitle sub="Neste sesong er ikke satt opp ennå.">Mordvember</PageTitle>;
+    return <PageTitle sub="Spillet er ikke satt opp ennå.">Mordvember</PageTitle>;
   }
-  const grid = season.dataDeletedAt ? [] : await gridPlayers(season.id);
+  const grid = await gridPlayers(season.id);
   const alive = visibleAliveCount(grid);
   const winner = season.winnerPlayerId && alive === 1 ? grid.find((p) => !p.out) : null;
   const info = season.settings.info;
@@ -42,11 +41,6 @@ export default async function Home() {
 
       <Card title="Regler">
         <div className="space-y-3 whitespace-pre-line text-sm leading-relaxed text-zinc-300">{info.rules}</div>
-        {info.startDate && !started && <p className="mt-4 text-sm text-zinc-400">Spillet starter {formatOsloDate(info.startDate)}.</p>}
-        {info.dates && <p className="mt-4 whitespace-pre-line text-sm text-zinc-400">{info.dates}</p>}
-        {season.signupDeadline && season.phase === "signup" && (
-          <p className="mt-4 text-sm text-zinc-400">Påmeldingsfrist: {formatOslo(season.signupDeadline)}</p>
-        )}
       </Card>
 
       {!viewer && (

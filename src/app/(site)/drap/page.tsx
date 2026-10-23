@@ -35,7 +35,7 @@ export default async function KillsPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle sub="Ingenting endres før drapet er bekreftet av begge eller godkjent av arrangørene.">Drap</PageTitle>
+      <PageTitle sub="Ingenting endres før drapet er bekreftet av begge eller godkjent av spillmesterne.">Drap</PageTitle>
 
       {open.length > 0 && (
         <Card title="Åpne saker">
@@ -55,7 +55,7 @@ export default async function KillsPage() {
                         : `Du meldte at du tok ${victimName} ${formatOslo(kill.killedAt)}.`}
                   </p>
                   <p className="mt-2">
-                    {kill.status === "escalated" ? <Badge tone="amber">Hos arrangørene</Badge> : iConfirm ? <Badge tone="red">Venter på deg</Badge> : <Badge>Venter på den andre</Badge>}
+                    {kill.status === "escalated" ? <Badge tone="amber">Hos spillmesterne</Badge> : iConfirm ? <Badge tone="red">Venter på deg</Badge> : <Badge>Venter på den andre</Badge>}
                   </p>
                   {kill.status === "pending" && (
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -65,7 +65,7 @@ export default async function KillsPage() {
                           <Button type="submit">Bekreft</Button>
                         </ActionForm>
                       )}
-                      <ActionForm action={disputeKillAction} confirm="Sende saken til arrangørene?">
+                      <ActionForm action={disputeKillAction} confirm="Sende saken til spillmesterne?">
                         <input type="hidden" name="killId" value={kill.id} />
                         <Button type="submit" variant="ghost">Dette stemmer ikke</Button>
                       </ActionForm>

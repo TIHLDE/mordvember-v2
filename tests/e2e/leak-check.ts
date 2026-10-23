@@ -89,7 +89,6 @@ async function main() {
   const roles: { label: string; request: APIRequestContext; player: (typeof players)[number] | null }[] = [
     { label: "deltaker", request: await login(alive.username), player: alive },
     { label: "eliminert", request: await login(victim.username), player: victim },
-    { label: "arrangør", request: await login("test-arrangor"), player: null },
     { label: "medlem", request: await login("test-medlem"), player: null },
     { label: "Index-leder uten nødtilgang", request: await login("test-indexleder", { index: true }), player: null },
     { label: "ikke innlogget", request: (await browser.newContext()).request, player: null },
@@ -119,7 +118,7 @@ async function main() {
       if (role.label === "eliminert" && landed !== "/") {
         assert(!body.includes(killer.name), `eliminert ${path}: viser hvem som tok hen`);
       }
-      if (!role.player && role.label !== "arrangør" && landed !== "/") {
+      if (!role.player && landed !== "/") {
         for (const p of ring) {
           if (body.includes(p.name)) assert(false, `${role.label} ${path}: viser deltakernavn ${p.name}`);
         }

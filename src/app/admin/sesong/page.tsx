@@ -1,31 +1,28 @@
-import { desc } from "drizzle-orm";
+import Link from "next/link";
 import { ActionForm } from "@/components/ActionForm";
-import { DateField, DateTimePicker, TimeField } from "@/components/DateTimePicker";
+import { TimeField } from "@/components/DateTimePicker";
 import { NumberStepper } from "@/components/NumberStepper";
-import { Badge, Button, Card, Checkbox, Field, inputBase, inputClass, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { seasons } from "@/db/schema";
+import { OfficeFields } from "@/components/OfficeFields";
+import { Badge, Button, Card, Field, inputClass, PageTitle } from "@/components/ui";
 import { GLOSHAUGEN, type WeekRules } from "@/game/attendance";
-import { addDays, formatOsloDate, osloTime, weekStartOf } from "@/game/time";
-import { osloInputValue } from "@/lib/action";
+import { weekStartOf } from "@/game/time";
 import { guard } from "@/lib/guard";
-import { PHASES, phaseLabel, rulesForWeek } from "@/server/season";
+import { hasRing } from "@/server/game";
+import { phaseLabel, rulesForWeek } from "@/server/season";
 import {
-  createSeasonAction,
-  defaultRulesAction,
-  deleteSeasonDataAction,
-  milestonesAction,
   officeAction,
+  resetGameAction,
+  rulesAction,
+  resumeGameAction,
   setPhaseAction,
-  statsAction,
+  startGameAction,
   updateBasicsAction,
-  weekRulesAction,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 function RuleFields({ rules }: { rules: WeekRules }) {
-  // The fields keep their own state, so remount them when the saved rules change (e.g. after «Bruk standard»).
+  // The fields keep their own state, so remount them when the saved rules change.
   return (
     <div key={JSON.stringify(rules)} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       <Field label="Dager"><NumberStepper name="days" min={0} max={5} defaultValue={rules.days} /></Field>
@@ -41,152 +38,92 @@ export default async function SeasonAdmin() {
   const viewer = await guard("gamemaster");
   const season = viewer.season;
   const settings = season.settings;
-  const thisWeek = weekStartOf(new Date());
-  const startWeek = settings.info.startDate ? weekStartOf(osloTime(settings.info.startDate, "12:00")) : null;
-  const firstWeek = startWeek && startWeek > thisWeek ? startWeek : thisWeek;
-  const weeks = [firstWeek, addDays(firstWeek, 7), addDays(firstWeek, 14)];
-  const weekLabel = (week: string) => {
-    const number = startWeek ? Math.round((Date.parse(week) - Date.parse(startWeek)) / (7 * 864e5)) + 1 : null;
-    return `${number ? `Uke ${number} · ` : "Uka fra "}${formatOsloDate(week)}`;
-  };
-  const weekRules = await Promise.all(weeks.map(async (w) => ({ week: w, rules: await rulesForWeek(season, w) })));
-  const all = await db.select().from(seasons).orderBy(desc(seasons.createdAt));
+  const rules = await rulesForWeek(season, weekStartOf(new Date()));
+  const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
 
   return (
     <div className="space-y-6">
       <PageTitle sub={`Fase: ${phaseLabel(season.phase)}`}>{season.name}</PageTitle>
 
-      <Card title="Fase">
-        <ol className="mb-5 flex flex-wrap gap-2 text-sm">
-          {PHASES.map((p) => (
-            <li key={p.key}>
-              <Badge tone={p.key === season.phase ? "red" : "zinc"}>{p.label}</Badge>
-            </li>
-          ))}
-        </ol>
-        <div className="flex flex-wrap items-center gap-2">
-          {season.phase === "setup" && <PhaseButton phase="signup" label="Åpne påmelding" />}
-          {season.phase === "signup" && <PhaseButton phase="closed" label="Steng påmelding" />}
-          {season.phase === "signup" && <PhaseButton phase="setup" label="Tilbake til oppsett" />}
-          {season.phase === "closed" && <PhaseButton phase="signup" label="Åpne påmelding igjen" />}
-          {season.phase === "closed" && <p className="text-sm text-zinc-400">Trekk sirkelen og start spillet under Sirkel.</p>}
-          {season.phase === "running" && <PhaseButton phase="ended" label="Avslutt sesongen" />}
+      <Card title="Styring">
+        <div className="divide-y divide-white/5">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="w-24 text-sm text-zinc-300">Påmelding</span>
+              <Badge tone={season.phase === "signup" ? "red" : "zinc"}>{season.phase === "signup" ? "Åpen" : "Stengt"}</Badge>
+            </div>
+            {(season.phase === "setup" || season.phase === "closed") && <PhaseButton phase="signup" label="Åpne påmelding" />}
+            {season.phase === "signup" && <PhaseButton phase="closed" label="Steng påmelding" />}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+            <div className="flex items-center gap-3">
+              <span className="w-24 text-sm text-zinc-300">Spillet</span>
+              <Badge tone={season.phase === "running" ? "red" : "zinc"}>
+                {season.phase === "running" ? "Pågår" : season.phase === "ended" ? "Stoppet" : "Ikke startet"}
+              </Badge>
+            </div>
+            {ringDrawn && (
+              <ActionForm action={startGameAction} confirm="Starte spillet? Alle deltakere får e-post om første offer.">
+                <Button type="submit">Start spillet</Button>
+              </ActionForm>
+            )}
+            {season.phase === "closed" && !ringDrawn && (
+              <p className="text-sm text-zinc-400">
+                Trekk sirkelen under <Link href="/admin/sirkel" className="underline">Sirkel</Link> før du starter.
+              </p>
+            )}
+            {(season.phase === "setup" || season.phase === "signup") && <p className="text-sm text-zinc-400">Steng påmeldingen før du starter.</p>}
+            {season.phase === "running" && <PhaseButton phase="ended" label="Stopp spillet" />}
+            {season.phase === "ended" && (
+              <ActionForm action={resumeGameAction} confirm="Starte spillet igjen?">
+                <Button type="submit" variant="ghost">Start spillet igjen</Button>
+              </ActionForm>
+            )}
+          </div>
         </div>
       </Card>
 
       <Card title="Grunninfo">
         <ActionForm action={updateBasicsAction} className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem_11rem]">
-            <Field label="Navn"><input name="name" defaultValue={season.name} className={inputClass} /></Field>
-            <Field label="Påmeldingsfrist" hint="Påmeldingen stenger automatisk.">
-              <DateTimePicker name="signupDeadline" defaultValue={season.signupDeadline ? osloInputValue(season.signupDeadline) : ""} />
-            </Field>
-            <Field label="Spillstart" hint="Vises på forsiden. Ukereglene starter her.">
-              <DateField name="startDate" defaultValue={settings.info.startDate ?? ""} />
-            </Field>
-          </div>
+          <Field label="Navn"><input name="name" defaultValue={season.name} className={inputClass} /></Field>
           <Field label="Regler" hint="Vises på forsiden."><textarea name="rulesText" rows={6} defaultValue={settings.info.rules} className={inputClass} /></Field>
-          <Field label="Andre datoer" hint="Vises under reglene på forsiden, sammen med spillstart. Én dato per linje.">
-            <textarea
-              name="dates"
-              rows={3}
-              defaultValue={settings.info.dates}
-              placeholder={"Fredag 13. november: første fredagsliste\nTorsdag 3. desember: finale og premieutdeling"}
-              className={inputClass}
-            />
-          </Field>
           <Button type="submit">Lagre</Button>
         </ActionForm>
       </Card>
 
-      <Card title="Ukeregler">
-        <ActionForm action={defaultRulesAction} className="space-y-3">
-          <p className="text-sm font-medium text-zinc-300">Standard for alle uker</p>
-          <RuleFields rules={settings.defaultRules} />
-          <Button type="submit">Lagre standard</Button>
-        </ActionForm>
-        <div className="mt-6 space-y-6">
-          {weekRules.map(({ week, rules }) => (
-            <ActionForm key={week} action={weekRulesAction} className="space-y-3 border-t border-white/5 pt-6">
-              <input type="hidden" name="weekStart" value={week} />
-              <p className="text-sm font-medium text-zinc-300 first-letter:uppercase">{weekLabel(week)}</p>
-              <RuleFields rules={rules} />
-              <div className="flex flex-wrap items-center gap-4">
-                <Button type="submit" variant="ghost">Lagre for denne uka</Button>
-                <Checkbox name="useDefault">Bruk standard</Checkbox>
-              </div>
-            </ActionForm>
-          ))}
-        </div>
-      </Card>
-
-      <Card title="Milepæler">
-        <ActionForm action={milestonesAction} className="space-y-3">
-          {settings.milestones.map((m) => (
-            <div key={m.key} className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/5 pb-3 text-sm last-of-type:border-0">
-              <span className="w-full text-zinc-200 sm:w-48">{m.label}</span>
-              {m.kind !== "winner" && (
-                <input name={`value-${m.key}`} type="number" aria-label={m.label} defaultValue={m.value} className={`${inputBase} w-20`} />
-              )}
-              <span className="w-14 text-zinc-500">{m.kind === "percent" ? "% igjen" : m.kind === "count" ? "igjen" : ""}</span>
-              <Checkbox name={`email-${m.key}`} defaultChecked={m.email}>E-post</Checkbox>
-            </div>
-          ))}
-          <Button type="submit">Lagre</Button>
-        </ActionForm>
-      </Card>
-
-      <Card title="Statistikk på statusskjermen">
-        <ActionForm action={statsAction} className="space-y-3">
-          <Checkbox name="killsToday" defaultChecked={settings.stats.killsToday}>Drap i dag</Checkbox>
-          <Checkbox name="sinceLastKill" defaultChecked={settings.stats.sinceLastKill}>Tid siden siste drap</Checkbox>
-          <Checkbox name="topKillerToday" defaultChecked={settings.stats.topKillerToday}>Dagens morder</Checkbox>
+      <Card title="Oppmøteregler">
+        <p className="mb-4 text-sm text-zinc-400">
+          {season.phase === "running" || season.phase === "ended"
+            ? "Gjelder hver uke. Endringer gjelder fra og med denne uka, tidligere uker beholder reglene de hadde."
+            : "Gjelder hver uke gjennom hele spillet."}
+        </p>
+        <ActionForm action={rulesAction} className="space-y-3">
+          <RuleFields rules={rules} />
           <Button type="submit">Lagre</Button>
         </ActionForm>
       </Card>
 
       <Card title="Kontorets posisjon">
-        <p className="mb-4 text-sm text-zinc-400">Innsjekk utenfor radiusen avvises. Tomme felt bruker Gløshaugen.</p>
+        <p className="mb-4 text-sm text-zinc-400">Innsjekk utenfor sirkelen avvises. Klikk i kartet for å flytte midtpunktet. Tomme felt bruker Gløshaugen.</p>
         <ActionForm action={officeAction} className="grid gap-3 sm:grid-cols-3">
-          <Field label="Breddegrad"><input name="lat" defaultValue={(settings.office ?? GLOSHAUGEN).lat} className={inputClass} /></Field>
-          <Field label="Lengdegrad"><input name="lng" defaultValue={(settings.office ?? GLOSHAUGEN).lng} className={inputClass} /></Field>
-          <Field label="Radius (m)"><input name="radius" defaultValue={(settings.office ?? GLOSHAUGEN).radiusMeters} className={inputClass} /></Field>
+          <OfficeFields office={settings.office ?? GLOSHAUGEN} />
           <Button type="submit" className="w-fit sm:col-span-3">Lagre</Button>
         </ActionForm>
       </Card>
 
-      <Card title="Ny sesong">
-        <p className="mb-4 text-sm text-zinc-400">Oppretter en tom sesong. Den forrige slettes ikke. Spillmestere og arrangører følger med.</p>
-        <ActionForm action={createSeasonAction} className="flex flex-wrap gap-2" confirm="Opprette ny sesong? Den blir gjeldende sesong.">
-          <input name="name" required aria-label="Navn på ny sesong" placeholder="Mordvember 2027" className={`${inputClass} min-w-48 flex-1`} />
-          <Button type="submit">Opprett</Button>
-        </ActionForm>
-      </Card>
-
-      <Card title="Slett sesongdata">
+      <Card title="Nullstill">
         <p className="mb-4 text-sm text-zinc-400">
-          Fjerner bilder, navn, sirkel, drap, oppmøte og spørsmål. Igjen står antall deltakere, antall drap og varighet. Vinneren beholdes bare
-          med samtykke.
+          Sletter alle deltakere, bilder, sirkelen, drap, oppmøte, spørsmål og loggen, og setter spillet tilbake til start. Regler, innstillinger og
+          roller beholdes. Dette kan ikke angres.
         </p>
-        <ul className="space-y-3">
-          {all.filter((s) => s.phase === "ended").map((s) => (
-            <li key={s.id} className="text-sm">
-              {s.dataDeletedAt ? (
-                <span className="text-zinc-500">
-                  {s.name}: slettet. {s.summary ? `${s.summary.participants} deltakere, ${s.summary.kills} drap, ${s.summary.durationDays} dager.` : ""}{" "}
-                  {s.winnerName ? `Vinner: ${s.winnerName}` : ""}
-                </span>
-              ) : (
-                <ActionForm action={deleteSeasonDataAction} className="flex flex-wrap gap-2" confirm={`Slette alle data for ${s.name}? Dette kan ikke angres.`}>
-                  <input type="hidden" name="seasonId" value={s.id} />
-                  <input name="confirm" required aria-label="Bekreft sesongnavn" placeholder={`Skriv «${s.name}»`} className={`${inputClass} min-w-48 flex-1`} />
-                  <Button type="submit" variant="danger">Slett data for {s.name}</Button>
-                </ActionForm>
-              )}
-            </li>
-          ))}
-          {!all.some((s) => s.phase === "ended") && <li className="text-sm text-zinc-500">Ingen avsluttede sesonger.</li>}
-        </ul>
+        {season.phase === "running" ? (
+          <p className="text-sm text-zinc-500">Stopp spillet før du nullstiller.</p>
+        ) : (
+          <ActionForm action={resetGameAction} className="flex flex-wrap gap-2" confirm="Nullstille spillet? Alle deltakere og spilldata slettes.">
+            <input name="confirm" required aria-label="Bekreft nullstilling" placeholder="Skriv «nullstill»" className={`${inputClass} min-w-48 flex-1`} />
+            <Button type="submit" variant="danger">Nullstill spillet</Button>
+          </ActionForm>
+        )}
       </Card>
     </div>
   );

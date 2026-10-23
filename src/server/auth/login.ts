@@ -20,7 +20,7 @@ export async function onLogin(identity: PhotonIdentity, tokens?: PhotonTokens) {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const isPlayer = await db.query.players.findFirst({ where: and(eq(players.seasonId, season.id), eq(players.userId, userId)) });
   if (user && !isPlayer) {
-    await db.insert(staff).values({ seasonId: season.id, username: user.username, role: "gamemaster" }).onConflictDoNothing();
+    await db.insert(staff).values({ seasonId: season.id, username: user.username }).onConflictDoNothing();
   }
 }
 

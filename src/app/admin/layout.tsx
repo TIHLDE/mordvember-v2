@@ -6,26 +6,26 @@ import { getViewer } from "@/server/auth/session";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/login?next=/admin");
-  if (!viewer.isStaff && !viewer.canManageRoles) redirect("/");
+  if (!viewer.isGamemaster && !viewer.canManageRoles) redirect("/");
   const groups: AdminNavGroup[] = [
     { links: [{ href: "/admin", label: "Oversikt", show: true, exact: true }] },
     {
       label: "Spillet",
       links: [
-        { href: "/admin/drap", label: "Drapssaker", show: viewer.isStaff },
-        { href: "/admin/fredag", label: "Fredagslista", show: viewer.isStaff },
-        { href: "/admin/oppmote", label: "Oppmøte", show: viewer.isStaff },
-        { href: "/admin/sporsmal", label: "Spørsmål", show: viewer.isStaff },
-        { href: "/admin/deltakere", label: "Deltakere", show: viewer.isStaff },
+        { href: "/admin/drap", label: "Drapssaker", show: viewer.isGamemaster },
+        { href: "/admin/fredag", label: "Fredagslista", show: viewer.isGamemaster },
+        { href: "/admin/oppmote", label: "Oppmøte", show: viewer.isGamemaster },
+        { href: "/admin/sporsmal", label: "Spørsmål", show: viewer.isGamemaster },
+        { href: "/admin/deltakere", label: "Deltakere", show: viewer.isGamemaster },
         { href: "/admin/sirkel", label: "Sirkel", show: viewer.canSeeCircle },
       ],
     },
     {
       label: "Administrasjon",
       links: [
-        { href: "/admin/sesong", label: "Sesong", show: viewer.isGamemaster },
+        { href: "/admin/sesong", label: "Spill", show: viewer.isGamemaster },
         { href: "/admin/maler", label: "E-postmaler", show: viewer.isGamemaster },
-        { href: "/admin/roller", label: "Roller", show: viewer.canManageRoles },
+        { href: "/admin/roller", label: "Spillmestere", show: viewer.canManageRoles },
         { href: "/admin/logg", label: "Logg", show: viewer.isGamemaster },
         { href: "/admin/nodtilgang", label: "Nødtilgang", show: viewer.isIndexLeader },
       ],

@@ -13,7 +13,7 @@ import { imageStatus, STATUS } from "./status";
 export const dynamic = "force-dynamic";
 
 export default async function PlayersAdmin() {
-  const viewer = await guard("staff");
+  const viewer = await guard("gamemaster");
   const rows = await db
     .select({
       id: players.id,

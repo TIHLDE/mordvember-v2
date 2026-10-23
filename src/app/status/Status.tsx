@@ -43,7 +43,6 @@ export function Status() {
               <span key={data.alive} className="count-change">{data.alive}</span>
             </p>
             <p className="mt-2 text-3xl text-zinc-400">av {data.players.length} påmeldte</p>
-            <Stats data={data} now={now} />
           </div>
           <Feature data={data} qrSvg={qrSvg} now={now} />
         </section>
@@ -75,26 +74,6 @@ function useDailyReload() {
 // red-400 rather than the brand red: plain text on the dark panel needs it for WCAG AA contrast.
 function Label({ children }: { children: React.ReactNode }) {
   return <p className="text-xl font-semibold uppercase tracking-[0.15em] text-red-400">{children}</p>;
-}
-
-function Stats({ data, now }: { data: BoardData; now: number }) {
-  const { killsToday, sinceLastKill, topKillerToday } = data.stats;
-  const items = [
-    killsToday !== null && { label: "Drap i dag", value: String(killsToday) },
-    sinceLastKill !== null && { label: "Siden siste drap", value: sinceLastKill ? since(sinceLastKill, now) : "–" },
-    topKillerToday && { label: "Dagens morder", value: `${topKillerToday.name} (${topKillerToday.kills})` },
-  ].filter((s) => !!s);
-  if (!items.length) return null;
-  return (
-    <dl className="mt-12 flex flex-wrap gap-12">
-      {items.map((s) => (
-        <div key={s.label}>
-          <dt className="text-lg font-medium uppercase tracking-[0.15em] text-zinc-500">{s.label}</dt>
-          <dd key={s.value} className="appear mt-1 text-5xl font-semibold tabular-nums text-white">{s.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
 }
 
 function Feature({ data, qrSvg, now }: { data: BoardData; qrSvg: string | null; now: number }) {

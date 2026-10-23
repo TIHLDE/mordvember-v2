@@ -10,7 +10,7 @@ export type WeekRules = {
 
 export const DEFAULT_RULES: WeekRules = {
   days: 2,
-  hours: 2,
+  hours: 4,
   windowStart: "08:00",
   windowEnd: "16:00",
   killsRequired: 0,
@@ -111,7 +111,7 @@ export function closeTimeFor(checkInAt: Date, rules: WeekRules): Date {
 }
 
 /** Used when the season has no office position set: the middle of NTNU Gløshaugen. */
-export const GLOSHAUGEN = { lat: 63.4175, lng: 10.4035, radiusMeters: 500 };
+export const GLOSHAUGEN = { lat: 63.416162, lng: 10.405852, radiusMeters: 150 };
 
 export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const r = 6371000;

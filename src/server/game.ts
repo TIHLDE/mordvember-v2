@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray, or } from "drizzle-orm";
 import { db, type Tx } from "@/db";
-import { kills, milestoneEvents, players, seasons, staff, users } from "@/db/schema";
+import { kills, players, seasons, staff, users } from "@/db/schema";
 import {
   canBeDisqualified,
   checkReport,
@@ -9,7 +9,6 @@ import {
   isOpen,
   type KillCase,
 } from "@/game/kills";
-import { crossedMilestones } from "@/game/milestones";
 import {
   applyKill,
   generateRing,
@@ -28,6 +27,8 @@ import { announceTargets, commitRing, lockRing } from "./circle";
 import { queueEmail } from "./email";
 import { notify } from "./notify";
 
+export { hasRing } from "./circle";
+
 export class GameError extends Error {
   constructor(message: string) {
     super(message);
@@ -41,8 +42,9 @@ function assertGamemaster(viewer: Viewer): asserts viewer is Viewer & { season: 
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError("Bare spillmestere kan gjøre dette");
 }
 
-function assertStaff(viewer: Viewer): asserts viewer is Viewer & { season: Season } {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+// A stopped game has still started: circle changes are announced, so nobody keeps hunting an old target when it resumes.
+function hasStarted(season: Season) {
+  return season.phase === "running" || season.phase === "ended";
 }
 
 async function lockSeason(tx: Tx, seasonId: string): Promise<Season> {
@@ -99,7 +101,7 @@ export async function moveInCircle(viewer: Viewer, playerId: string, afterId: st
       type: "flyttet",
       actorUserId: viewer.user.id,
       payload: { playerId, afterId },
-      announce: season.phase === "running",
+      announce: hasStarted(season),
     });
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sirkel.flyttet", details: { playerId, afterId } });
   });
@@ -112,38 +114,38 @@ export async function startGame(viewer: Viewer) {
     const season = await lockSeason(tx, seasonId);
     if (season.phase !== "closed") throw new GameError("Spillet kan bare startes fra «Påmelding stengt»");
     const ring = await lockRing(tx, seasonId);
-    const alive = await tx
-      .select({ id: players.id })
-      .from(players)
-      .where(and(eq(players.seasonId, seasonId), eq(players.status, "alive")));
-    const aliveIds = new Set(alive.map((p) => p.id));
-    if (ring.length < 2 || ring.length !== aliveIds.size || !ring.every((id) => aliveIds.has(id))) {
-      throw new GameError("Sirkelen stemmer ikke med deltakerlista. Trekk sirkelen på nytt.");
-    }
+    await assertRingMatchesPlayers(tx, seasonId, ring);
     await tx.update(seasons).set({ phase: "running", startedAt: new Date() }).where(eq(seasons.id, seasonId));
     await announceTargets(tx, seasonId, [...ring], "game_start");
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.startet" });
   });
 }
 
-async function recordMilestones(tx: Tx, season: Season, aliveBefore: number, aliveAfter: number, showAt: Date) {
-  const total = await tx.$count(players, eq(players.seasonId, season.id));
-  const fired = await tx
-    .select({ key: milestoneEvents.key })
-    .from(milestoneEvents)
-    .where(eq(milestoneEvents.seasonId, season.id));
-  const crossed = crossedMilestones(
-    season.settings.milestones,
-    aliveBefore,
-    aliveAfter,
-    total,
-    new Set(fired.map((f) => f.key)),
-  );
-  if (!crossed.length) return;
-  await tx
-    .insert(milestoneEvents)
-    .values(crossed.map((m) => ({ seasonId: season.id, key: m.key, label: m.label, showAt, sendEmail: m.email })))
-    .onConflictDoNothing();
+// Resuming a stopped game. A disqualification while it was stopped can leave one survivor, who is crowned now.
+export async function resumeGame(viewer: Viewer) {
+  assertGamemaster(viewer);
+  const seasonId = viewer.season.id;
+  await db.transaction(async (tx) => {
+    const season = await lockSeason(tx, seasonId);
+    if (season.phase !== "ended") throw new GameError("Spillet er ikke stoppet");
+    const ring = await lockRing(tx, seasonId);
+    await assertRingMatchesPlayers(tx, seasonId, ring, 1);
+    await tx.update(seasons).set({ phase: "running" }).where(eq(seasons.id, seasonId));
+    await crownIfWinner(tx, seasonId, ring);
+    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.fase", details: { phase: "running" } });
+  });
+}
+
+// The circle must hold exactly the living players.
+async function assertRingMatchesPlayers(tx: Tx, seasonId: string, ring: Ring, minPlayers = 2) {
+  const alive = await tx
+    .select({ id: players.id })
+    .from(players)
+    .where(and(eq(players.seasonId, seasonId), eq(players.status, "alive")));
+  const aliveIds = new Set(alive.map((p) => p.id));
+  if (ring.length < minPlayers || ring.length !== aliveIds.size || !ring.every((id) => aliveIds.has(id))) {
+    throw new GameError("Sirkelen stemmer ikke med deltakerlista. Trekk sirkelen på nytt.");
+  }
 }
 
 async function crownIfWinner(tx: Tx, seasonId: string, ring: Ring) {
@@ -256,7 +258,6 @@ async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSele
   const victim = await userOfPlayer(tx, kill.victimId);
   await notify(tx, [{ userId: victim.userId, seasonId: season.id, text: "Drapet på deg er bekreftet. Du er ute av spillet.", href: "/" }]);
   await queueEmail(tx, "eliminated", [victim.email]);
-  await recordMilestones(tx, season, before.length, after.length, now);
   await crownIfWinner(tx, season.id, after);
 }
 
@@ -279,7 +280,7 @@ export async function confirmKill(viewer: Viewer, killId: string) {
     const kill = await loadOpenKill(tx, seasonId, killId);
     const confirmer = kill.reportedBy === "killer" ? kill.victimId : kill.killerId;
     if (confirmer !== me) throw new AccessError("Du kan ikke bekrefte denne saken");
-    if (kill.status !== "pending") throw new GameError("Saken ligger hos arrangørene");
+    if (kill.status !== "pending") throw new GameError("Saken ligger hos spillmesterne");
     const ring = await lockRing(tx, seasonId);
     const all = await seasonKills(tx, seasonId);
     const decision = decideOnConfirm(toCase(kill), ring, all, season.startedAt, new Date());
@@ -314,7 +315,7 @@ export async function disputeKill(viewer: Viewer, killId: string) {
 }
 
 export async function approveKill(viewer: Viewer, killId: string, note: string) {
-  assertStaff(viewer);
+  assertGamemaster(viewer);
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
@@ -326,7 +327,7 @@ export async function approveKill(viewer: Viewer, killId: string, note: string) 
 }
 
 export async function rejectKill(viewer: Viewer, killId: string, note: string) {
-  assertStaff(viewer);
+  assertGamemaster(viewer);
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const kill = await loadOpenKill(tx, seasonId, killId);
@@ -337,7 +338,7 @@ export async function rejectKill(viewer: Viewer, killId: string, note: string) {
     const parties = await Promise.all([userOfPlayer(tx, kill.killerId), userOfPlayer(tx, kill.victimId)]);
     await notify(
       tx,
-      parties.map((p) => ({ userId: p.userId, seasonId, text: "En drapssak du var part i ble avvist av arrangørene.", href: "/drap" })),
+      parties.map((p) => ({ userId: p.userId, seasonId, text: "En drapssak du var part i ble avvist av spillmesterne.", href: "/drap" })),
     );
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "drap.avvist", details: { killId, note } });
   });
@@ -376,7 +377,7 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
       type: "drap_angret",
       actorUserId: viewer.user.id,
       payload: { killId },
-      announce: season.phase === "running",
+      announce: hasStarted(season),
     });
     const victim = await userOfPlayer(tx, kill.victimId);
     await notify(tx, [{ userId: victim.userId, seasonId, text: "Et drap på deg er angret. Du er med i spillet igjen.", href: "/offer" }]);
@@ -417,7 +418,7 @@ export async function grantMercy(viewer: Viewer, playerId: string, afterId: stri
 }
 
 export async function disqualify(viewer: Viewer, playerIds: string[], reason: string) {
-  assertStaff(viewer);
+  assertGamemaster(viewer);
   if (!reason.trim()) throw new GameError("Skriv en begrunnelse");
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
@@ -449,12 +450,9 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
         type: "diskvalifisert",
         actorUserId: viewer.user.id,
         payload: { playerIds: inRing },
-        announce: season.phase === "running",
+        announce: hasStarted(season),
       });
-      if (season.phase === "running") {
-        await recordMilestones(tx, season, before.length, after.length, now);
-        await crownIfWinner(tx, seasonId, after);
-      }
+      if (season.phase === "running") await crownIfWinner(tx, seasonId, after);
     }
     for (const id of playerIds) {
       const p = await userOfPlayer(tx, id);
@@ -472,8 +470,10 @@ export async function addPlayerAsGamemaster(viewer: Viewer, userId: string) {
     const season = await lockSeason(tx, seasonId);
     const [user] = await tx.select().from(users).where(eq(users.id, userId));
     if (!user) throw new GameError("Brukeren finnes ikke");
-    const isStaff = await tx.query.staff.findFirst({ where: and(eq(staff.seasonId, seasonId), eq(staff.username, user.username), eq(staff.role, "gamemaster")) });
-    if (isStaff) throw new GameError("En spillmester kan ikke være deltaker");
+    const isGamemaster = await tx.query.staff.findFirst({ where: and(eq(staff.seasonId, seasonId), eq(staff.username, user.username)) });
+    if (isGamemaster) throw new GameError("En spillmester kan ikke være deltaker");
+    // Once the game has started, including while it is stopped, the circle is fixed and new players join as already out.
+    const started = hasStarted(season);
     const [player] = await tx
       .insert(players)
       .values({
@@ -483,8 +483,8 @@ export async function addPlayerAsGamemaster(viewer: Viewer, userId: string) {
         studyProgram: user.studyProgram,
         studyStartYear: user.studyStartYear,
         consentAt: new Date(),
-        status: season.phase === "running" ? "eliminated" : "alive",
-        eliminatedAt: season.phase === "running" ? new Date() : null,
+        status: started ? "eliminated" : "alive",
+        eliminatedAt: started ? new Date() : null,
       })
       .onConflictDoNothing()
       .returning();

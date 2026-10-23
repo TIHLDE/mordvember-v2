@@ -1,25 +1,24 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import type { SeasonSettings } from "@/db/schema";
 import type { WeekRules } from "@/game/attendance";
 import { type ActionState, osloInput, run, text } from "@/lib/action";
 import {
   addStaff,
   createSeason,
-  deleteSeasonData,
   endEmergencyAccess,
   removeStaff,
+  resetGame,
   resetTemplate,
   saveTemplate,
   setPhase,
-  setWeekRules,
+  setRules,
   startEmergencyAccess,
   updateSeasonBasics,
   updateSettings,
 } from "@/server/admin";
 import { addManualCheckin, editCheckin } from "@/server/attendance";
-import { requireGamemaster, requireSeason, requireStaff, requireViewer } from "@/server/auth/session";
+import { requireGamemaster, requireSeason, requireViewer } from "@/server/auth/session";
 import { DEFAULT_TEMPLATES, type TemplateKey } from "@/server/email";
 import {
   addPlayerAsGamemaster,
@@ -31,6 +30,7 @@ import {
   moveInCircle,
   rejectKill,
   removePlayerAsGamemaster,
+  resumeGame,
   startGame,
   undoKillAsGamemaster,
 } from "@/server/game";
@@ -65,11 +65,11 @@ function rulesFrom(form: FormData): WeekRules {
 }
 
 export async function approveKillAction(_: ActionState, form: FormData) {
-  return run(async () => approveKill(await requireStaff(), text(form, "killId"), text(form, "note")), "Drapet er godkjent");
+  return run(async () => approveKill(await requireGamemaster(), text(form, "killId"), text(form, "note")), "Drapet er godkjent");
 }
 
 export async function rejectKillAction(_: ActionState, form: FormData) {
-  return run(async () => rejectKill(await requireStaff(), text(form, "killId"), text(form, "note")), "Drapet er avvist");
+  return run(async () => rejectKill(await requireGamemaster(), text(form, "killId"), text(form, "note")), "Drapet er avvist");
 }
 
 export async function undoKillAction(_: ActionState, form: FormData) {
@@ -79,25 +79,25 @@ export async function undoKillAction(_: ActionState, form: FormData) {
 export async function decideReviewAction(_: ActionState, form: FormData) {
   return run(async () => {
     const decision = text(form, "decision") === "disqualified" ? "disqualified" : "exception";
-    await decideReview(await requireStaff(), text(form, "reviewId"), decision, text(form, "reason"));
+    await decideReview(await requireGamemaster(), text(form, "reviewId"), decision, text(form, "reason"));
   }, "Avgjort");
 }
 
 export async function buildFridayListAction(_: ActionState) {
   return run(async () => {
-    const viewer = await requireStaff();
+    const viewer = await requireGamemaster();
     const count = await buildFridayList(viewer.season, weekStartOf(new Date()));
     return `Lista er laget: ${count} til gjennomgang`;
   });
 }
 
 export async function disqualifyAction(_: ActionState, form: FormData) {
-  return run(async () => disqualify(await requireStaff(), [text(form, "playerId")], text(form, "reason")), "Deltakeren er diskvalifisert");
+  return run(async () => disqualify(await requireGamemaster(), [text(form, "playerId")], text(form, "reason")), "Deltakeren er diskvalifisert");
 }
 
 export async function editCheckinAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const viewer = await requireStaff();
+    const viewer = await requireGamemaster();
     const kind = text(form, "kind");
     if (kind === "times") {
       const out = text(form, "checkOutAt");
@@ -114,30 +114,30 @@ export async function editCheckinAction(_: ActionState, form: FormData) {
 
 export async function addCheckinAction(_: ActionState, form: FormData) {
   return run(async () =>
-    addManualCheckin(await requireStaff(), text(form, "playerId"), osloInput(text(form, "checkInAt")), osloInput(text(form, "checkOutAt"))),
+    addManualCheckin(await requireGamemaster(), text(form, "playerId"), osloInput(text(form, "checkInAt")), osloInput(text(form, "checkOutAt"))),
   );
 }
 
 export async function rejectImageAction(_: ActionState, form: FormData) {
-  return run(async () => rejectImage(await requireStaff(), text(form, "playerId"), text(form, "message")), "Bildet er avvist");
+  return run(async () => rejectImage(await requireGamemaster(), text(form, "playerId"), text(form, "message")), "Bildet er avvist");
 }
 
 export async function approveImageAction(_: ActionState, form: FormData) {
-  return run(async () => approveImage(await requireStaff(), text(form, "playerId")), "Godkjent");
+  return run(async () => approveImage(await requireGamemaster(), text(form, "playerId")), "Godkjent");
 }
 
 export async function answerAction(_: ActionState, form: FormData) {
-  return run(async () => answerQuestion(await requireStaff(), text(form, "id"), text(form, "answer")), "Svaret er sendt");
+  return run(async () => answerQuestion(await requireGamemaster(), text(form, "id"), text(form, "answer")), "Svaret er sendt");
 }
 
 export async function publishAction(_: ActionState, form: FormData) {
   return run(async () =>
-    publishQuestion(await requireStaff(), text(form, "id"), text(form, "publicQuestion"), text(form, "publicAnswer"), form.get("published") === "on"),
+    publishQuestion(await requireGamemaster(), text(form, "id"), text(form, "publicQuestion"), text(form, "publicAnswer"), form.get("published") === "on"),
   );
 }
 
 export async function deleteQuestionAction(_: ActionState, form: FormData) {
-  return run(async () => deleteQuestion(await requireStaff(), text(form, "id")), "Spørsmålet er slettet");
+  return run(async () => deleteQuestion(await requireGamemaster(), text(form, "id")), "Spørsmålet er slettet");
 }
 
 export async function generateCircleAction(_: ActionState) {
@@ -146,6 +146,10 @@ export async function generateCircleAction(_: ActionState) {
 
 export async function startGameAction(_: ActionState) {
   return run(async () => startGame(await requireGamemaster()), "Spillet er i gang. E-post om første offer er sendt.");
+}
+
+export async function resumeGameAction(_: ActionState) {
+  return run(async () => resumeGame(await requireGamemaster()), "Spillet er i gang igjen");
 }
 
 export async function moveAction(_: ActionState, form: FormData) {
@@ -167,7 +171,7 @@ export async function removePlayerAction(_: ActionState, form: FormData) {
 }
 
 export async function createSeasonAction(_: ActionState, form: FormData) {
-  return run(async () => createSeason(await requireViewer(), text(form, "name")), "Ny sesong er opprettet");
+  return run(async () => createSeason(await requireViewer(), text(form, "name")), "Spillet er opprettet");
 }
 
 export async function setPhaseAction(_: ActionState, form: FormData) {
@@ -176,52 +180,12 @@ export async function setPhaseAction(_: ActionState, form: FormData) {
 
 export async function updateBasicsAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const deadline = text(form, "signupDeadline");
-    const startDate = text(form, "startDate");
-    if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) throw new GameError("Ugyldig startdato");
-    await updateSeasonBasics(await requireGamemaster(), {
-      name: text(form, "name"),
-      signupDeadline: deadline ? osloInput(deadline) : null,
-      startDate: startDate || null,
-      rulesText: text(form, "rulesText"),
-      dates: text(form, "dates"),
-    });
+    await updateSeasonBasics(await requireGamemaster(), { name: text(form, "name"), rulesText: text(form, "rulesText") });
   });
 }
 
-export async function defaultRulesAction(_: ActionState, form: FormData) {
-  return run(async () => updateSettings(await requireGamemaster(), { defaultRules: rulesFrom(form) }));
-}
-
-export async function weekRulesAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const useDefault = form.get("useDefault") === "on";
-    await setWeekRules(await requireGamemaster(), text(form, "weekStart"), useDefault ? null : rulesFrom(form));
-  });
-}
-
-export async function statsAction(_: ActionState, form: FormData) {
-  return run(async () =>
-    updateSettings(await requireGamemaster(), {
-      stats: {
-        killsToday: form.get("killsToday") === "on",
-        sinceLastKill: form.get("sinceLastKill") === "on",
-        topKillerToday: form.get("topKillerToday") === "on",
-      },
-    }),
-  );
-}
-
-export async function milestonesAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const viewer = await requireGamemaster();
-    const milestones: SeasonSettings["milestones"] = viewer.season.settings.milestones.map((m) => ({
-      ...m,
-      value: m.kind === "winner" ? 1 : num(form, `value-${m.key}`, 1, m.kind === "percent" ? 99 : 500),
-      email: form.get(`email-${m.key}`) === "on",
-    }));
-    await updateSettings(viewer, { milestones });
-  });
+export async function rulesAction(_: ActionState, form: FormData) {
+  return run(async () => setRules(await requireGamemaster(), rulesFrom(form)), "Reglene er lagret");
 }
 
 export async function officeAction(_: ActionState, form: FormData) {
@@ -234,14 +198,13 @@ export async function officeAction(_: ActionState, form: FormData) {
   });
 }
 
-export async function deleteSeasonDataAction(_: ActionState, form: FormData) {
-  return run(async () => deleteSeasonData(await requireGamemaster(), text(form, "seasonId"), text(form, "confirm")), "Sesongdata er slettet");
+export async function resetGameAction(_: ActionState, form: FormData) {
+  return run(async () => resetGame(await requireGamemaster(), text(form, "confirm")), "Spillet er nullstilt");
 }
 
 export async function addStaffAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const role = text(form, "role") === "gamemaster" ? "gamemaster" : "organizer";
-    await addStaff(await requireSeason(), text(form, "username"), role);
+    await addStaff(await requireSeason(), text(form, "username"));
   }, "Lagt til");
 }
 

@@ -53,7 +53,7 @@ describe("checkReport", () => {
 });
 
 describe("tidsavbrudd", () => {
-  it("går til arrangørene etter 12 timer uten svar", () => {
+  it("går til spillmesterne etter 12 timer uten svar", () => {
     const k = kill({ reportedAt: t(0) });
     expect(isOverdue(k, new Date(t(0).getTime() + CONFIRM_TIMEOUT_MS - 1))).toBe(false);
     expect(isOverdue(k, new Date(t(0).getTime() + CONFIRM_TIMEOUT_MS))).toBe(true);
@@ -129,12 +129,12 @@ describe("decideOnConfirm", () => {
     expect(decideOnConfirm(kill({}), ["a", "b", "c"], [], start, now)).toEqual({ action: "apply" });
   });
 
-  it("sender til arrangørene når sirkelen har endret seg", () => {
+  it("sender til spillmesterne når sirkelen har endret seg", () => {
     const res = decideOnConfirm(kill({}), ["a", "c", "b"], [], start, now);
     expect(res.action).toBe("escalate");
   });
 
-  it("sender kollisjoner til arrangørene", () => {
+  it("sender kollisjoner til spillmesterne", () => {
     const death = kill({ id: "k1", killedAt: t(10) });
     const late = kill({ id: "k2", killerId: "b", victimId: "c", killedAt: t(11) });
     expect(decideOnConfirm(death, ["a", "b", "c"], [death, late], start, now).action).toBe("escalate");

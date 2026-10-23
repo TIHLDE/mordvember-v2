@@ -22,7 +22,7 @@ export const DEFAULT_TEMPLATES = {
   kill_confirm: {
     label: "Bekreft drap",
     subject: "Et drap du er part i venter på bekreftelse",
-    body: "Noen har meldt et drap der du er part. Logg inn og bekreft, eller si fra hvis det ikke stemmer. Uten svar innen 12 timer går saken til arrangørene.",
+    body: "Noen har meldt et drap der du er part. Logg inn og bekreft, eller si fra hvis det ikke stemmer. Uten svar innen 12 timer går saken til spillmesterne.",
     button: "/drap",
   },
   weekly_warning: {
@@ -46,7 +46,7 @@ export const DEFAULT_TEMPLATES = {
   image_rejected: {
     label: "Bilde avvist",
     subject: "Bildet ditt i Mordvember ble avvist",
-    body: "Arrangørene har avvist bildet ditt.\n\nMelding: {{melding}}\n\nLast opp et nytt bilde der ansiktet vises tydelig.",
+    body: "Spillmesterne har avvist bildet ditt.\n\nMelding: {{melding}}\n\nLast opp et nytt bilde der ansiktet vises tydelig.",
     button: "/profil",
   },
   study_wrong: {
@@ -73,23 +73,11 @@ export const DEFAULT_TEMPLATES = {
     body: "Spørsmål: {{sporsmal}}\n\nSvar: {{svar}}",
     button: "/sporsmal",
   },
-  milestone: {
-    label: "Milepæl",
-    subject: "Mordvember: {{milepael}}",
-    body: "{{milepael}}. Det er {{igjen}} spillere igjen.",
-    button: "/",
-  },
   emergency_access: {
     label: "Nødtilgang aktivert",
     subject: "Nødtilgang til sirkelen er slått på",
     body: "{{navn}} har slått på nødtilgang til sirkelen i én time.\n\nBegrunnelse: {{grunn}}",
     button: "/admin/logg",
-  },
-  deletion_reminder: {
-    label: "Påminnelse om sletting",
-    subject: "Husk å slette sesongdata for {{sesong}}",
-    body: "Det er 30 dager siden {{sesong}} ble avsluttet. Slett navn, bilder og spilldata i adminpanelet.",
-    button: "/admin/sesong",
   },
 } as const;
 

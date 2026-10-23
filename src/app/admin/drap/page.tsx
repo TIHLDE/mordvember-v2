@@ -15,7 +15,7 @@ const killer = alias(players, "killer");
 const victim = alias(players, "victim");
 
 export default async function KillCases() {
-  const viewer = await guard("staff");
+  const viewer = await guard("gamemaster");
   const rows = await db
     .select({ kill: kills, killer: killer.name, victim: victim.name })
     .from(kills)

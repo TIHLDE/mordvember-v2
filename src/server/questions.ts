@@ -32,7 +32,7 @@ export async function seasonQuestions(viewer: Viewer) {
 }
 
 export async function inbox(viewer: Viewer) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   return db
     .select({ q: questions, asker: users.name })
     .from(questions)
@@ -42,7 +42,7 @@ export async function inbox(viewer: Viewer) {
 }
 
 export async function answerQuestion(viewer: Viewer, id: string, answer: string) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (!answer.trim()) throw new GameError("Svaret er tomt");
   await db.transaction(async (tx) => {
     const [q] = await tx
@@ -59,7 +59,7 @@ export async function answerQuestion(viewer: Viewer, id: string, answer: string)
 }
 
 export async function publishQuestion(viewer: Viewer, id: string, publicQuestion: string, publicAnswer: string, published: boolean) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (published && (!publicQuestion.trim() || !publicAnswer.trim())) throw new GameError("Både spørsmål og svar må fylles ut");
   await db
     .update(questions)
@@ -68,7 +68,7 @@ export async function publishQuestion(viewer: Viewer, id: string, publicQuestion
 }
 
 export async function deleteQuestion(viewer: Viewer, id: string) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   await db.transaction(async (tx) => {
     const [q] = await tx
       .delete(questions)

@@ -22,7 +22,7 @@ async function as(username: string, flags: { kok?: boolean; index?: boolean } = 
   const key = `${username}:${flags.kok ? 1 : 0}${flags.index ? 1 : 0}`;
   let ctx = contexts.get(key);
   if (!ctx) {
-    ctx = await browser.newContext({ geolocation: { latitude: 63.4175, longitude: 10.4035 }, permissions: ["geolocation"] });
+    ctx = await browser.newContext({ geolocation: { latitude: 63.416162, longitude: 10.405852 }, permissions: ["geolocation"] });
     const page = await ctx.newPage();
     page.on("dialog", (d) => void d.accept());
     await page.goto(`${BASE}/dev`);
@@ -197,7 +197,7 @@ async function main() {
   const alfa = await as("test-alfa");
   const window = Math.floor(Date.now() / 3_600_000);
   const sig = createHmac("sha256", QR_SECRET).update(`qr:${season.id}:${window}`).digest("base64url").slice(0, 22);
-  const scanCtx = await browser.newContext({ geolocation: { latitude: 63.4175, longitude: 10.4035 }, permissions: ["geolocation"] });
+  const scanCtx = await browser.newContext({ geolocation: { latitude: 63.416162, longitude: 10.405852 }, permissions: ["geolocation"] });
   const scanPage = await scanCtx.newPage();
   await scanPage.goto(`${BASE}/api/sjekkinn?k=${window}.${sig}`);
   assert((await scanPage.locator("text=Logg inn innen ti minutter").count()) === 1, "QR uten innlogging huskes");
@@ -227,7 +227,7 @@ async function main() {
   await farCtx.close();
   log("Innsjekk fra Trondheim sentrum avvises");
 
-  const organizer = await as("test-arrangor");
+  const gm2 = await as("test-spillmester");
   let alive = await alivePlayers(season.id);
   const v1 = await reportAndConfirm(alive[0]!.name);
   log(`Drap bekreftet av offeret: ${alive[0]!.name} tok ${v1}`);
@@ -240,11 +240,9 @@ async function main() {
   alive = await alivePlayers(season.id);
   const killer3 = alive[2]!.name;
   const v3 = await reportAndConfirm(killer3, { dispute: true });
-  await organizer.goto(`${BASE}/admin/drap`);
-  const caseHtml = await organizer.locator("main").innerHTML();
-  assert(!caseHtml.includes("Gjennomførte drap"), "arrangør ser ikke drapshistorikken");
-  await submit(organizer, organizer.locator("form").filter({ hasText: "Godkjenn drap" }).first(), "Godkjenn drap");
-  log(`Bestridt drap godkjent av arrangør: ${killer3} tok ${v3}`);
+  await gm2.goto(`${BASE}/admin/drap`);
+  await submit(gm2, gm2.locator("form").filter({ hasText: "Godkjenn drap" }).first(), "Godkjenn drap");
+  log(`Bestridt drap godkjent av spillmester: ${killer3} tok ${v3}`);
 
   await gm.goto(`${BASE}/admin/drap`);
   const undoRow = gm.locator("li").filter({ hasText: `${killer3} → ${v3}` });
@@ -261,48 +259,48 @@ async function main() {
 
   alive = await alivePlayers(season.id);
   const dqName = alive[3]!.name;
-  await organizer.goto(`${BASE}/admin/deltakere`);
-  const dqRow = organizer.locator("li").filter({ hasText: dqName });
+  await gm2.goto(`${BASE}/admin/deltakere`);
+  const dqRow = gm2.locator("li").filter({ hasText: dqName });
   await dqRow.locator("input[name=reason]").fill("Testdiskvalifisering");
-  await submit(organizer, dqRow.locator("form"), "Diskvalifiser");
+  await submit(gm2, dqRow.locator("form"), "Diskvalifiser");
   alive = await alivePlayers(season.id);
   const dq2 = alive.slice(0, 2).map((p) => p.name);
   for (const name of dq2) {
-    await organizer.goto(`${BASE}/admin/deltakere`);
-    const row = organizer.locator("li").filter({ hasText: name });
+    await gm2.goto(`${BASE}/admin/deltakere`);
+    const row = gm2.locator("li").filter({ hasText: name });
     await row.locator("input[name=reason]").fill("Testdiskvalifisering");
-    await submit(organizer, row.locator("form"), "Diskvalifiser");
+    await submit(gm2, row.locator("form"), "Diskvalifiser");
   }
   log(`Diskvalifisert: ${[dqName, ...dq2].join(", ")}`);
 
-  await organizer.goto(`${BASE}/admin/fredag`);
-  await submit(organizer, formWith(organizer, "Lag lista for denne uka nå"), "Lag lista for denne uka nå");
-  await organizer.goto(`${BASE}/admin/fredag`);
-  const firstReview = organizer.locator("li").filter({ has: organizer.locator("button", { hasText: "Unntak" }) }).first();
+  await gm2.goto(`${BASE}/admin/fredag`);
+  await submit(gm2, formWith(gm2, "Lag lista for denne uka nå"), "Lag lista for denne uka nå");
+  await gm2.goto(`${BASE}/admin/fredag`);
+  const firstReview = gm2.locator("li").filter({ has: gm2.locator("button", { hasText: "Unntak" }) }).first();
   await firstReview.locator("input[name=reason]").fill("Syk denne uka");
-  await submit(organizer, firstReview.locator("form"), "Unntak");
+  await submit(gm2, firstReview.locator("form"), "Unntak");
   log("Fredagslista laget, ett unntak gitt");
 
   await alfa.goto(`${BASE}/sporsmal`);
   await alfa.locator("textarea[name=question]").fill("Teller det hvis offeret sover?");
   await submit(alfa, formWith(alfa, "Send"), "Send");
-  await organizer.goto(`${BASE}/admin/sporsmal`);
-  await organizer.locator("textarea[name=answer]").first().fill("Ja, så lenge ingen ser det.");
-  await submit(organizer, organizer.locator("form").filter({ hasText: "Send svar" }).first(), "Send svar");
-  await organizer.goto(`${BASE}/admin/sporsmal`);
-  await organizer.locator("summary", { hasText: "Publiser anonymt" }).first().click();
-  const pub = organizer.locator("form").filter({ hasText: "Vis på siden" }).first();
+  await gm2.goto(`${BASE}/admin/sporsmal`);
+  await gm2.locator("textarea[name=answer]").first().fill("Ja, så lenge ingen ser det.");
+  await submit(gm2, gm2.locator("form").filter({ hasText: "Send svar" }).first(), "Send svar");
+  await gm2.goto(`${BASE}/admin/sporsmal`);
+  await gm2.locator("summary", { hasText: "Publiser anonymt" }).first().click();
+  const pub = gm2.locator("form").filter({ hasText: "Vis på siden" }).first();
   await pub.locator("input[name=published]").check();
-  await submit(organizer, pub, "Lagre");
+  await submit(gm2, pub, "Lagre");
   await anon.goto(`${BASE}/faq`);
   assert((await anon.locator("text=Teller det hvis offeret sover?").count()) === 1, "FAQ publisert");
   log("Spørsmål stilt, besvart privat og publisert anonymt");
 
-  await organizer.goto(`${BASE}/admin/deltakere`);
-  await organizer.locator("a", { hasText: "Deltaker Xray" }).click();
-  await organizer.locator("input[name=message]").fill("Ansiktet vises ikke");
-  await submit(organizer, organizer.locator("form").filter({ hasText: "Avvis" }), "Avvis");
-  log("Bilde avvist av arrangør");
+  await gm2.goto(`${BASE}/admin/deltakere`);
+  await gm2.locator("a", { hasText: "Deltaker Xray" }).click();
+  await gm2.locator("input[name=message]").fill("Ansiktet vises ikke");
+  await submit(gm2, gm2.locator("form").filter({ hasText: "Avvis" }), "Avvis");
+  log("Bilde avvist av spillmester");
 
   let round = 0;
   for (;;) {
@@ -325,20 +323,18 @@ async function main() {
   await board.screenshot({ path: `${SHOTS}/04-status-vinner.png` });
   log(`Vinner: ${winner.name}, vist på forsiden og statusskjermen`);
 
-  const [{ count: milestones } = { count: -1 }] = await sql<{ count: number }[]>`select count(*)::int as count from milestone_events where season_id = ${season.id}`;
-  log(`Milepæler registrert: ${milestones}`);
-  assert(milestones === 5, "alle fem milepæler");
 
   await gm.goto(`${BASE}/admin/sesong`);
-  await submit(gm, formWith(gm, "Avslutt sesongen"), "Avslutt sesongen");
+  await submit(gm, formWith(gm, "Stopp spillet"), "Stopp spillet");
   await gm.goto(`${BASE}/admin/sesong`);
-  const del = formWith(gm, "Slett data for");
-  await del.locator("input[name=confirm]").fill("Testsesong");
-  await submit(gm, del, /Slett data for/);
+  const reset = formWith(gm, "Nullstill spillet");
+  await reset.locator("input[name=confirm]").fill("nullstill");
+  await submit(gm, reset, "Nullstill spillet");
   const [{ count: left } = { count: -1 }] = await sql<{ count: number }[]>`select count(*)::int as count from players where season_id = ${season.id}`;
-  const [summary] = await sql<{ summary: unknown }[]>`select summary from seasons where id = ${season.id}`;
-  assert(left === 0, "sesongdata slettet");
-  log("Sesongen avsluttet og data slettet. Igjen:", JSON.stringify(summary?.summary));
+  const [after] = await sql<{ phase: string }[]>`select phase from seasons where id = ${season.id}`;
+  assert(left === 0, "spilldata slettet");
+  assert(after?.phase === "setup", "spillet er tilbake i oppsett");
+  log("Spillet stoppet og nullstilt");
 
   const res = await fetch(`${BASE}/api/cron`, { headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } });
   assert(res.ok, "cron svarer");

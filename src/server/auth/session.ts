@@ -112,10 +112,7 @@ export type Viewer = {
   isSuperadmin: boolean;
   season: Season | null;
   player: Player | null;
-  staffRole: "gamemaster" | "organizer" | null;
   isGamemaster: boolean;
-  isOrganizer: boolean;
-  isStaff: boolean;
   emergencyUntil: Date | null;
   canSeeCircle: boolean;
   canManageRoles: boolean;
@@ -137,15 +134,14 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 
   const season = await getCurrentSeason();
   let player: Player | null = null;
-  let staffRole: Viewer["staffRole"] = null;
+  let isListedGamemaster = false;
   if (season) {
     player = (await db.query.players.findFirst({
       where: and(eq(players.seasonId, season.id), eq(players.userId, user.id)),
     })) ?? null;
-    const staffRow = await db.query.staff.findFirst({
+    isListedGamemaster = !!(await db.query.staff.findFirst({
       where: and(eq(staff.seasonId, season.id), eq(staff.username, user.username)),
-    });
-    staffRole = staffRow?.role ?? null;
+    }));
   }
 
   let emergencyUntil: Date | null = null;
@@ -158,8 +154,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   }
 
   const isSuperadmin = env.superadmins.includes(user.username);
-  const isGamemaster = staffRole === "gamemaster" || session.isKokLeader || isSuperadmin;
-  const isOrganizer = staffRole === "organizer";
+  const isGamemaster = isListedGamemaster || session.isKokLeader || isSuperadmin;
   return {
     user,
     isKokLeader: session.isKokLeader,
@@ -167,10 +162,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     isSuperadmin,
     season,
     player,
-    staffRole,
     isGamemaster,
-    isOrganizer,
-    isStaff: isGamemaster || isOrganizer,
     emergencyUntil,
     canSeeCircle: isGamemaster || emergencyUntil !== null,
     canManageRoles: session.isKokLeader || session.isIndexLeader || isGamemaster,
@@ -196,21 +188,9 @@ export async function requireSeason(): Promise<Viewer & { season: Season }> {
   return viewer as Viewer & { season: Season };
 }
 
-export async function requireStaff() {
-  const viewer = await requireSeason();
-  if (!viewer.isStaff) throw new AccessError();
-  return viewer;
-}
-
 export async function requireGamemaster() {
   const viewer = await requireSeason();
   if (!viewer.isGamemaster) throw new AccessError("Bare spillmestere har tilgang til dette");
-  return viewer;
-}
-
-export async function requireCircleAccess() {
-  const viewer = await requireSeason();
-  if (!viewer.canSeeCircle) throw new AccessError("Bare spillmestere har tilgang til sirkelen");
   return viewer;
 }
 

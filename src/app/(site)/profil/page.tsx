@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { Portrait } from "@/components/Portrait";
-import { Badge, Button, Card, Checkbox, Field, inputClass, Notice, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Field, inputClass, Notice, PageTitle } from "@/components/ui";
 import { parseBio } from "@/game/bio";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
@@ -11,7 +11,6 @@ import {
   defaultImageAction,
   deleteImageAction,
   uploadImageAction,
-  winnerConsentAction,
   withdrawAction,
 } from "../actions";
 
@@ -23,7 +22,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   if (!viewer) redirect("/login?next=/profil");
   const { player, season } = viewer;
   if (!player || !season) redirect("/");
-  const isWinner = season.winnerPlayerId === player.id;
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <PageTitle sub={`${player.name} · ${player.studyProgram ?? "Studieprogram mangler"}${player.studyStartYear ? ` · kull ${player.studyStartYear}` : ""}`}>
@@ -70,16 +68,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <ActionForm action={bioAction} className="space-y-4">
             <p className="text-sm text-zinc-400">Vises bare til den som har deg som offer. La felt stå tomme hvis du ikke vil oppgi dem.</p>
             <BioFields values={parseBio(player.bio)} />
-            <Button type="submit">Lagre</Button>
-          </ActionForm>
-        </Card>
-      )}
-      {isWinner && (
-        <Card title="Du vant!">
-          <ActionForm action={winnerConsentAction} className="space-y-4">
-            <Checkbox name="consent" defaultChecked={player.winnerConsent}>
-              Navnet mitt kan stå som vinner etter at sesongdata er slettet.
-            </Checkbox>
             <Button type="submit">Lagre</Button>
           </ActionForm>
         </Card>

@@ -56,8 +56,8 @@ async function main() {
   await gm.getByRole("link", { name: "Logg inn med TIHLDE" }).click();
   await gm.waitForURL(`${BASE}/admin`);
   assert((await gm.getByRole("link", { name: "Sirkel" }).count()) === 1, "KoK-leder er spillmester");
-  const [staffRow] = await sql<{ role: string }[]>`select role from staff where username = 'mock-kokleder'`;
-  assert(staffRow?.role === "gamemaster", "KoK-leder lagt til som spillmester ved innlogging");
+  const [staffRow] = await sql<{ username: string }[]>`select username from staff where username = 'mock-kokleder'`;
+  assert(staffRow, "KoK-leder lagt til som spillmester ved innlogging");
   console.log("• KoK-leder blir spillmester automatisk");
 
   const forged = await (await browser.newContext()).newPage();

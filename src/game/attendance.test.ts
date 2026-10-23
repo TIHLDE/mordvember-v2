@@ -4,13 +4,15 @@ import {
   closeTimeFor,
   countingDays,
   dayResults,
-  DEFAULT_RULES,
+  type WeekRules,
   distanceMeters,
   evaluateWeek,
   sessionMinutesInWindow,
 } from "./attendance";
 import { osloTime, weekStartOf } from "./time";
 
+// Fixed here so the tests don't change when the game defaults do.
+const RULES: WeekRules = { days: 2, hours: 2, windowStart: "08:00", windowEnd: "16:00", killsRequired: 0 };
 const week = "2026-11-02";
 const at = (date: string, time: string) => osloTime(date, time);
 const later = at("2026-11-09", "12:00");
@@ -39,46 +41,46 @@ describe("tid i Oslo", () => {
 
 describe("oppmøteregelen", () => {
   it("to timer sammenhengende teller", () => {
-    expect(dayResults([s("2026-11-02", "09:00", "11:00")], week, DEFAULT_RULES, later)[0]?.counts).toBe(true);
+    expect(dayResults([s("2026-11-02", "09:00", "11:00")], week, RULES, later)[0]?.counts).toBe(true);
   });
 
   it("ett minutt for lite teller ikke", () => {
-    expect(dayResults([s("2026-11-02", "09:00", "10:59")], week, DEFAULT_RULES, later)[0]?.counts).toBe(false);
+    expect(dayResults([s("2026-11-02", "09:00", "10:59")], week, RULES, later)[0]?.counts).toBe(false);
   });
 
   it("to korte økter samme dag legges ikke sammen", () => {
     const sessions = [s("2026-11-02", "09:00", "10:00"), s("2026-11-02", "10:05", "11:05")];
-    expect(countingDays(sessions, week, DEFAULT_RULES, later)).toBe(0);
+    expect(countingDays(sessions, week, RULES, later)).toBe(0);
   });
 
   it("bare tiden innenfor 08–16 teller", () => {
-    expect(sessionMinutesInWindow(s("2026-11-02", "07:00", "09:30"), DEFAULT_RULES, later)).toBe(90);
-    expect(sessionMinutesInWindow(s("2026-11-02", "15:00", "18:00"), DEFAULT_RULES, later)).toBe(60);
-    expect(sessionMinutesInWindow(s("2026-11-02", "06:00", "07:59"), DEFAULT_RULES, later)).toBe(0);
+    expect(sessionMinutesInWindow(s("2026-11-02", "07:00", "09:30"), RULES, later)).toBe(90);
+    expect(sessionMinutesInWindow(s("2026-11-02", "15:00", "18:00"), RULES, later)).toBe(60);
+    expect(sessionMinutesInWindow(s("2026-11-02", "06:00", "07:59"), RULES, later)).toBe(0);
   });
 
   it("helg teller ikke", () => {
-    expect(countingDays([s("2026-11-07", "09:00", "15:00")], week, DEFAULT_RULES, later)).toBe(0);
+    expect(countingDays([s("2026-11-07", "09:00", "15:00")], week, RULES, later)).toBe(0);
   });
 
   it("glemt utsjekk teller ikke uten manuell godkjenning", () => {
     const forgotten = s("2026-11-03", "09:00", "16:00", { autoClosed: true });
-    expect(countingDays([forgotten], week, DEFAULT_RULES, later)).toBe(0);
-    expect(dayResults([forgotten], week, DEFAULT_RULES, later)[1]?.hasUnclosed).toBe(true);
-    expect(countingDays([{ ...forgotten, approved: true }], week, DEFAULT_RULES, later)).toBe(1);
+    expect(countingDays([forgotten], week, RULES, later)).toBe(0);
+    expect(dayResults([forgotten], week, RULES, later)[1]?.hasUnclosed).toBe(true);
+    expect(countingDays([{ ...forgotten, approved: true }], week, RULES, later)).toBe(1);
   });
 
   it("åpen økt etter 16 teller ikke selv før cron har lukket den", () => {
-    expect(countingDays([s("2026-11-03", "09:00", null)], week, DEFAULT_RULES, later)).toBe(0);
+    expect(countingDays([s("2026-11-03", "09:00", null)], week, RULES, later)).toBe(0);
   });
 
   it("pågående økt teller fram til nå", () => {
     const now = at("2026-11-03", "11:30");
-    expect(sessionMinutesInWindow(s("2026-11-03", "09:00", null), DEFAULT_RULES, now)).toBe(150);
+    expect(sessionMinutesInWindow(s("2026-11-03", "09:00", null), RULES, now)).toBe(150);
   });
 
   it("underkjent innsjekk teller ikke", () => {
-    expect(countingDays([s("2026-11-02", "09:00", "12:00", { rejected: true })], week, DEFAULT_RULES, later)).toBe(0);
+    expect(countingDays([s("2026-11-02", "09:00", "12:00", { rejected: true })], week, RULES, later)).toBe(0);
   });
 
   it("flere dager telles hver for seg", () => {
@@ -87,17 +89,17 @@ describe("oppmøteregelen", () => {
       s("2026-11-03", "08:00", "16:00"),
       s("2026-11-04", "12:00", "13:00"),
     ];
-    expect(countingDays(sessions, week, DEFAULT_RULES, later)).toBe(2);
+    expect(countingDays(sessions, week, RULES, later)).toBe(2);
   });
 
   it("endrede regler for en uke gjelder", () => {
-    const rules = { ...DEFAULT_RULES, hours: 3, windowStart: "10:00", windowEnd: "14:00" };
+    const rules = { ...RULES, hours: 3, windowStart: "10:00", windowEnd: "14:00" };
     expect(countingDays([s("2026-11-02", "09:00", "13:30")], week, rules, later)).toBe(1);
     expect(countingDays([s("2026-11-02", "09:00", "12:30")], week, rules, later)).toBe(0);
   });
 
   it("utsjekk lukkes kl. 16", () => {
-    expect(closeTimeFor(at("2026-11-03", "09:00"), DEFAULT_RULES).toISOString()).toBe(at("2026-11-03", "16:00").toISOString());
+    expect(closeTimeFor(at("2026-11-03", "09:00"), RULES).toISOString()).toBe(at("2026-11-03", "16:00").toISOString());
   });
 
   it("avstand", () => {
@@ -106,7 +108,7 @@ describe("oppmøteregelen", () => {
 });
 
 describe("ukesjekken", () => {
-  const base = { weekStart: week, requirementsFromWeek: null, killTimes: [], rules: DEFAULT_RULES, now: later };
+  const base = { weekStart: week, requirementsFromWeek: null, killTimes: [], rules: RULES, now: later };
 
   it("godkjent med to dager", () => {
     const res = evaluateWeek({ ...base, sessions: [s("2026-11-02", "09:00", "11:00"), s("2026-11-04", "09:00", "11:00")] });
@@ -121,7 +123,7 @@ describe("ukesjekken", () => {
   });
 
   it("drapskrav", () => {
-    const rules = { ...DEFAULT_RULES, days: 0, killsRequired: 1 };
+    const rules = { ...RULES, days: 0, killsRequired: 1 };
     expect(evaluateWeek({ ...base, rules, sessions: [] }).missing).toEqual(["Mangler 1 drap (har 0 av 1)"]);
     expect(evaluateWeek({ ...base, rules, sessions: [], killTimes: [at("2026-11-03", "12:00")] }).ok).toBe(true);
     expect(evaluateWeek({ ...base, rules, sessions: [], killTimes: [at("2026-11-10", "12:00")] }).ok).toBe(false);

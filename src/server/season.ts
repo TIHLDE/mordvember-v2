@@ -20,25 +20,19 @@ export function phaseLabel(phase: Phase): string {
   return PHASES.find((p) => p.key === phase)?.label ?? phase;
 }
 
-export async function closeExpiredSignups(now = new Date()) {
-  await db
-    .update(seasons)
-    .set({ phase: "closed" })
-    .where(and(eq(seasons.phase, "signup"), lte(seasons.signupDeadline, now)));
-}
-
 export const getCurrentSeason = cache(async () => {
-  await closeExpiredSignups();
   return (await db.query.seasons.findFirst({ orderBy: desc(seasons.createdAt) })) ?? null;
 });
 
-export function signupOpen(season: { phase: Phase; signupDeadline: Date | null }, now = new Date()): boolean {
-  return season.phase === "signup" && (!season.signupDeadline || season.signupDeadline > now);
+export function signupOpen(season: { phase: Phase }): boolean {
+  return season.phase === "signup";
 }
 
+// The game has one ruleset. Changes made while the game is underway are stored from that week on, so earlier weeks keep the rules they had.
 export async function rulesForWeek(season: { id: string; settings: SeasonSettings }, weekStart: string): Promise<WeekRules> {
-  const override = await db.query.weekRules.findFirst({
-    where: and(eq(weekRules.seasonId, season.id), eq(weekRules.weekStart, weekStart)),
+  const change = await db.query.weekRules.findFirst({
+    where: and(eq(weekRules.seasonId, season.id), lte(weekRules.weekStart, weekStart)),
+    orderBy: desc(weekRules.weekStart),
   });
-  return { ...DEFAULT_RULES, ...season.settings.defaultRules, ...(override?.rules ?? {}) };
+  return { ...DEFAULT_RULES, ...season.settings.defaultRules, ...(change?.rules ?? {}) };
 }

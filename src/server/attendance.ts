@@ -170,7 +170,7 @@ type Edit =
   | { kind: "times"; checkInAt: Date; checkOutAt: Date | null };
 
 export async function editCheckin(viewer: Viewer, checkinId: string, edit: Edit) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   const set: Partial<typeof checkins.$inferInsert> = { editedBy: viewer.user.id };
   if (edit.kind === "approve") Object.assign(set, { approved: true, rejected: false, flagsReviewed: true });
   if (edit.kind === "reject") Object.assign(set, { rejected: true, approved: false, flagsReviewed: true });
@@ -185,7 +185,7 @@ export async function editCheckin(viewer: Viewer, checkinId: string, edit: Edit)
 }
 
 export async function addManualCheckin(viewer: Viewer, playerId: string, checkInAt: Date, checkOutAt: Date) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (checkOutAt <= checkInAt) throw new GameError("Utsjekk må være etter innsjekk");
   const player = await db.query.players.findFirst({
     where: and(eq(players.id, playerId), eq(players.seasonId, viewer.season.id)),

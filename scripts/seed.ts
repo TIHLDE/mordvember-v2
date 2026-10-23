@@ -29,7 +29,6 @@ const staffUsers = [
   { username: "test-kokleder", name: "Test Kokleder" },
   { username: "test-indexleder", name: "Test Indexleder" },
   { username: "test-spillmester", name: "Test Spillmester" },
-  { username: "test-arrangor", name: "Test Arrangør" },
   { username: "test-medlem", name: "Test Medlem" },
 ];
 const playerUsers = CODENAMES.slice(0, count).map((code, i) => ({
@@ -50,14 +49,13 @@ const users = await db
 
 const [season] = await db
   .insert(schema.seasons)
-  .values({ name: "Testsesong", phase: "signup", signupDeadline: new Date(Date.now() + 7 * 86400_000), settings: defaultSettings() })
+  .values({ name: "Testsesong", phase: "signup", settings: defaultSettings() })
   .returning();
 if (!season) throw new Error("Ingen sesong");
 
 await db.insert(schema.staff).values([
-  { seasonId: season.id, username: "test-kokleder", role: "gamemaster" },
-  { seasonId: season.id, username: "test-spillmester", role: "gamemaster" },
-  { seasonId: season.id, username: "test-arrangor", role: "organizer" },
+  { seasonId: season.id, username: "test-kokleder" },
+  { seasonId: season.id, username: "test-spillmester" },
 ]);
 
 const signed = users.filter((u) => u.username !== "test-medlem" && !staffUsers.some((s) => s.username === u.username)).slice(0, Math.max(0, count - 1));

@@ -27,7 +27,7 @@ export async function SiteHeader() {
           : []),
         { href: "/sporsmal", label: "Spørsmål" },
         { href: "/varsler", label: "Varsler", count: unread },
-        ...(viewer.isStaff || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
+        ...(viewer.isGamemaster || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
       ]
     : [];
   const container = "mx-auto max-w-5xl px-4";

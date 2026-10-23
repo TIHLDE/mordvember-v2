@@ -14,14 +14,12 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { WeekRules } from "@/game/attendance";
-import type { MilestoneRule } from "@/game/milestones";
 
 const id = () => uuid("id").primaryKey().defaultRandom();
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
 
 export const phaseEnum = pgEnum("phase", ["setup", "signup", "closed", "running", "ended"]);
-export const staffRoleEnum = pgEnum("staff_role", ["gamemaster", "organizer"]);
 export const playerStatusEnum = pgEnum("player_status", ["alive", "eliminated", "disqualified"]);
 export const killStatusEnum = pgEnum("kill_status", ["pending", "escalated", "applied", "rejected", "undone"]);
 export const reporterEnum = pgEnum("reporter", ["killer", "victim"]);
@@ -29,14 +27,10 @@ export const reviewDecisionEnum = pgEnum("review_decision", ["pending", "disqual
 export const emailStatusEnum = pgEnum("email_status", ["pending", "sent", "failed"]);
 
 export type SeasonSettings = {
-  stats: { killsToday: boolean; sinceLastKill: boolean; topKillerToday: boolean };
-  milestones: MilestoneRule[];
   defaultRules: WeekRules;
   office: { lat: number; lng: number; radiusMeters: number } | null;
-  info: { rules: string; dates: string; startDate?: string | null };
+  info: { rules: string };
 };
-
-export type SeasonSummary = { participants: number; kills: number; durationDays: number };
 
 export const users = pgTable("users", {
   id: id(),
@@ -70,17 +64,9 @@ export const seasons = pgTable("seasons", {
   id: id(),
   name: text("name").notNull(),
   phase: phaseEnum("phase").notNull().default("setup"),
-  signupDeadline: ts("signup_deadline"),
   startedAt: ts("started_at"),
-  endedAt: ts("ended_at"),
   winnerPlayerId: uuid("winner_player_id"),
-  winnerName: text("winner_name"),
   settings: jsonb("settings").$type<SeasonSettings>().notNull(),
-  summary: jsonb("summary").$type<SeasonSummary>(),
-  dataDeletedAt: ts("data_deleted_at"),
-  deletionReminderSentAt: ts("deletion_reminder_sent_at"),
-  screenTokenHash: text("screen_token_hash"),
-  screenTokenCreatedAt: ts("screen_token_created_at"),
   createdAt: createdAt(),
 });
 
@@ -92,7 +78,6 @@ export const staff = pgTable(
       .notNull()
       .references(() => seasons.id, { onDelete: "cascade" }),
     username: text("username").notNull(),
-    role: staffRoleEnum("role").notNull(),
     addedBy: uuid("added_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
@@ -123,7 +108,6 @@ export const players = pgTable(
     eliminatedAt: ts("eliminated_at"),
     requirementsFromWeek: text("requirements_from_week"),
     consentAt: ts("consent_at").notNull(),
-    winnerConsent: boolean("winner_consent").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("players_season_user").on(t.seasonId, t.userId), index("players_season").on(t.seasonId)],
@@ -236,23 +220,6 @@ export const weeklyReviews = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("weekly_reviews_unique").on(t.seasonId, t.weekStart, t.playerId)],
-);
-
-export const milestoneEvents = pgTable(
-  "milestone_events",
-  {
-    id: id(),
-    seasonId: uuid("season_id")
-      .notNull()
-      .references(() => seasons.id, { onDelete: "cascade" }),
-    key: text("key").notNull(),
-    label: text("label").notNull(),
-    showAt: ts("show_at").notNull(),
-    sendEmail: boolean("send_email").notNull(),
-    emailedAt: ts("emailed_at"),
-    createdAt: createdAt(),
-  },
-  (t) => [uniqueIndex("milestone_events_unique").on(t.seasonId, t.key)],
 );
 
 export const notifications = pgTable(

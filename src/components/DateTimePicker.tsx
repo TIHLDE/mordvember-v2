@@ -94,52 +94,6 @@ export function DateTimePicker({
   );
 }
 
-export function DateField({
-  name,
-  defaultValue,
-  min,
-  max,
-  required,
-  id,
-  placeholder = "Velg dato",
-  className = "",
-  "aria-label": ariaLabel,
-}: {
-  name: string;
-  defaultValue?: string;
-  min?: string;
-  max?: string;
-  required?: boolean;
-  id?: string;
-  placeholder?: string;
-  className?: string;
-  "aria-label"?: string;
-}) {
-  const [day, setDay] = useState<Date | null>(() => parseDay(defaultValue));
-  return (
-    <div className={`relative flex ${className}`}>
-      <DatePicker
-        id={id}
-        aria-label={ariaLabel}
-        value={day}
-        onChange={setDay}
-        min={parseDay(min) ?? undefined}
-        max={parseDay(max) ?? undefined}
-        placeholder={placeholder}
-      />
-      <input
-        name={name}
-        value={day ? format(day, "yyyy-MM-dd") : ""}
-        onChange={() => {}}
-        required={required}
-        tabIndex={-1}
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px opacity-0"
-      />
-    </div>
-  );
-}
-
 export function TimeField({
   name,
   defaultValue,
@@ -168,13 +122,6 @@ export function TimeField({
       />
     </div>
   );
-}
-
-function parseDay(value: string | undefined): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value ?? "");
-  if (!match) return null;
-  const [, y, mo, d] = match.map(Number) as number[];
-  return new Date(y!, mo! - 1, d!);
 }
 
 function parseTime(value: string | undefined): Time | null {

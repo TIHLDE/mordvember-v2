@@ -89,11 +89,11 @@ export function BoardMessage({ children }: { children: React.ReactNode }) {
 }
 
 export function Announcement({ data }: { data: BoardData }) {
-  if (!data.milestone && !data.winner) return null;
+  if (!data.winner) return null;
   return (
     <div className="overlay fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 text-center backdrop-blur-xl">
-      <p className="font-display text-8xl text-blood">{data.winner ? "Vi har en vinner" : data.milestone?.label}</p>
-      <p className="mt-6 text-5xl text-white">{data.winner ?? `${data.alive} spillere igjen`}</p>
+      <p className="font-display text-8xl text-blood">Vi har en vinner</p>
+      <p className="mt-6 text-5xl text-white">{data.winner}</p>
     </div>
   );
 }

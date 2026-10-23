@@ -37,7 +37,7 @@ export default async function QuestionsPage() {
                   {formatOslo(q.createdAt)} {q.mine && <Badge>Ditt spørsmål</Badge>}
                 </p>
                 {q.answer ? <p className="mt-3 border-l-2 border-blood pl-3 whitespace-pre-line text-white">{q.answer}</p> : <p className="mt-3 text-zinc-500">Ikke besvart ennå.</p>}
-                {viewer.isStaff && (
+                {viewer.isGamemaster && (
                   <ActionForm action={deleteQuestionAction} confirm="Slette spørsmålet?" className="mt-3">
                     <input type="hidden" name="id" value={q.id} />
                     <Button type="submit" variant="danger-ghost" size="sm">Slett</Button>

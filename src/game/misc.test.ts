@@ -1,33 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { crossedMilestones, DEFAULT_MILESTONES } from "./milestones";
 import { msUntilNextCode, qrCode, QR_WINDOW_MS, verifyQrCode } from "./qr";
-
-describe("milepæler", () => {
-  const none = new Set<string>();
-
-  it("halvveis av 40", () => {
-    expect(crossedMilestones(DEFAULT_MILESTONES, 21, 20, 40, none).map((m) => m.key)).toEqual(["halv"]);
-    expect(crossedMilestones(DEFAULT_MILESTONES, 22, 21, 40, none)).toEqual([]);
-  });
-
-  it("fyrer ikke to ganger", () => {
-    expect(crossedMilestones(DEFAULT_MILESTONES, 21, 20, 40, new Set(["halv"]))).toEqual([]);
-  });
-
-  it("tre og vinner", () => {
-    expect(crossedMilestones(DEFAULT_MILESTONES, 4, 3, 40, none).map((m) => m.key)).toEqual(["tre"]);
-    expect(crossedMilestones(DEFAULT_MILESTONES, 2, 1, 40, none).map((m) => m.key)).toEqual(["vinner"]);
-  });
-
-  it("flere grenser i ett hopp ved diskvalifisering av mange", () => {
-    expect(crossedMilestones(DEFAULT_MILESTONES, 12, 3, 12, none).map((m) => m.key)).toEqual([
-      "halv",
-      "kvart",
-      "ti",
-      "tre",
-    ]);
-  });
-});
 
 describe("QR-kode", () => {
   const secret = "test-hemmelighet";

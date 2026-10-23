@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { players, staff, users } from "@/db/schema";
+import { players, seasons, users } from "@/db/schema";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
 import { queueEmail } from "./email";
@@ -17,19 +17,25 @@ export async function signUp(viewer: Viewer, input: { consent: boolean; image: F
   if (viewer.isGamemaster) throw new GameError("Spillmestere kan ikke delta");
   if (!input.consent) throw new GameError("Du må godta vilkårene for å melde deg på");
   if (viewer.player) throw new GameError("Du er allerede påmeldt");
-  const [player] = await db
-    .insert(players)
-    .values({
-      seasonId: season.id,
-      userId: viewer.user.id,
-      name: viewer.user.name,
-      studyProgram: viewer.user.studyProgram,
-      studyStartYear: viewer.user.studyStartYear,
-      bio: input.bio,
-      consentAt: new Date(),
-    })
-    .onConflictDoNothing()
-    .returning();
+  const player = await db.transaction(async (tx) => {
+    // Checked again under a lock, so a signup racing a close or reset is not let in afterwards.
+    const [current] = await tx.select({ phase: seasons.phase }).from(seasons).where(eq(seasons.id, season.id)).for("share");
+    if (!current || !signupOpen(current)) throw new GameError("Påmeldingen er ikke åpen");
+    const [inserted] = await tx
+      .insert(players)
+      .values({
+        seasonId: season.id,
+        userId: viewer.user.id,
+        name: viewer.user.name,
+        studyProgram: viewer.user.studyProgram,
+        studyStartYear: viewer.user.studyStartYear,
+        bio: input.bio,
+        consentAt: new Date(),
+      })
+      .onConflictDoNothing()
+      .returning();
+    return inserted;
+  });
   if (!player) throw new GameError("Du er allerede påmeldt");
   if (input.image && input.image.size > 0) {
     await setImage({ ...viewer, player }, input.image);
@@ -38,7 +44,7 @@ export async function signUp(viewer: Viewer, input: { consent: boolean; image: F
 
 export async function withdraw(viewer: Viewer) {
   if (!viewer.season || !viewer.player) throw new GameError("Du er ikke påmeldt");
-  if (!signupOpen(viewer.season)) throw new GameError("Fristen er ute. Kontakt en spillmester for å melde deg av.");
+  if (!signupOpen(viewer.season)) throw new GameError("Påmeldingen er stengt. Kontakt en spillmester for å melde deg av.");
   if (viewer.player.imageKey) await deleteImages([viewer.player.imageKey]);
   await db.delete(players).where(eq(players.id, viewer.player.id));
 }
@@ -78,11 +84,6 @@ export async function setBio(viewer: Viewer, bio: string | null) {
   await db.update(players).set({ bio }).where(eq(players.id, viewer.player.id));
 }
 
-export async function setWinnerConsent(viewer: Viewer, consent: boolean) {
-  if (!viewer.player) throw new GameError("Du er ikke påmeldt");
-  await db.update(players).set({ winnerConsent: consent }).where(eq(players.id, viewer.player.id));
-}
-
 export async function reportWrongStudy(viewer: Viewer) {
   await queueEmail(db, "study_wrong", [STUDY_REPORT_ADDRESS], {
     brukernavn: viewer.user.username,
@@ -92,7 +93,7 @@ export async function reportWrongStudy(viewer: Viewer) {
 }
 
 export async function rejectImage(viewer: Viewer, playerId: string, message: string) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (!message.trim()) throw new GameError("Skriv en kort melding til deltakeren");
   const [row] = await db
     .select({ player: players, email: users.email })
@@ -109,7 +110,7 @@ export async function rejectImage(viewer: Viewer, playerId: string, message: str
 }
 
 export async function approveImage(viewer: Viewer, playerId: string) {
-  if (!viewer.season || !viewer.isStaff) throw new AccessError();
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   await db
     .update(players)
     .set({ imageApprovedAt: new Date(), imageRejectedReason: null })
@@ -129,10 +130,4 @@ export async function gridPlayers(seasonId: string): Promise<GridPlayer[]> {
 
 export function visibleAliveCount(grid: GridPlayer[]): number {
   return grid.filter((p) => !p.out).length;
-}
-
-export async function isGamemasterUsername(seasonId: string, username: string) {
-  return !!(await db.query.staff.findFirst({
-    where: and(eq(staff.seasonId, seasonId), eq(staff.username, username), eq(staff.role, "gamemaster")),
-  }));
 }

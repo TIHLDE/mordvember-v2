@@ -15,7 +15,6 @@ import {
   reportWrongStudy,
   setBio,
   setImage,
-  setWinnerConsent,
   signUp,
   useDefaultImage,
   withdraw,
@@ -79,12 +78,6 @@ export async function bioAction(_: ActionState, form: FormData) {
   });
 }
 
-export async function winnerConsentAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await setWinnerConsent(await requirePlayer(), form.get("consent") === "on");
-  });
-}
-
 export async function revealTargetAction(): Promise<{ name: string; image: string; bio: string | null } | null> {
   const viewer = await requirePlayer();
   const target = await myTarget(viewer);
@@ -110,7 +103,7 @@ export async function confirmKillAction(_: ActionState, form: FormData) {
 export async function disputeKillAction(_: ActionState, form: FormData) {
   return run(async () => {
     await disputeKill(await requirePlayer(), text(form, "killId"));
-    return "Saken er sendt til arrangørene";
+    return "Saken er sendt til spillmesterne";
   });
 }
 
