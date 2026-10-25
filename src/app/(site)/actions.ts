@@ -12,7 +12,6 @@ import { myTarget } from "@/server/circle";
 import { confirmKill, disputeKill, GameError, reportKill } from "@/server/game";
 import {
   deleteOwnImage,
-  reportWrongStudy,
   setBio,
   setImage,
   signUp,
@@ -38,13 +37,6 @@ export async function withdrawAction(_: ActionState) {
   return run(async () => {
     await withdraw(await requirePlayer());
     return "Du er meldt av";
-  });
-}
-
-export async function wrongStudyAction(_: ActionState) {
-  return run(async () => {
-    await reportWrongStudy(await requireViewer());
-    return "Takk! Teknologiministeren har fått beskjed. Påmeldingen din påvirkes ikke.";
   });
 }
 

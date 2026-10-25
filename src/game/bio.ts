@@ -36,3 +36,17 @@ export function parseBio(bio: string | null | undefined): BioValues {
   }
   return values;
 }
+
+// Studieprogrammene slik Photon skriver dem. Gamle studier (Drift, Informasjonsbehandling) har ikke noe valg og fylles ikke inn.
+const PHOTON_STUDIES: Record<string, string> = {
+  "dataingeniør": "Data",
+  "digital forretningsutvikling": "DigFor",
+  "digital infrastruktur og cybersikkerhet": "DigSec",
+  "digital transformasjon": "DigTrans",
+};
+
+// Forhåndsutfyller skjemaet ved påmelding med studie og klassetrinn fra Photon.
+export function bioFromPhoton(user: { studyProgram: string | null; classYear: number | null }): BioValues {
+  const study = PHOTON_STUDIES[(user.studyProgram ?? "").replace(/\s+/g, " ").trim().toLowerCase()];
+  return { study, year: user.classYear ? `${user.classYear}. klasse` : undefined };
+}

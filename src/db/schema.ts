@@ -276,9 +276,6 @@ export const questions = pgTable("questions", {
   answer: text("answer"),
   answeredBy: uuid("answered_by").references(() => users.id, { onDelete: "set null" }),
   answeredAt: ts("answered_at"),
-  published: boolean("published").notNull().default(false),
-  publicQuestion: text("public_question"),
-  publicAnswer: text("public_answer"),
   createdAt: createdAt(),
 });
 

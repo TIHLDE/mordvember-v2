@@ -49,12 +49,6 @@ export const DEFAULT_TEMPLATES = {
     body: "Spillmesterne har avvist bildet ditt.\n\nMelding: {{melding}}\n\nLast opp et nytt bilde der ansiktet vises tydelig.",
     button: "/profil",
   },
-  study_wrong: {
-    label: "Feil studie eller kull",
-    subject: "Feil studie eller kull meldt fra Mordvember",
-    body: "En bruker sier at studieprogram eller kull i Photon ikke stemmer.\n\nBrukernavn: {{brukernavn}}\nStudieprogram i Photon: {{studie}}\nKull i Photon: {{kull}}",
-    button: "",
-  },
   staff_case: {
     label: "Sak til godkjenning",
     subject: "Ny drapssak til godkjenning",

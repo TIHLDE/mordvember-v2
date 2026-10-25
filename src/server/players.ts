@@ -5,7 +5,6 @@ import { players, seasons, users } from "@/db/schema";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
 import { queueEmail } from "./email";
-import { STUDY_REPORT_ADDRESS } from "./env";
 import { GameError } from "./game";
 import { deleteImages, storeImage } from "./images";
 import { notify } from "./notify";
@@ -82,14 +81,6 @@ export async function setBio(viewer: Viewer, bio: string | null) {
   if (!viewer.player) throw new GameError("Du er ikke påmeldt");
   if (viewer.player.status !== "alive") throw new GameError("Du er ute av spillet");
   await db.update(players).set({ bio }).where(eq(players.id, viewer.player.id));
-}
-
-export async function reportWrongStudy(viewer: Viewer) {
-  await queueEmail(db, "study_wrong", [STUDY_REPORT_ADDRESS], {
-    brukernavn: viewer.user.username,
-    studie: viewer.user.studyProgram ?? "mangler",
-    kull: viewer.user.studyStartYear ?? "mangler",
-  });
 }
 
 export async function rejectImage(viewer: Viewer, playerId: string, message: string) {

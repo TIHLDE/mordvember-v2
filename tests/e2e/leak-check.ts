@@ -10,7 +10,7 @@ function assert(cond: unknown, message: string): asserts cond {
 }
 
 const PAGES = [
-  "/", "/pamelding", "/offer", "/drap", "/oppmote", "/sjekkinn", "/profil", "/varsler", "/sporsmal", "/faq",
+  "/", "/pamelding", "/offer", "/drap", "/oppmote", "/sjekkinn", "/profil", "/varsler", "/sporsmal",
   "/admin", "/admin/drap", "/admin/fredag", "/admin/oppmote", "/admin/sporsmal", "/admin/deltakere",
   "/admin/sirkel", "/admin/sesong", "/admin/maler", "/admin/roller", "/admin/logg", "/admin/nodtilgang",
 ];

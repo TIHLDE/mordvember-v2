@@ -25,9 +25,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   if (!player || !season) redirect("/");
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <PageTitle sub={`${player.name} · ${player.studyProgram ?? "Studieprogram mangler"}${player.studyStartYear ? ` · kull ${player.studyStartYear}` : ""}`}>
-        Profil
-      </PageTitle>
+      <PageTitle sub={player.name}>Profil</PageTitle>
       {pameldt && <Notice tone="green">Du er påmeldt! Du får e-post når spillet starter.</Notice>}
       <ImageCard player={player} />
       {player.status === "alive" && (

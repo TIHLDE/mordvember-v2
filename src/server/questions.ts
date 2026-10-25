@@ -58,15 +58,6 @@ export async function answerQuestion(viewer: Viewer, id: string, answer: string)
   });
 }
 
-export async function publishQuestion(viewer: Viewer, id: string, publicQuestion: string, publicAnswer: string, published: boolean) {
-  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
-  if (published && (!publicQuestion.trim() || !publicAnswer.trim())) throw new GameError("Både spørsmål og svar må fylles ut");
-  await db
-    .update(questions)
-    .set({ published, publicQuestion: publicQuestion.trim() || null, publicAnswer: publicAnswer.trim() || null })
-    .where(and(eq(questions.id, id), eq(questions.seasonId, viewer.season.id)));
-}
-
 export async function deleteQuestion(viewer: Viewer, id: string) {
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   await db.transaction(async (tx) => {
@@ -77,12 +68,4 @@ export async function deleteQuestion(viewer: Viewer, id: string) {
     if (!q) throw new GameError("Spørsmålet finnes ikke");
     await audit(tx, { seasonId: q.seasonId, actorUserId: viewer.user.id, action: "sporsmal.slettet", details: { id, sporsmal: q.question } });
   });
-}
-
-export async function faq(seasonId: string) {
-  return db
-    .select({ id: questions.id, question: questions.publicQuestion, answer: questions.publicAnswer })
-    .from(questions)
-    .where(and(eq(questions.seasonId, seasonId), eq(questions.published, true)))
-    .orderBy(desc(questions.answeredAt));
 }

@@ -3,10 +3,11 @@ import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { inputClass } from "@/components/styles";
 import { Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
+import { bioFromPhoton } from "@/game/bio";
 import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
-import { signUpAction, wrongStudyAction } from "../actions";
+import { signUpAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,25 +26,12 @@ export default async function SignupPage() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <PageTitle>Påmelding</PageTitle>
-      <Card title="Dette henter vi fra TIHLDE">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-          <dt className="text-zinc-500">Navn</dt>
-          <dd>{user.name}</dd>
-          <dt className="text-zinc-500">Studieprogram</dt>
-          <dd>{user.studyProgram ?? "Mangler"}</dd>
-          <dt className="text-zinc-500">Kull</dt>
-          <dd>{user.studyStartYear ?? "Mangler"}</dd>
-        </dl>
-        <ActionForm action={wrongStudyAction} className="mt-5">
-          <Button variant="ghost" type="submit">Dette stemmer ikke</Button>
-        </ActionForm>
-      </Card>
       <ActionForm action={signUpAction} className="space-y-4">
         <Card title="Utseende">
           <p className="mb-4 text-sm text-zinc-400">
             Vises bare til den som har deg som offer, så de finner deg. Alle feltene er valgfrie, og du kan endre dem senere på profilen.
           </p>
-          <BioFields values={{ study: user.studyProgram ?? "", year: user.classYear ? `${user.classYear}. klasse` : "" }} />
+          <BioFields values={bioFromPhoton(user)} />
         </Card>
         <Card title="Bilde">
           <div className="space-y-5">
