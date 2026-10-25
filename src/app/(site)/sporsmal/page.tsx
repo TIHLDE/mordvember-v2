@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
@@ -17,9 +16,7 @@ export default async function QuestionsPage() {
   const all = await seasonQuestions(viewer);
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <PageTitle sub={<>Spørsmål og svar er synlige for alle innloggede, uten navn. Se også <Link href="/faq" className="underline">ofte stilte spørsmål</Link>.</>}>
-        Spør spillmesterne
-      </PageTitle>
+      <PageTitle sub="Spørsmål og svar er synlige for alle innloggede, uten navn.">Spør spillmesterne</PageTitle>
       <Card>
         <ActionForm action={askAction} className="space-y-3" resetOnSuccess>
           <textarea name="question" aria-label="Spørsmål" required minLength={5} maxLength={2000} rows={4} className={inputClass} placeholder="Hva lurer du på?" />

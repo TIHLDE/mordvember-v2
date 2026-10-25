@@ -35,7 +35,7 @@ import {
   undoKillAsGamemaster,
 } from "@/server/game";
 import { approveImage, rejectImage } from "@/server/players";
-import { answerQuestion, deleteQuestion, publishQuestion } from "@/server/questions";
+import { answerQuestion, deleteQuestion } from "@/server/questions";
 import type { Phase } from "@/server/season";
 import { buildFridayList, decideReview } from "@/server/weekly";
 import { weekStartOf } from "@/game/time";
@@ -128,12 +128,6 @@ export async function approveImageAction(_: ActionState, form: FormData) {
 
 export async function answerAction(_: ActionState, form: FormData) {
   return run(async () => answerQuestion(await requireGamemaster(), text(form, "id"), text(form, "answer")), "Svaret er sendt");
-}
-
-export async function publishAction(_: ActionState, form: FormData) {
-  return run(async () =>
-    publishQuestion(await requireGamemaster(), text(form, "id"), text(form, "publicQuestion"), text(form, "publicAnswer"), form.get("published") === "on"),
-  );
 }
 
 export async function deleteQuestionAction(_: ActionState, form: FormData) {

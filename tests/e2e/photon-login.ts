@@ -21,30 +21,15 @@ async function main() {
   await page.goto(`${BASE}/login?next=/pamelding`);
   await page.getByRole("link", { name: "Logg inn med TIHLDE" }).click();
   await page.waitForURL(`${BASE}/pamelding`);
-  assert((await page.locator("text=Mockstudiet").count()) === 1, "studieprogram fra Photon vises");
-  assert((await page.locator("text=2024").count()) >= 1, "kull fra Photon vises");
-  console.log("• Innlogging via Photon (PKCE, state, resource) og studie/kull fra /api/user/:brukernavn");
+  assert((await page.locator("select[name=bio_study]").inputValue()) === "Data", "studie fra Photon fylles inn i skjemaet");
+  assert((await page.locator("select[name=bio_year]").inputValue()) === "3. klasse", "klassetrinn fra Photon fylles inn i skjemaet");
+  console.log("• Innlogging via Photon (PKCE, state, resource) og studie/klassetrinn fra /api/user/:brukernavn");
 
   const [copied] = await sql<{ key: string | null }[]>`select photon_image_key as key from users where username = 'mock-deltaker'`;
   const { imageRequests } = (await (await fetch(`${MOCK}/__state`)).json()) as { imageRequests: { key: string; width: string | null }[] };
   assert(copied?.key?.startsWith("photon/"), `det private Photon-bildet er kopiert ved innlogging (${JSON.stringify(copied)})`);
   assert(imageRequests.some((r) => r.key === "profil-mock-deltaker.png" && r.width === "480"), "bildet hentes med token i 480 px");
   console.log("• Privat profilbilde hentes med brukerens token og lagres hos oss");
-
-  await page.getByRole("button", { name: "Dette stemmer ikke" }).click();
-  await page.locator("text=Teknologiministeren har fått beskjed").waitFor();
-  let mails: { to: string; subject: string; content: { type: string }[] }[] = [];
-  for (let i = 0; i < 20 && !mails.length; i++) {
-    await new Promise((r) => setTimeout(r, 500));
-    mails = ((await (await fetch(`${MOCK}/__state`)).json()) as { emails: typeof mails }).emails;
-  }
-  assert(mails.length === 1, "e-post sendt til Photon");
-  assert(mails[0]!.to === "teknologiminister@tihlde.org", "riktig mottaker");
-  assert(mails[0]!.content.some((c) => c.type === "text"), "innhold som blokker");
-  console.log("• E-post sendt gjennom Photon-API-et med riktig nøkkel og skjema");
-
-  const [outbox] = await sql<{ status: string; attempts: number }[]>`select status, attempts from email_outbox order by created_at desc limit 1`;
-  assert(outbox?.status === "sent" && outbox.attempts === 1, `e-posten er merket sendt én gang (${JSON.stringify(outbox)})`);
 
   await page.getByRole("button", { name: "Logg ut" }).click();
   await page.waitForURL(`${BASE}/`);

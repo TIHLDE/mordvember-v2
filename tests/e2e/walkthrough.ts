@@ -275,14 +275,9 @@ async function main() {
   await gm2.goto(`${BASE}/admin/sporsmal`);
   await gm2.locator("textarea[name=answer]").first().fill("Ja, så lenge ingen ser det.");
   await submit(gm2, gm2.locator("form").filter({ hasText: "Send svar" }).first(), "Send svar");
-  await gm2.goto(`${BASE}/admin/sporsmal`);
-  await gm2.locator("summary", { hasText: "Publiser anonymt" }).first().click();
-  const pub = gm2.locator("form").filter({ hasText: "Vis på siden" }).first();
-  await pub.locator("input[name=published]").check();
-  await submit(gm2, pub, "Lagre");
-  await anon.goto(`${BASE}/faq`);
-  assert((await anon.locator("text=Teller det hvis offeret sover?").count()) === 1, "FAQ publisert");
-  log("Spørsmål stilt, besvart privat og publisert anonymt");
+  await member.goto(`${BASE}/sporsmal`);
+  assert((await member.locator("text=Ja, så lenge ingen ser det.").count()) === 1, "svaret er synlig for andre");
+  log("Spørsmål stilt og besvart, synlig for alle");
 
   await gm2.goto(`${BASE}/admin/deltakere`);
   await gm2.locator("a", { hasText: "Deltaker Xray" }).click();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeBio, parseBio } from "./bio";
+import { bioFromPhoton, composeBio, parseBio } from "./bio";
 
 describe("bio", () => {
   it("slår sammen utfylte felt med linjeskift", () => {
@@ -25,5 +25,17 @@ describe("bio", () => {
     const values = { eyes: "Grønn", height: "170 cm", hair: "Rødt", study: "Data", year: "1. klasse" };
     expect(parseBio(composeBio(values))).toEqual(values);
     expect(parseBio(null)).toEqual({});
+  });
+
+  it("oversetter studie og klassetrinn fra Photon til skjemavalgene", () => {
+    expect(bioFromPhoton({ studyProgram: "Dataingeniør", classYear: 3 })).toEqual({ study: "Data", year: "3. klasse" });
+    expect(bioFromPhoton({ studyProgram: "Digital forretningsutvikling", classYear: 1 }).study).toBe("DigFor");
+    expect(bioFromPhoton({ studyProgram: "Digital infrastruktur og cybersikkerhet", classYear: 2 }).study).toBe("DigSec");
+    expect(bioFromPhoton({ studyProgram: " digital  transformasjon ", classYear: 5 }).study).toBe("DigTrans");
+  });
+
+  it("lar studie og klassetrinn stå tomme når Photon mangler dem eller studiet ikke finnes", () => {
+    expect(bioFromPhoton({ studyProgram: "Drift (studie)", classYear: null })).toEqual({ study: undefined, year: undefined });
+    expect(bioFromPhoton({ studyProgram: null, classYear: null })).toEqual({ study: undefined, year: undefined });
   });
 });

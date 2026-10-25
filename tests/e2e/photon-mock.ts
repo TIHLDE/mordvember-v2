@@ -147,7 +147,7 @@ createServer(async (req, res) => {
   if (profile) {
     const user = bearerUser(req);
     if (!user || decodeURIComponent(profile[1]!) !== user.username) return json(res, 401, {});
-    return json(res, 200, { id: "x", username: user.username, name: user.name, image: `http://localhost:${PORT}/api/assets/profil-${user.username}.png`, studyProgram: "Mockstudiet", studyStartYear: 2024, classYear: 3 });
+    return json(res, 200, { id: "x", username: user.username, name: user.name, image: `http://localhost:${PORT}/api/assets/profil-${user.username}.png`, studyProgram: "Dataingeniør", studyStartYear: 2024, classYear: 3 });
   }
 
   const asset = /^\/api\/assets\/(.+)$/.exec(path);
