@@ -2,11 +2,14 @@ import { redirect } from "next/navigation";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { Portrait } from "@/components/Portrait";
+import { ReviewList } from "@/components/ReviewList";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Field, Notice, PageTitle } from "@/components/ui";
 import { parseBio } from "@/game/bio";
+import { imageState } from "@/game/review";
 import { redirectToLogin } from "@/lib/guard";
 import { getViewer, type Viewer } from "@/server/auth/session";
+import { myReviewItems } from "@/server/review";
 import { signupOpen } from "@/server/season";
 import {
   bioAction,
@@ -23,10 +26,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   if (!viewer) return redirectToLogin();
   const { player, season } = viewer;
   if (!player || !season) redirect("/");
+  const items = await myReviewItems(viewer);
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <PageTitle sub={player.name}>Profil</PageTitle>
       {pameldt && <Notice tone="green">Du er påmeldt! Du får e-post når spillet starter.</Notice>}
+      <Card title="Status">
+        <ReviewList items={items} />
+      </Card>
       <ImageCard player={player} />
       {player.status === "alive" && (
         <Card title="Utseende">
@@ -63,7 +70,10 @@ function ImageCard({ player }: { player: Player }) {
           {player.imageDeleted ? (
             <Badge>Bildet er slettet</Badge>
           ) : (
-            <p className="text-sm text-zinc-400">{player.useDefaultImage ? "Du bruker profilbildet fra TIHLDE." : "Du bruker et opplastet bilde."}</p>
+            <div className="space-y-2">
+              <ImageBadge player={player} />
+              <p className="text-sm text-zinc-400">{player.useDefaultImage ? "Du bruker profilbildet fra TIHLDE." : "Du bruker et opplastet bilde."}</p>
+            </div>
           )}
           {alive && (
             <>
@@ -89,4 +99,12 @@ function ImageCard({ player }: { player: Player }) {
       </div>
     </Card>
   );
+}
+
+function ImageBadge({ player }: { player: Player }) {
+  const state = imageState(player);
+  if (state === "approved") return <Badge tone="green">Godkjent</Badge>;
+  // The rejection notice above already says why.
+  if (state === "rejected") return null;
+  return <Badge tone="amber">Venter på godkjenning</Badge>;
 }

@@ -1,7 +1,9 @@
 import { Card, LinkButton, PageTitle } from "@/components/ui";
 import { PlayerGrid } from "@/components/PlayerGrid";
+import { ReviewList } from "@/components/ReviewList";
 import { getViewer, type Season, type Viewer } from "@/server/auth/session";
 import { gridPlayers, visibleAliveCount } from "@/server/players";
+import { myReviewItems } from "@/server/review";
 import { getCurrentSeason, phaseLabel, signupOpen } from "@/server/season";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +58,7 @@ export default async function Home() {
 }
 
 // What the visitor can do next: log in, sign up, or see how they are doing.
-function ViewerCard({ viewer, season }: { viewer: Viewer | null; season: Season }) {
+async function ViewerCard({ viewer, season }: { viewer: Viewer | null; season: Season }) {
   if (!viewer) {
     return (
       <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -68,7 +70,8 @@ function ViewerCard({ viewer, season }: { viewer: Viewer | null; season: Season 
   if (viewer.player) {
     return (
       <Card>
-        <p className="text-sm text-zinc-300">Du er påmeldt. {playerStatus(viewer.player, season)}</p>
+        <p className="mb-4 text-sm text-zinc-300">Du er påmeldt. {playerStatus(viewer.player, season)}</p>
+        <ReviewList items={await myReviewItems(viewer)} />
       </Card>
     );
   }
