@@ -44,6 +44,14 @@ export function sessionMinutesInWindow(session: AttendanceSession, rules: WeekRu
   return Math.max(0, Math.floor((to - from) / 60000));
 }
 
+// When an open session has lasted long enough for the day to count, and whether that happens before the window closes.
+export function sessionCountsAt(checkInAt: Date, rules: WeekRules): { at: Date; reachable: boolean } {
+  const date = osloDate(checkInAt);
+  const from = Math.max(checkInAt.getTime(), osloTime(date, rules.windowStart).getTime());
+  const at = new Date(from + rules.hours * 60 * 60000);
+  return { at, reachable: at <= osloTime(date, rules.windowEnd) };
+}
+
 export function dayResults(
   sessions: readonly AttendanceSession[],
   weekStart: string,

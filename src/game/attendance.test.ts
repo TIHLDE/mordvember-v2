@@ -7,6 +7,7 @@ import {
   type WeekRules,
   distanceMeters,
   evaluateWeek,
+  sessionCountsAt,
   sessionMinutesInWindow,
 } from "./attendance";
 import { osloTime, weekStartOf } from "./time";
@@ -104,6 +105,23 @@ describe("oppmøteregelen", () => {
 
   it("avstand", () => {
     expect(Math.round(distanceMeters({ lat: 63.4, lng: 10.4 }, { lat: 63.401, lng: 10.4 }))).toBe(111);
+  });
+});
+
+describe("når dagen teller", () => {
+  it("regnes fra innsjekk, eller fra vinduets start ved tidlig innsjekk", () => {
+    expect(sessionCountsAt(at(week, "09:15"), RULES)).toEqual({ at: at(week, "11:15"), reachable: true });
+    expect(sessionCountsAt(at(week, "07:00"), RULES)).toEqual({ at: at(week, "10:00"), reachable: true });
+  });
+
+  it("bruker sekundene i innsjekken", () => {
+    const checkIn = new Date(at(week, "13:59").getTime() + 30_000);
+    expect(sessionCountsAt(checkIn, RULES)).toEqual({ at: new Date(at(week, "15:59").getTime() + 30_000), reachable: true });
+  });
+
+  it("er ikke mulig når vinduet stenger før kravet er nådd", () => {
+    expect(sessionCountsAt(at(week, "14:00"), RULES).reachable).toBe(true);
+    expect(sessionCountsAt(at(week, "14:01"), RULES).reachable).toBe(false);
   });
 });
 
