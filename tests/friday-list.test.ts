@@ -135,12 +135,14 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
     expect(await notices()).toBe(1);
   });
 
-  it("en liste laget før fristen stopper ikke cron", async () => {
+  it("en liste laget før fristen stopper ikke cron, og bare cron varsler", async () => {
     const wednesday = osloTime("2026-11-04", "12:00");
     expect(await weekly.buildFridayListManually(viewer, week1, wednesday)).toMatchObject({ claimed: false, existed: false });
+    expect(await notices()).toBe(0);
     expect(await weekly.missingFridayLists(season.id, [week1])).toEqual([week1]);
     expect(await weekly.buildFridayListOnce(season, week1, fridayEvening)).toBe(true);
     expect(await weekly.missingFridayLists(season.id, [week1])).toEqual([]);
+    expect(await notices()).toBe(1);
   });
 
   it("en uke der alle besto, mangler ikke liste", async () => {

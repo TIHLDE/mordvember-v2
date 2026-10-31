@@ -75,8 +75,8 @@ const fridayJobKey = (seasonId: string, weekStart: string) => `fredag:${seasonId
 
 // Reviews that exist are never touched, so decisions stand and a repeat run only adds players missing from the list.
 // The claim sits in the same transaction as the list: a run that fails leaves nothing behind, and a concurrent run
-// waits on the key, then finds nothing new and stays quiet. A list made before the Friday deadline claims nothing,
-// since the week is not over and cron must still make the real one.
+// waits on the key, then finds nothing new and stays quiet. A list made before the Friday deadline neither claims
+// nor notifies, since the week is not over and cron must still make the real one and announce it.
 async function buildFridayList(season: Season, weekStart: string, now: Date) {
   const results = await evaluateSeasonWeek(season, weekStart, now);
   const failing = results.filter((r) => !r.evaluation.ok);
@@ -96,7 +96,7 @@ async function buildFridayList(season: Season, weekStart: string, now: Date) {
       weeklyReviews,
       and(eq(weeklyReviews.seasonId, season.id), eq(weeklyReviews.weekStart, weekStart), eq(weeklyReviews.decision, "pending")),
     );
-    if (claimed || added.length) {
+    if (claimed || (complete && added.length)) {
       const staffRows = await staffEmails(tx, season.id);
       await notify(
         tx,
