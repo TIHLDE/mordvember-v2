@@ -5,10 +5,11 @@ import { emailOutbox, kills, seasons } from "@/db/schema";
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
 import { osloParts, weekStartOf } from "@/game/time";
 import { closeForgottenSessions } from "./attendance";
+import type { Season } from "./auth/session";
 import { deliverPendingEmails, queueEmail } from "./email";
 import { staffEmails } from "./game";
 import { notify } from "./notify";
-import { buildFridayList, claimJob, releaseJob, sendThursdayWarnings } from "./weekly";
+import { buildFridayListOnce, claimJob, releaseJob, sendThursdayWarnings } from "./weekly";
 
 async function runOnce(key: string, job: () => Promise<unknown>): Promise<boolean> {
   if (!(await claimJob(key))) return false;
@@ -64,14 +65,18 @@ export async function runCron(now = new Date()) {
     const p = osloParts(now);
     const thursdayDue = (p.isoWeekday === 4 && p.hour >= 16) || (p.isoWeekday === 5 && p.hour < 16);
     const fridayDue = (p.isoWeekday === 5 && p.hour >= 16) || p.isoWeekday >= 6;
-    const job = thursdayDue ? { name: "torsdag", run: sendThursdayWarnings } : fridayDue ? { name: "fredag", run: buildFridayList } : null;
-    if (!job) return;
     const weekStart = weekStartOf(now);
+    const job = thursdayDue
+      ? { name: "torsdag", run: (season: Season) => runOnce(`torsdag:${season.id}:${weekStart}`, () => sendThursdayWarnings(season, weekStart, now)) }
+      : fridayDue
+        ? { name: "fredag", run: (season: Season) => buildFridayListOnce(season, weekStart, now) }
+        : null;
+    if (!job) return;
     const running = await db.select().from(seasons).where(eq(seasons.phase, "running"));
     await Promise.all(
       running.map((season) =>
         step(`${job.name}:${season.id}`, async () => {
-          if (await runOnce(`${job.name}:${season.id}:${weekStart}`, () => job.run(season, weekStart, now))) done.push(job.name);
+          if (await job.run(season)) done.push(job.name);
         }),
       ),
     );

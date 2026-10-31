@@ -37,8 +37,7 @@ import {
 import { approveImage, rejectImage } from "@/server/players";
 import { answerQuestion, deleteQuestion } from "@/server/questions";
 import type { Phase } from "@/server/season";
-import { buildFridayList, decideReview } from "@/server/weekly";
-import { weekStartOf } from "@/game/time";
+import { buildFridayListManually, decideReview } from "@/server/weekly";
 
 const num = (form: FormData, key: string, min: number, max: number) => {
   const value = Number(text(form, key));
@@ -83,11 +82,10 @@ export async function decideReviewAction(_: ActionState, form: FormData) {
   }, "Avgjort");
 }
 
-export async function buildFridayListAction(_: ActionState) {
+export async function buildFridayListAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const viewer = await requireGamemaster();
-    const count = await buildFridayList(viewer.season, weekStartOf(new Date()));
-    return `Lista er laget: ${count} til gjennomgang`;
+    const { existed, added, pending } = await buildFridayListManually(await requireGamemaster(), text(form, "week"));
+    return existed ? `Lista fantes allerede: ${added} nye til gjennomgang. Eksisterende saker er ikke endret.` : `Lista er laget: ${pending} til gjennomgang`;
   });
 }
 

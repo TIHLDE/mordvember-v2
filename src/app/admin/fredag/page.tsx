@@ -1,9 +1,10 @@
 import { ActionForm } from "@/components/ActionForm";
 import { inputBase, inputClass } from "@/components/styles";
-import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Empty, Notice, PageTitle } from "@/components/ui";
+import { earlierGameWeeks } from "@/game/friday";
 import { formatOsloDate, weekStartOf } from "@/game/time";
 import { guard } from "@/lib/guard";
-import { evaluateSeasonWeek, reviews } from "@/server/weekly";
+import { evaluateSeasonWeek, missingFridayLists, reviews } from "@/server/weekly";
 import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +15,12 @@ export default async function FridayList() {
   const pending = all.filter((r) => r.review.decision === "pending");
   const decided = all.filter((r) => r.review.decision !== "pending");
   const running = viewer.season.phase === "running";
-  const current = running ? await evaluateSeasonWeek(viewer.season, weekStartOf(new Date())) : [];
+  const now = new Date();
+  const thisWeek = weekStartOf(now);
+  const current = running ? await evaluateSeasonWeek(viewer.season, thisWeek, now) : [];
   const atRisk = current.filter((c) => !c.evaluation.ok);
+  const earlier = running && viewer.season.startedAt ? earlierGameWeeks(viewer.season.startedAt, now) : [];
+  const missing = await missingFridayLists(viewer.season.id, earlier);
 
   return (
     <div className="space-y-6">
@@ -61,7 +66,33 @@ export default async function FridayList() {
             </ul>
           )}
           <ActionForm action={buildFridayListAction} className="mt-5" confirm="Lage fredagslista for denne uka nå?">
+            <input type="hidden" name="week" value={thisWeek} />
             <Button type="submit" variant="ghost">Lag lista for denne uka nå</Button>
+          </ActionForm>
+        </Card>
+      )}
+      {earlier.length > 0 && (
+        <Card title="Tidligere uker">
+          {missing.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {missing.map((week) => (
+                <Notice key={week} tone="amber">Uka fra {formatOsloDate(week)} har ingen fredagsliste.</Notice>
+              ))}
+            </div>
+          )}
+          <ActionForm
+            action={buildFridayListAction}
+            className="flex flex-wrap gap-2"
+            confirm="Lage fredagslista for den valgte uka? Saker som allerede finnes, blir ikke endret."
+          >
+            <select name="week" required defaultValue={missing[0] ?? earlier[0]} aria-label="Uke" className={`${inputBase} w-auto`}>
+              {earlier.map((week) => (
+                <option key={week} value={week}>
+                  Uke fra {formatOsloDate(week)}{missing.includes(week) ? " · mangler liste" : ""}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" variant="ghost">Lag lista for valgt uke</Button>
           </ActionForm>
         </Card>
       )}
