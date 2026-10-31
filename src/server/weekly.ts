@@ -3,6 +3,7 @@ import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { jobRuns, kills, players, weeklyReviews, users } from "@/db/schema";
 import { evaluateWeek, type WeekEvaluation } from "@/game/attendance";
+import { fridayListDueAt, listWeekError } from "@/game/friday";
 import { addDays, osloTime } from "@/game/time";
 import { audit } from "./audit";
 import { AccessError, type Season, type Viewer } from "./auth/session";
@@ -70,26 +71,71 @@ export async function sendThursdayWarnings(season: Season, weekStart: string, no
   }
 }
 
-export async function buildFridayList(season: Season, weekStart: string, now = new Date()) {
+const fridayJobKey = (seasonId: string, weekStart: string) => `fredag:${seasonId}:${weekStart}`;
+
+// Reviews that exist are never touched, so decisions stand and a repeat run only adds players missing from the list.
+// The claim sits in the same transaction as the list: a run that fails leaves nothing behind, and a concurrent run
+// waits on the key, then finds nothing new and stays quiet. A list made before the Friday deadline neither claims
+// nor notifies, since the week is not over and cron must still make the real one and announce it.
+async function buildFridayList(season: Season, weekStart: string, now: Date) {
   const results = await evaluateSeasonWeek(season, weekStart, now);
   const failing = results.filter((r) => !r.evaluation.ok);
-  if (failing.length) {
-    await db
-      .insert(weeklyReviews)
-      .values(failing.map((f) => ({ seasonId: season.id, weekStart, playerId: f.player.id, reasons: f.evaluation.missing })))
-      .onConflictDoNothing();
-  }
-  const staffRows = await staffEmails(db, season.id);
-  await notify(
-    db,
-    staffRows.map((s) => ({
-      userId: s.userId,
-      seasonId: season.id,
-      text: `Fredagslista er klar: ${failing.length} deltaker${failing.length === 1 ? "" : "e"} må gås gjennom.`,
-      href: "/admin/fredag",
-    })),
-  );
-  return failing.length;
+  const complete = now >= fridayListDueAt(weekStart);
+  return db.transaction(async (tx) => {
+    const [claimed] = complete
+      ? await tx.insert(jobRuns).values({ key: fridayJobKey(season.id, weekStart) }).onConflictDoNothing().returning()
+      : [];
+    const added = failing.length
+      ? await tx
+          .insert(weeklyReviews)
+          .values(failing.map((f) => ({ seasonId: season.id, weekStart, playerId: f.player.id, reasons: f.evaluation.missing })))
+          .onConflictDoNothing()
+          .returning({ id: weeklyReviews.id })
+      : [];
+    const pending = await tx.$count(
+      weeklyReviews,
+      and(eq(weeklyReviews.seasonId, season.id), eq(weeklyReviews.weekStart, weekStart), eq(weeklyReviews.decision, "pending")),
+    );
+    if (claimed || (complete && added.length)) {
+      const staffRows = await staffEmails(tx, season.id);
+      await notify(
+        tx,
+        staffRows.map((s) => ({
+          userId: s.userId,
+          seasonId: season.id,
+          text: `Fredagslista er klar: ${pending} deltaker${pending === 1 ? "" : "e"} må gås gjennom.`,
+          href: "/admin/fredag",
+        })),
+      );
+    }
+    return { claimed: !!claimed, existed: complete && !claimed, added: added.length, pending };
+  });
+}
+
+export async function buildFridayListOnce(season: Season, weekStart: string, now = new Date()) {
+  const built = await db.query.jobRuns.findFirst({ where: eq(jobRuns.key, fridayJobKey(season.id, weekStart)) });
+  if (built) return false;
+  return (await buildFridayList(season, weekStart, now)).claimed;
+}
+
+export async function buildFridayListManually(viewer: Viewer, weekStart: string, now = new Date()) {
+  if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
+  const season = viewer.season;
+  if (season.phase !== "running" || !season.startedAt) throw new GameError("Fredagslista kan bare lages mens spillet pågår");
+  const invalid = listWeekError(weekStart, season.startedAt, now);
+  if (invalid) throw new GameError(invalid);
+  const result = await buildFridayList(season, weekStart, now);
+  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "fredag.liste", details: { weekStart, nye: result.added } });
+  return result;
+}
+
+// Only the claim shows that a week was evaluated: a week where everyone passed has no reviews,
+// and a list made before the deadline has reviews but no claim.
+export async function missingFridayLists(seasonId: string, weeks: string[]) {
+  if (!weeks.length) return [];
+  const built = await db.select({ key: jobRuns.key }).from(jobRuns).where(inArray(jobRuns.key, weeks.map((w) => fridayJobKey(seasonId, w))));
+  const keys = new Set(built.map((b) => b.key));
+  return weeks.filter((w) => !keys.has(fridayJobKey(seasonId, w)));
 }
 
 export async function reviews(seasonId: string) {
