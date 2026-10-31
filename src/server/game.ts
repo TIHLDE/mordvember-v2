@@ -278,6 +278,7 @@ export async function confirmKill(viewer: Viewer, killId: string) {
   const me = viewer.player.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
+    if (season.phase !== "running") throw new GameError("Spillet er ikke i gang");
     const kill = await loadOpenKill(tx, seasonId, killId);
     const confirmer = kill.reportedBy === "killer" ? kill.victimId : kill.killerId;
     if (confirmer !== me) throw new AccessError("Du kan ikke bekrefte denne saken");

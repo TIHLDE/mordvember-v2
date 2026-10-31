@@ -12,8 +12,11 @@ describe.skipIf(!url)("tilgang mot database", async () => {
   const { sql, db } = await import("@/db");
   const schema = await import("@/db/schema");
   const { defaultSettings } = await import("@/db/defaults");
+  const { CONFIRM_TIMEOUT_MS } = await import("@/game/kills");
+  const admin = await import("@/server/admin");
   const { AccessError } = await import("@/server/auth/session");
   const circle = await import("@/server/circle");
+  const { runCron } = await import("@/server/cron");
   const game = await import("@/server/game");
   type Viewer = import("@/server/auth/session").Viewer;
 
@@ -116,5 +119,31 @@ describe.skipIf(!url)("tilgang mot database", async () => {
     for (const n of notes) for (const p of await db.select().from(schema.players)) expect(n.text).not.toContain(p.name);
     const mails = await db.select().from(schema.emailOutbox);
     for (const m of mails) for (const p of await db.select().from(schema.players)) expect(JSON.stringify(m.content) + m.subject).not.toContain(p.name);
+  });
+
+  it("et drap kan ikke bekreftes mens spillet er stoppet, men saken går ikke tapt", async () => {
+    // Bruker saken som ble meldt i testen over. Offeret meldte, så morderen skal bekrefte.
+    const kill = (await db.query.kills.findFirst())!;
+    const killer = (await db.query.players.findFirst({ where: (p, { eq }) => eq(p.id, kill.killerId) }))!;
+    const user = (await db.query.users.findFirst({ where: (u, { eq }) => eq(u.id, killer.userId) }))!;
+    const confirmer = viewer(user, { player: killer });
+    const statusOf = async () => (await db.query.kills.findFirst({ where: (k, { eq }) => eq(k.id, kill.id) }))!.status;
+    const victim = () => db.query.players.findFirst({ where: (p, { eq }) => eq(p.id, kill.victimId) });
+    const ring = await circle.circleForAdmin(viewers.gm!, "test");
+
+    await admin.setPhase(viewers.gm!, "ended");
+    await expect(game.confirmKill(confirmer, kill.id)).rejects.toThrow(new game.GameError("Spillet er ikke i gang"));
+    expect(await statusOf()).toBe("pending");
+    expect((await victim())!.status).toBe("alive");
+    expect(await circle.circleForAdmin(viewers.gm!, "test")).toEqual(ring);
+
+    await runCron(new Date(Date.now() + CONFIRM_TIMEOUT_MS + 60_000));
+    expect(await statusOf()).toBe("escalated");
+    await expect(game.approveKill(viewers.gm!, kill.id, "")).rejects.toThrow(new game.GameError("Spillet er ikke i gang"));
+
+    await game.resumeGame(viewers.gm!);
+    await game.approveKill(viewers.gm!, kill.id, "");
+    expect(await statusOf()).toBe("applied");
+    expect((await victim())!.status).toBe("eliminated");
   });
 });

@@ -22,7 +22,9 @@ export function qrCode(secret: string, seasonId: string, at: number): string {
 }
 
 export function verifyQrCode(secret: string, seasonId: string, code: string, at: number): boolean {
-  const [windowText, sig] = code.split(".");
+  const parts = code.split(".");
+  if (parts.length !== 2) return false;
+  const [windowText, sig] = parts as [string, string];
   if (!windowText || !sig || !/^\d+$/.test(windowText)) return false;
   const window = Number(windowText);
   const start = window * QR_WINDOW_MS;
