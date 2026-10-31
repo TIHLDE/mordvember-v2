@@ -129,7 +129,7 @@ async function reportAndConfirm(killerName: string, opts: { dispute?: boolean } 
 
 async function main() {
   browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium" });
-  const [season] = await sql<{ id: string }[]>`select id from seasons order by created_at desc limit 1`;
+  const [season] = await sql<{ id: string; name: string }[]>`select id, name from seasons order by created_at desc limit 1`;
   assert(season, "ingen sesong, kjør seed først");
 
   const anon = await browser.newPage();
@@ -148,10 +148,6 @@ async function main() {
   log("Påmelding med opplastet bilde fullført");
   await xray.goto(`${BASE}/pamelding`);
   await xray.goto(`${BASE}/`);
-  const wrongPage = await as("test-medlem");
-  await wrongPage.goto(`${BASE}/pamelding`);
-  const wrong = await submit(wrongPage, formWith(wrongPage, "Dette stemmer ikke"), "Dette stemmer ikke");
-  log("«Dette stemmer ikke»:", wrong);
   await xray.screenshot({ path: `${SHOTS}/01-pamelding.png`, fullPage: true });
 
   const member = await as("test-medlem");
@@ -313,7 +309,7 @@ async function main() {
   await submit(gm, formWith(gm, "Stopp spillet"), "Stopp spillet");
   await gm.goto(`${BASE}/admin/sesong`);
   const reset = formWith(gm, "Nullstill spillet");
-  await reset.locator("input[name=confirm]").fill("nullstill");
+  await reset.locator("input[name=confirm]").fill(`Nullstill ${season.name}`);
   await submit(gm, reset, "Nullstill spillet");
   const [{ count: left } = { count: -1 }] = await sql<{ count: number }[]>`select count(*)::int as count from players where season_id = ${season.id}`;
   const [after] = await sql<{ phase: string }[]>`select phase from seasons where id = ${season.id}`;
