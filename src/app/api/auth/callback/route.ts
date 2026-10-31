@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/redirect";
-import { exchangeCode, fetchIdentity } from "@/server/auth/photon";
+import { exchangeCode, fetchIdentity, PhotonForbiddenError } from "@/server/auth/photon";
 import { onLogin } from "@/server/auth/login";
 import { redirectUri, clearOAuthState, readOAuthState } from "@/server/auth/oauth-state";
 
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     tokens = await exchangeCode(code, redirectUri(origin), stored.verifier);
     identity = await fetchIdentity(tokens.accessToken);
   } catch (error) {
+    if (error instanceof PhotonForbiddenError) return fail(origin, "godkjenning");
     console.error("Photon-innlogging feilet", error);
     return fail(origin, "photon");
   }

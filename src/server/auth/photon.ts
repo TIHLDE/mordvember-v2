@@ -93,6 +93,7 @@ export async function searchUsers(token: string, query: string, groupSlug?: stri
 
 async function photonGet<T>(url: string, token: string): Promise<T> {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (response.status === 403) throw new PhotonForbiddenError();
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(`Photon ${url} svarte ${response.status}: ${detail.slice(0, 200)}`);
@@ -127,6 +128,7 @@ type UserProfile = {
 
 export async function fetchIdentity(token: string): Promise<PhotonIdentity> {
   // userinfo leser bearer-tokenet; get-session leser bare cookien og svarer tomt.
+  // groups/mine svarer 403 så lenge en selvregistrert konto venter på godkjenning.
   const [info, groups] = await Promise.all([
     photonGet<UserInfo>(`${env.photonIssuer}/oauth2/userinfo`, token),
     photonGet<PhotonGroup[]>(`${env.photonApi}/groups/mine`, token),

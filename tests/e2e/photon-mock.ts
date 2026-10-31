@@ -14,7 +14,7 @@ const DIRECTORY = [
   { username: "mock-ordinar", name: "Mock Ordinær" },
 ];
 
-type MockUser = { username: string; name: string; leaderOf: string[] };
+type MockUser = { username: string; name: string; leaderOf: string[]; pending?: boolean };
 let current: MockUser = { username: "mock-deltaker", name: "Mock Deltaker", leaderOf: [] };
 const codes = new Map<string, { challenge: string; redirectUri: string; user: MockUser; offline: boolean }>();
 const tokens = new Map<string, { user: MockUser; expiresAt: number }>();
@@ -128,6 +128,7 @@ createServer(async (req, res) => {
   if (path === "/api/groups/mine") {
     const user = bearerUser(req);
     if (!user) return json(res, 401, {});
+    if (user.pending) return json(res, 403, {});
     return json(res, 200, [
       { slug: "kok", name: "KoK", membership: { role: user.leaderOf.includes("kok") ? "leader" : "member" } },
       { slug: "index", name: "Index", membership: { role: user.leaderOf.includes("index") ? "leader" : "member" } },

@@ -9,7 +9,7 @@ function assert(cond: unknown, message: string): asserts cond {
   if (!cond) throw new Error(`FEIL: ${message}`);
 }
 
-async function setUser(user: { username: string; name: string; leaderOf: string[] }) {
+async function setUser(user: { username: string; name: string; leaderOf: string[]; pending?: boolean }) {
   await fetch(`${MOCK}/__user`, { method: "POST", body: JSON.stringify(user) });
 }
 
@@ -44,6 +44,14 @@ async function main() {
   const [staffRow] = await sql<{ username: string }[]>`select username from staff where username = 'mock-kokleder'`;
   assert(staffRow, "KoK-leder lagt til som spillmester ved innlogging");
   console.log("• KoK-leder blir spillmester automatisk");
+
+  await setUser({ username: "mock-ventende", name: "Mock Ventende", leaderOf: [], pending: true });
+  const pending = await (await browser.newContext()).newPage();
+  await pending.goto(`${BASE}/login`);
+  await pending.getByRole("link", { name: "Logg inn med TIHLDE" }).click();
+  await pending.waitForURL(`${BASE}/login?feil=godkjenning`);
+  assert((await pending.getByText("venter på godkjenning").count()) === 1, "konto som venter på godkjenning får egen melding");
+  console.log("• Konto som venter på godkjenning i Photon får beskjed om det");
 
   const forged = await (await browser.newContext()).newPage();
   await forged.goto(`${BASE}/api/auth/callback?code=tull&state=tull`);
