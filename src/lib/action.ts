@@ -1,6 +1,7 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { BIO_FIELDS, composeBio } from "@/game/bio";
 import { RingError } from "@/game/ring";
 import { osloParts, osloTime } from "@/game/time";
 import { AccessError } from "@/server/auth/session";
@@ -28,6 +29,10 @@ export async function run(fn: () => Promise<string | void>, okMessage = "Lagret"
 export function text(form: FormData, key: string): string {
   const value = form.get(key);
   return typeof value === "string" ? value : "";
+}
+
+export function bioFrom(form: FormData) {
+  return composeBio(Object.fromEntries(BIO_FIELDS.map(({ key }) => [key, text(form, `bio_${key}`)])));
 }
 
 export function osloInput(value: string): Date {

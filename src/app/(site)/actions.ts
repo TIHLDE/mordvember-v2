@@ -4,8 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
-import { BIO_FIELDS, composeBio } from "@/game/bio";
-import { type ActionState, osloInput, run, text } from "@/lib/action";
+import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
 import { PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
 import { requirePlayer, requireSeason, requireViewer } from "@/server/auth/session";
 import { myTarget } from "@/server/circle";
@@ -19,10 +18,6 @@ import {
   withdraw,
 } from "@/server/players";
 import { askQuestion } from "@/server/questions";
-
-function bioFrom(form: FormData) {
-  return composeBio(Object.fromEntries(BIO_FIELDS.map(({ key }) => [key, text(form, `bio_${key}`)])));
-}
 
 export async function signUpAction(_: ActionState, form: FormData) {
   return run(async () => {

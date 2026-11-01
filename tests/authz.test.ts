@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 
 const url = process.env.TEST_DATABASE_URL;
 if (url) {
@@ -18,6 +19,7 @@ describe.skipIf(!url)("tilgang mot database", async () => {
   const circle = await import("@/server/circle");
   const { runCron } = await import("@/server/cron");
   const game = await import("@/server/game");
+  const players = await import("@/server/players");
   type Viewer = import("@/server/auth/session").Viewer;
 
   let season: typeof schema.seasons.$inferSelect;
@@ -108,6 +110,18 @@ describe.skipIf(!url)("tilgang mot database", async () => {
       await expect(game.rejectKill(v, ids[0]!, ""), role).rejects.toBeInstanceOf(AccessError);
       await expect(game.disqualify(v, [ids[2]!], "x"), role).rejects.toBeInstanceOf(AccessError);
     }
+  });
+
+  it("bare spillmester kan endre en annen deltakers utseende og bilde", async () => {
+    const png = new File(["x"], "bilde.png", { type: "image/png" });
+    for (const v of [viewers.participant!, viewers.member!]) {
+      await expect(players.setBioAsGamemaster(v, ids[1]!, "Høyde: 1 cm")).rejects.toBeInstanceOf(AccessError);
+      await expect(players.setImageAsGamemaster(v, ids[1]!, png)).rejects.toBeInstanceOf(AccessError);
+    }
+    await players.setBioAsGamemaster(viewers.gm!, ids[1]!, "Høyde: 180 cm");
+    const [row] = await db.select().from(schema.players).where(eq(schema.players.id, ids[1]!));
+    expect(row?.bio).toBe("Høyde: 180 cm");
+    await expect(players.setBioAsGamemaster(viewers.gm!, "00000000-0000-0000-0000-000000000000", null)).rejects.toThrow("finnes ikke");
   });
 
   it("feilmeldinger ved drapsmelding avslører ikke jegeren", async () => {

@@ -2,10 +2,10 @@ import "server-only";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { del, get, put } from "@vercel/blob";
+import { IMAGE_TOO_LARGE, MAX_IMAGE_BYTES } from "@/lib/upload";
 import { env, isDevelopment } from "./env";
 
 const LOCAL_DIR = path.join(process.cwd(), ".data", "uploads");
-const MAX_BYTES = 5 * 1024 * 1024;
 
 const TYPES: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = {
   "image/jpeg": { ext: "jpg", magic: (b) => b[0] === 0xff && b[1] === 0xd8 },
@@ -20,7 +20,7 @@ function storesLocally() {
 }
 
 export async function storeImage(prefix: string, file: File): Promise<string> {
-  if (file.size > MAX_BYTES) throw new Error("Bildet er større enn 5 MB");
+  if (file.size > MAX_IMAGE_BYTES) throw new Error(IMAGE_TOO_LARGE);
   const type = TYPES[file.type];
   const buffer = Buffer.from(await file.arrayBuffer());
   if (!type || !type.magic(buffer)) throw new Error("Bildet må være JPG, PNG eller WebP");

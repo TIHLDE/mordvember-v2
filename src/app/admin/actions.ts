@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import type { WeekRules } from "@/game/attendance";
-import { type ActionState, osloInput, run, text } from "@/lib/action";
+import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
 import {
   addStaff,
   createSeason,
@@ -34,7 +34,7 @@ import {
   startGame,
   undoKillAsGamemaster,
 } from "@/server/game";
-import { approveImage, rejectImage } from "@/server/players";
+import { approveImage, rejectImage, setBioAsGamemaster, setImageAsGamemaster } from "@/server/players";
 import { answerQuestion, deleteQuestion } from "@/server/questions";
 import type { Phase } from "@/server/season";
 import { buildFridayListManually, decideReview } from "@/server/weekly";
@@ -122,6 +122,19 @@ export async function rejectImageAction(_: ActionState, form: FormData) {
 
 export async function approveImageAction(_: ActionState, form: FormData) {
   return run(async () => approveImage(await requireGamemaster(), text(form, "playerId")), "Godkjent");
+}
+
+export async function playerImageAction(_: ActionState, form: FormData) {
+  return run(async () => {
+    const image = form.get("image");
+    if (!(image instanceof File) || image.size === 0) throw new GameError("Velg et bilde");
+    await setImageAsGamemaster(await requireGamemaster(), text(form, "playerId"), image);
+    return "Bildet er lastet opp og godkjent";
+  });
+}
+
+export async function playerBioAction(_: ActionState, form: FormData) {
+  return run(async () => setBioAsGamemaster(await requireGamemaster(), text(form, "playerId"), bioFrom(form)), "Utseendet er lagret");
 }
 
 export async function answerAction(_: ActionState, form: FormData) {

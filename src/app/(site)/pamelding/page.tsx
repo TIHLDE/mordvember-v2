@@ -39,7 +39,7 @@ export default async function SignupPage() {
               Vi bruker profilbildet ditt fra TIHLDE. Bruk helst et bilde der ansiktet vises tydelig og utildekket. Du kan laste opp et annet
               bilde her. Det lagres bare hos Mordvember og endrer ingenting i TIHLDE.
             </p>
-            <Field label="Last opp et annet bilde (valgfritt)" hint="JPG, PNG eller WebP, maks 5 MB">
+            <Field label="Last opp et annet bilde (valgfritt)" hint="JPG, PNG eller WebP, maks 4 MB">
               <input type="file" name="image" accept="image/jpeg,image/png,image/webp" className={inputClass} />
             </Field>
             <Checkbox name="consent" required>

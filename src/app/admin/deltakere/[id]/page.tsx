@@ -2,12 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
+import { BioFields } from "@/components/BioFields";
 import { inputClass } from "@/components/styles";
-import { Badge, Button, Card, PageTitle } from "@/components/ui";
+import { Badge, Button, Card, Field, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
+import { parseBio } from "@/game/bio";
 import { guard } from "@/lib/guard";
-import { approveImageAction, disqualifyAction, rejectImageAction, removePlayerAction } from "../../actions";
+import {
+  approveImageAction,
+  disqualifyAction,
+  playerBioAction,
+  playerImageAction,
+  rejectImageAction,
+  removePlayerAction,
+} from "../../actions";
 import { imageStatus, STATUS } from "../status";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +29,7 @@ export default async function PlayerAdmin({ params }: { params: Promise<{ id: st
   if (!player) notFound();
   const canDisqualify = player.status === "alive" && viewer.season.phase === "running";
   const canRemove = viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
+  const canEdit = player.status === "alive";
 
   return (
     <div className="space-y-6">
@@ -38,13 +48,13 @@ export default async function PlayerAdmin({ params }: { params: Promise<{ id: st
       </PageTitle>
 
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        <ImageReview player={player} />
+        <ImageReview player={player} canEdit={canEdit} />
 
         <Card title="Status">
           <p className="mb-6">
             <Badge tone={STATUS[player.status][1]}>{STATUS[player.status][0]}</Badge>
           </p>
-          {player.bio && <p className="mb-6 text-sm whitespace-pre-line text-zinc-300">{player.bio}</p>}
+          {!canEdit && player.bio && <p className="mb-6 text-sm whitespace-pre-line text-zinc-300">{player.bio}</p>}
           {canDisqualify && (
             <ActionForm action={disqualifyAction} className="flex flex-wrap gap-2" confirm={`Diskvalifisere ${player.name}?`}>
               <input type="hidden" name="playerId" value={player.id} />
@@ -61,12 +71,23 @@ export default async function PlayerAdmin({ params }: { params: Promise<{ id: st
           {!canDisqualify && !canRemove && <p className="text-sm text-zinc-500">Ingen handlinger tilgjengelig i denne fasen.</p>}
         </Card>
       </div>
+
+      {canEdit && (
+        <Card title="Utseende">
+          <ActionForm action={playerBioAction} className="space-y-4" resetOnSuccess>
+            <input type="hidden" name="playerId" value={player.id} />
+            <p className="text-sm text-zinc-400">Vises til den som har deltakeren som offer.</p>
+            <BioFields values={parseBio(player.bio)} />
+            <Button type="submit">Lagre utseende</Button>
+          </ActionForm>
+        </Card>
+      )}
     </div>
   );
 }
 
 // The photo with its approval state, and the controls to approve or reject it.
-function ImageReview({ player }: { player: typeof players.$inferSelect }) {
+function ImageReview({ player, canEdit }: { player: typeof players.$inferSelect; canEdit: boolean }) {
   const image = imageStatus(player);
   return (
     <Card title="Bilde">
@@ -96,6 +117,15 @@ function ImageReview({ player }: { player: typeof players.$inferSelect }) {
           </ActionForm>
           <p className="text-xs text-zinc-500">Avvis bilder der ansiktet ikke vises tydelig. Deltakeren får meldingen og kan laste opp nytt.</p>
         </div>
+      )}
+      {canEdit && (
+        <ActionForm action={playerImageAction} className="mt-6 space-y-3 border-t border-white/10 pt-6" resetOnSuccess>
+          <input type="hidden" name="playerId" value={player.id} />
+          <Field label="Last opp bilde for deltakeren" hint="JPG, PNG eller WebP, maks 4 MB. Bildet godkjennes med en gang.">
+            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
+          </Field>
+          <Button type="submit" variant="ghost" className="w-full">Last opp bilde</Button>
+        </ActionForm>
       )}
     </Card>
   );

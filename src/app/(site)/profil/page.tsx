@@ -37,7 +37,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       <ImageCard player={player} />
       {player.status === "alive" && (
         <Card title="Utseende">
-          <ActionForm action={bioAction} className="space-y-4">
+          <ActionForm action={bioAction} className="space-y-4" resetOnSuccess>
             <p className="text-sm text-zinc-400">Vises bare til den som har deg som offer. La felt stå tomme hvis du ikke vil oppgi dem.</p>
             <BioFields values={parseBio(player.bio)} />
             <Button type="submit">Lagre</Button>
@@ -78,7 +78,7 @@ function ImageCard({ player }: { player: Player }) {
           {alive && (
             <>
               <ActionForm action={uploadImageAction} className="space-y-3" resetOnSuccess>
-                <Field label="Last opp nytt bilde" hint="Ansiktet skal vises tydelig og utildekket. Maks 5 MB.">
+                <Field label="Last opp nytt bilde" hint="Ansiktet skal vises tydelig og utildekket. Maks 4 MB.">
                   <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required className={inputClass} />
                 </Field>
                 <Button type="submit">Last opp</Button>
