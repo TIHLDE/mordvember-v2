@@ -13,7 +13,7 @@ export default async function AttendancePage() {
   if (!viewer.player) redirect("/");
   const status = await myAttendance(viewer);
   if (!status) redirect("/");
-  const { rules, days, todays, open, counted, required } = status;
+  const { rules, days, todays, open, stale, counted, required } = status;
   return (
     <div className="space-y-6">
       <PageTitle
@@ -23,6 +23,11 @@ export default async function AttendancePage() {
       </PageTitle>
       <Card>
         <p className="text-sm text-zinc-300">Skann QR-koden på statusskjermen med mobilkameraet for å sjekke inn eller ut.</p>
+        {rules.killsRequired > 0 && (
+          <p className="mt-2 text-sm text-zinc-400">
+            Drap fra mandag til søndag teller på kravet, men fredagslista lages automatisk fredag kl. 16.00. Vil du være sikker, må drapene være bekreftet før det.
+          </p>
+        )}
       </Card>
       <Card title="I dag">
         {todays.length === 0 ? (
@@ -42,6 +47,11 @@ export default async function AttendancePage() {
           </ul>
         )}
         {open && <p className="mt-4 text-sm text-emerald-400">Du er sjekket inn nå. Husk å sjekke ut.</p>}
+        {stale && (
+          <p className="mt-4 text-sm text-amber-400">
+            Du sjekket inn {formatOslo(stale.checkInAt)} og glemte å sjekke ut. Den økta teller ikke som oppmøte med mindre spillmesterne godkjenner den.
+          </p>
+        )}
       </Card>
       <Card title={`Denne uka: ${counted} av ${required} dager`}>
         <ul className="divide-y divide-white/5 text-sm">

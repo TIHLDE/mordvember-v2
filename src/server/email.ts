@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray, sql as dsql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql as dsql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { type EmailBlock, emailOutbox, emailTemplates } from "@/db/schema";
 import { env, isDevelopment } from "./env";
@@ -137,6 +137,14 @@ export async function deliverPendingEmails(limit = 50) {
   const mails = await db.select().from(emailOutbox).where(inArray(emailOutbox.id, claimed.map((c) => c.id)));
   for (const mail of mails) {
     try {
+      // Nullstilling sletter også e-post som alt er hentet her, så raden sjekkes rett før hver sending. Uten treff er den borte.
+      // Oppdateringen venter på en nullstilling som er i gang, noe en vanlig lesing ikke ville gjort.
+      const [current] = await db
+        .update(emailOutbox)
+        .set({ claimedAt: new Date() })
+        .where(and(eq(emailOutbox.id, mail.id), ne(emailOutbox.status, "sent")))
+        .returning({ id: emailOutbox.id });
+      if (!current) continue;
       if (env.emailApiKey) {
         await sendViaPhoton(mail.to, mail.subject, mail.content);
       } else if (isDevelopment) {

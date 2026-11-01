@@ -108,7 +108,9 @@ export default async function SeasonAdmin() {
             <p>
               <strong className="text-zinc-200">Drap:</strong> Hvor mange drap spillerne må gjøre i
               spillet hver uke. Dette kommer i tillegg til å være på skolen. Velger du 0, trenger de
-              ikke å gjøre noen drap.
+              ikke å gjøre noen drap. Drap fra mandag til søndag teller, men den automatiske
+              fredagslista lages fredag kl. 16.00, så drap etter det teller bare på lister som lages
+              senere. Saker som allerede står på lista, endres ikke.
             </p>
             <p>
               <strong className="text-zinc-200">Fra og Til:</strong> Bare tiden mellom disse

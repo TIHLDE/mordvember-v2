@@ -119,7 +119,7 @@ export async function completeScanAction(intent: "in" | "out", position: { lat: 
       path: "/sjekkinn",
       maxAge: 60,
     });
-    return result.kind === "in" ? "Du er sjekket inn" : "Du er sjekket ut";
+    return { in: "Du er sjekket inn", out: "Du er sjekket ut", forgotten: "Økta er lukket" }[result.kind];
   });
 }
 

@@ -92,6 +92,33 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
     expect(await notices()).toBe(1);
   });
 
+  describe("drap i helga", () => {
+    const saturday = async () => {
+      const [kill] = await db
+        .insert(schema.kills)
+        .values({ seasonId: season.id, killerId: ids.fails, victimId: ids.gone, reportedBy: "killer", status: "applied", killedAt: osloTime("2026-11-07", "12:00") })
+        .returning();
+      return kill!;
+    };
+
+    it("teller på en liste som lages etter helga", async () => {
+      const kill = await saturday();
+      expect(await weekly.buildFridayListManually(viewer, week1, monday)).toMatchObject({ claimed: true, added: 0 });
+      expect(await list()).toEqual([]);
+      await db.delete(schema.kills).where(eq(schema.kills.id, kill.id));
+    });
+
+    it("fjerner ikke en sak som allerede står på lista", async () => {
+      await weekly.buildFridayListOnce(season, week1, fridayEvening);
+      const kill = await saturday();
+      expect(await weekly.buildFridayListManually(viewer, week1, monday)).toEqual({ claimed: false, existed: true, added: 0, pending: 1 });
+      const [review] = await list();
+      expect(review?.playerId).toBe(ids.fails);
+      expect(review?.reasons).toEqual(["Mangler 1 drap (har 0 av 1)"]);
+      await db.delete(schema.kills).where(eq(schema.kills.id, kill.id));
+    });
+  });
+
   it("avviser uker utenfor spillet og ikke-spillmestere", async () => {
     await expect(weekly.buildFridayListManually(viewer, "2026-11-16", monday)).rejects.toThrow("ikke startet ennå");
     await expect(weekly.buildFridayListManually(viewer, "2026-10-26", monday)).rejects.toThrow("hadde ikke startet");
