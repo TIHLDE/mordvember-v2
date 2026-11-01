@@ -1,4 +1,4 @@
-import { osloDate, osloTime, weekdaysOf } from "./time";
+import { osloDate, osloTime, weekdaysOf, weekStartOf } from "./time";
 
 export type WeekRules = {
   days: number;
@@ -98,8 +98,8 @@ export function evaluateWeek(input: {
   const { weekStart, rules, now } = input;
   const exempt = input.requirementsFromWeek !== null && input.requirementsFromWeek > weekStart;
   const days = countingDays(input.sessions, weekStart, rules, now);
-  const weekDates = new Set(weekdaysOf(weekStart));
-  const kills = input.killTimes.filter((t) => weekDates.has(osloDate(t))).length;
+  // Attendance counts Monday to Friday, but kills count the whole week.
+  const kills = input.killTimes.filter((t) => weekStartOf(t) === weekStart).length;
   const missing: string[] = [];
   if (!exempt) {
     if (days < rules.days) {

@@ -2,7 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { and, asc, desc, eq, gte, isNull, lt } from "drizzle-orm";
-import { db } from "@/db";
+import { db, type Tx } from "@/db";
 import { checkins, players, seasons } from "@/db/schema";
 import { type AttendanceSession, closeTimeFor, dayResults, distanceMeters, GLOSHAUGEN } from "@/game/attendance";
 import { qrCode, verifyQrCode } from "@/game/qr";
@@ -58,19 +58,29 @@ const toSession = (c: typeof checkins.$inferSelect): AttendanceSession => ({
   rejected: c.rejected,
 });
 
+// A forgotten session ends when its day's window did and is flagged, so it gives no credit unless a gamemaster approves it.
+// Only an open session is closed, so a check-out that got in first keeps its time.
+async function closeForgotten(tx: Tx | typeof db, checkin: { id: string; checkInAt: Date }, close: Date) {
+  await tx
+    .update(checkins)
+    .set({ checkOutAt: close < checkin.checkInAt ? checkin.checkInAt : close, autoClosed: true })
+    .where(and(eq(checkins.id, checkin.id), isNull(checkins.checkOutAt)));
+}
+
 export async function toggleCheckin(
   viewer: Viewer,
   position: { lat: number; lng: number } | null,
   intent: "in" | "out",
-): Promise<{ kind: "in" | "out"; at: Date }> {
+  now = new Date(),
+): Promise<{ kind: "in" | "out" | "forgotten"; at: Date }> {
   if (!viewer.season || !viewer.player) throw new AccessError("Du er ikke påmeldt");
   if (viewer.season.phase !== "running") throw new GameError("Oppmøte registreres bare mens spillet pågår");
   if (viewer.player.status !== "alive") throw new GameError("Du er ute av spillet og trenger ikke sjekke inn");
-  const now = new Date();
   const today = osloDate(now);
-  const seasonId = viewer.season.id;
+  const season = viewer.season;
+  const seasonId = season.id;
   const playerId = viewer.player.id;
-  const office = viewer.season.settings.office ?? GLOSHAUGEN;
+  const office = season.settings.office ?? GLOSHAUGEN;
 
   return db.transaction(async (tx) => {
     await tx.select({ id: players.id }).from(players).where(eq(players.id, playerId)).for("update");
@@ -85,7 +95,12 @@ export async function toggleCheckin(
       await tx.update(checkins).set({ checkOutAt: now }).where(eq(checkins.id, open.id));
       return { kind: "out" as const, at: now };
     }
-    if (intent === "out") throw new GameError("Du er ikke sjekket inn");
+    // Left open from an earlier day because cron hasn't reached it yet.
+    if (open) await closeForgotten(tx, open, closeTimeFor(open.checkInAt, await rulesForWeek(season, weekStartOf(open.checkInAt), tx)));
+    if (intent === "out") {
+      if (open) return { kind: "forgotten" as const, at: now };
+      throw new GameError("Du er ikke sjekket inn");
+    }
     // The QR code is public on the status screen, so the position is what proves the player is there.
     if (!position) throw new GameError("Fant ikke posisjonen din. Tillat posisjon i nettleseren og last inn siden på nytt.");
     const distance = Math.round(distanceMeters(position, office));
@@ -98,7 +113,8 @@ export async function toggleCheckin(
 export async function myAttendance(viewer: Viewer, now = new Date()) {
   if (!viewer.season || !viewer.player) return null;
   const weekStart = weekStartOf(now);
-  const [rules, rows] = await Promise.all([
+  const today = osloDate(now);
+  const [rules, rows, [stale = null]] = await Promise.all([
     rulesForWeek(viewer.season, weekStart),
     db
       .select()
@@ -111,12 +127,25 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
         ),
       )
       .orderBy(asc(checkins.checkInAt)),
+    // Read on its own, since a session left open on a Friday is still open in the week after.
+    db
+      .select()
+      .from(checkins)
+      .where(
+        and(
+          eq(checkins.playerId, viewer.player.id),
+          isNull(checkins.checkOutAt),
+          eq(checkins.autoClosed, false),
+          lt(checkins.checkInAt, osloTime(today, "00:00")),
+        ),
+      )
+      .orderBy(desc(checkins.checkInAt))
+      .limit(1),
   ]);
   const days = dayResults(rows.map(toSession), weekStart, rules, now);
-  const today = osloDate(now);
   const todays = rows.filter((r) => osloDate(r.checkInAt) === today);
   const open = todays.find((r) => !r.checkOutAt && !r.autoClosed) ?? null;
-  return { weekStart, rules, days, todays, open, required: rules.days, counted: days.filter((d) => d.counts).length };
+  return { weekStart, rules, days, todays, open, stale, required: rules.days, counted: days.filter((d) => d.counts).length };
 }
 
 export async function closeForgottenSessions(now = new Date()) {
@@ -136,10 +165,7 @@ export async function closeForgottenSessions(now = new Date()) {
     open.map(async ({ checkin, season }) => {
       const close = closeTimeFor(checkin.checkInAt, await rulesFor(season, weekStartOf(checkin.checkInAt)));
       if (close > now) return;
-      await db
-        .update(checkins)
-        .set({ checkOutAt: close < checkin.checkInAt ? checkin.checkInAt : close, autoClosed: true })
-        .where(eq(checkins.id, checkin.id));
+      await closeForgotten(db, checkin, close);
     }),
   );
 }

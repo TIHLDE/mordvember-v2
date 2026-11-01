@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { PageTitle } from "@/components/ui";
+import { Notice, PageTitle } from "@/components/ui";
 import { sessionCountsAt } from "@/game/attendance";
 import { formatOslo, osloDate } from "@/game/time";
 import { redirectToLogin } from "@/lib/guard";
@@ -31,6 +31,9 @@ async function CheckinState({ searchParams }: { searchParams: Promise<{ feil?: s
   const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
   if (!pending && !done) return <p className="text-zinc-400">Skann QR-koden på statusskjermen for å sjekke inn eller ut.</p>;
   if (done === "out") return <p className="success-pop font-display text-4xl text-emerald-400">Du er sjekket ut</p>;
+  if (done === "forgotten") {
+    return <Notice tone="amber">Du glemte å sjekke ut, så økta er lukket uten å telle som oppmøte. Var du der, kan spillmesterne godkjenne den.</Notice>;
+  }
   const now = new Date();
   const attendance = await myAttendance(viewer, now);
   const open = attendance?.open;
@@ -45,8 +48,15 @@ async function CheckinState({ searchParams }: { searchParams: Promise<{ feil?: s
   if (!attendance || !open) {
     return (
       <div className="space-y-4">
+        {attendance?.stale && (
+          <Notice tone="amber">
+            Du sjekket inn {formatOslo(attendance.stale.checkInAt)} og glemte å sjekke ut. Den økta lukkes uten å telle som oppmøte, enten du sjekker inn på nytt eller
+            bare sjekker ut. Var du der, kan spillmesterne godkjenne den.
+          </Notice>
+        )}
         <p className="text-zinc-300">Du er ikke sjekket inn.</p>
         <CheckinButton intent="in" complete={completeScanAction} />
+        {attendance?.stale && <CheckinButton intent="out" complete={completeScanAction} />}
       </div>
     );
   }

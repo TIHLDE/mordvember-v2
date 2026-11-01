@@ -1,8 +1,9 @@
 import "server-only";
-import { and, desc, eq, gt, inArray, isNotNull, like, notExists, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, like, ne, notExists, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   auditLog,
+  emailOutbox,
   emailTemplates,
   emergencyAccess,
   jobRuns,
@@ -126,6 +127,8 @@ export async function resetGame(viewer: Viewer, confirm: string) {
     await tx.delete(weekRules).where(eq(weekRules.seasonId, season.id));
     // Weekly job claims are keyed by season and week, and would stop a new game's jobs from running.
     await tx.delete(jobRuns).where(like(jobRuns.key, `%:${season.id}:%`));
+    // There is one game, so everything unsent belongs to it. Claimed e-mails go too: a claim that is left would be picked up again after five minutes if its sender died.
+    await tx.delete(emailOutbox).where(ne(emailOutbox.status, "sent"));
     await tx
       .update(seasons)
       .set({ settings: { ...season.settings, defaultRules: rules }, phase: "setup", startedAt: null, winnerPlayerId: null })

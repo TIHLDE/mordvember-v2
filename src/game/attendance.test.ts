@@ -147,6 +147,22 @@ describe("ukesjekken", () => {
     expect(evaluateWeek({ ...base, rules, sessions: [], killTimes: [at("2026-11-10", "12:00")] }).ok).toBe(false);
   });
 
+  it("drap teller fra mandag 00:00 til søndag 23:59", () => {
+    const rules = { ...RULES, days: 0, killsRequired: 1 };
+    const kills = (time: Date) => evaluateWeek({ ...base, rules, sessions: [], killTimes: [time] }).kills;
+    expect(kills(at("2026-11-02", "00:00"))).toBe(1);
+    expect(kills(at("2026-11-07", "12:00"))).toBe(1);
+    expect(kills(at("2026-11-08", "23:59"))).toBe(1);
+    expect(kills(at("2026-11-01", "23:59"))).toBe(0);
+    expect(kills(at("2026-11-09", "00:00"))).toBe(0);
+  });
+
+  it("helgedrap teller ikke som oppmøte", () => {
+    const res = evaluateWeek({ ...base, sessions: [s("2026-11-07", "09:00", "11:00")], killTimes: [at("2026-11-07", "12:00")] });
+    expect(res.countingDays).toBe(0);
+    expect(res.kills).toBe(1);
+  });
+
   it("nådde spillere slipper krav til uka etter", () => {
     expect(evaluateWeek({ ...base, sessions: [], requirementsFromWeek: "2026-11-09" }).ok).toBe(true);
     expect(evaluateWeek({ ...base, sessions: [], requirementsFromWeek: week }).ok).toBe(false);
