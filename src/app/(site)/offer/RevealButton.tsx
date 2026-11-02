@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Badge } from "@/components/ui";
 
-type Target = { name: string; image: string; bio: string | null };
+type Target = { name: string; image: string; bio: string | null; checkedIn: boolean };
 
 export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> }) {
   const [target, setTarget] = useState<Target | null>(null);
@@ -37,7 +38,7 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
   return (
     <div className="flex flex-col items-center gap-6">
       <div
-        data-state={pressed ? "holding" : "idle"}
+        data-state={pressed ? "revealed" : "idle"}
         className="reveal-frame flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50"
       >
         {target ? (
@@ -49,6 +50,11 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
       </div>
       <div className="min-h-8 space-y-2">
         <p className="h-8 text-2xl font-semibold tracking-tight text-white">{target && <span className="appear inline-block">{target.name}</span>}</p>
+        {target && (
+          <p className="appear">
+            <Badge tone={target.checkedIn ? "green" : "zinc"}>{target.checkedIn ? "Sjekket inn nå" : "Ikke sjekket inn"}</Badge>
+          </p>
+        )}
         {target?.bio && <p className="appear text-sm whitespace-pre-line text-zinc-300">{target.bio}</p>}
       </div>
       <button

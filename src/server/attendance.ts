@@ -1,7 +1,7 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
-import { and, asc, desc, eq, gte, isNull, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, lte } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { checkins, players, seasons } from "@/db/schema";
 import { type AttendanceSession, closeTimeFor, dayResults, distanceMeters, GLOSHAUGEN } from "@/game/attendance";
@@ -146,6 +146,35 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
   const todays = rows.filter((r) => osloDate(r.checkInAt) === today);
   const open = todays.find((r) => !r.checkOutAt && !r.autoClosed) ?? null;
   return { weekStart, rules, days, todays, open, stale, required: rules.days, counted: days.filter((d) => d.counts).length };
+}
+
+// A session forgotten on an earlier day stays open until cron reaches it, but says nothing about today.
+// Gamemasters can also move a session's start ahead of now, and it hasn't begun until then.
+const openToday = (now: Date) =>
+  and(
+    isNull(checkins.checkOutAt),
+    eq(checkins.autoClosed, false),
+    gte(checkins.checkInAt, osloTime(osloDate(now), "00:00")),
+    lte(checkins.checkInAt, now),
+  );
+
+// Takes any player, so a caller must only pass the viewer's own current target. That target comes from myTarget.
+export async function isCheckedIn(playerId: string, now = new Date()) {
+  const [open] = await db
+    .select({ id: checkins.id })
+    .from(checkins)
+    .where(and(eq(checkins.playerId, playerId), openToday(now)))
+    .limit(1);
+  return !!open;
+}
+
+// Shows everyone's whereabouts, so it is for gamemaster pages only.
+export async function checkedInPlayers(seasonId: string, now = new Date()) {
+  const rows = await db
+    .select({ playerId: checkins.playerId })
+    .from(checkins)
+    .where(and(eq(checkins.seasonId, seasonId), openToday(now)));
+  return new Set(rows.map((r) => r.playerId));
 }
 
 export async function closeForgottenSessions(now = new Date()) {

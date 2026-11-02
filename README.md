@@ -38,7 +38,7 @@ Uten `BLOB_READ_WRITE_TOKEN` lagres opplastede bilder i `.data/uploads` under ut
 
 ## Sirkelen
 
-Sirkelen ligger som én ordnet liste per sesong. Alle endringer skjer i en transaksjon med radlås, og hver endring lagres som en hendelse med listen før og etter. En deltaker får bare sitt eget nåværende offer, og bare mens knappen holdes inne. Bare spillmestere, og Index-leder med aktiv nødtilgang, får se sirkelen. Hver visning logges.
+Sirkelen ligger som én ordnet liste per sesong. Alle endringer skjer i en transaksjon med radlås, og hver endring lagres som en hendelse med listen før og etter. En deltaker får bare sitt eget nåværende offer, og bare etter å ha trykket på knappen, til det skjules igjen. Det samme gjelder om offeret er sjekket inn akkurat nå, som ingen andre deltakere kan se. Spillmestere ser det for alle på deltakersiden. Bare spillmestere, og Index-leder med aktiv nødtilgang, får se sirkelen. Hver visning logges.
 
 ## Drift
 

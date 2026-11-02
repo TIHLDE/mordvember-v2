@@ -8,6 +8,7 @@ import { players } from "@/db/schema";
 import { BIO_FIELDS, parseBio } from "@/game/bio";
 import { guard } from "@/lib/guard";
 import { usersWithoutPlayer } from "@/server/admin";
+import { checkedInPlayers } from "@/server/attendance";
 import { addPlayerAction } from "../actions";
 import { imageStatus, STATUS } from "./status";
 
@@ -15,23 +16,29 @@ export const dynamic = "force-dynamic";
 
 export default async function PlayersAdmin() {
   const viewer = await guard("gamemaster");
-  const rows = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      status: players.status,
-      killCount: players.killCount,
-      studyProgram: players.studyProgram,
-      studyStartYear: players.studyStartYear,
-      imageKey: players.imageKey,
-      imageApprovedAt: players.imageApprovedAt,
-      imageRejectedReason: players.imageRejectedReason,
-      imageDeleted: players.imageDeleted,
-      bio: players.bio,
-    })
-    .from(players)
-    .where(eq(players.seasonId, viewer.season.id))
-    .orderBy(asc(players.name));
+  const running = viewer.season.phase === "running";
+  const [list, present] = await Promise.all([
+    db
+      .select({
+        id: players.id,
+        name: players.name,
+        status: players.status,
+        killCount: players.killCount,
+        studyProgram: players.studyProgram,
+        studyStartYear: players.studyStartYear,
+        imageKey: players.imageKey,
+        imageApprovedAt: players.imageApprovedAt,
+        imageRejectedReason: players.imageRejectedReason,
+        imageDeleted: players.imageDeleted,
+        bio: players.bio,
+      })
+      .from(players)
+      .where(eq(players.seasonId, viewer.season.id))
+      .orderBy(asc(players.name)),
+    running ? checkedInPlayers(viewer.season.id) : new Set<string>(),
+  ]);
+  // Only players still in a running game have anywhere to check in.
+  const rows = list.map((p) => ({ ...p, checkedIn: running && p.status === "alive" ? present.has(p.id) : null }));
   const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
   const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
   const waiting = pending.length;
@@ -84,6 +91,7 @@ type PlayerRow = {
   imageRejectedReason: string | null;
   imageDeleted: boolean;
   bio: string | null;
+  checkedIn: boolean | null;
 };
 
 function bioFilled(bio: string | null) {
@@ -113,6 +121,7 @@ function PlayerList({ rows }: { rows: PlayerRow[] }) {
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-white">{p.name}</span>
                   <Badge tone={STATUS[p.status][1]}>{STATUS[p.status][0]}</Badge>
+                  {p.checkedIn !== null && <Badge tone={p.checkedIn ? "green" : "zinc"}>{p.checkedIn ? "Sjekket inn" : "Ikke sjekket inn"}</Badge>}
                   {image && image.tone !== "green" && <Badge tone={image.tone}>{image.label}</Badge>}
                   {filled === 0 ? (
                     <Badge tone="amber">Utseende mangler</Badge>

@@ -10,7 +10,7 @@ export const DEFAULT_TEMPLATES = {
   game_start: {
     label: "Spillet starter",
     subject: "Mordvember har startet",
-    body: "Spillet er i gang, og ditt første offer er klart.\n\nLogg inn og hold inne knappen på «Mitt offer» for å se hvem det er. Ikke vis skjermen til noen.",
+    body: "Spillet er i gang, og ditt første offer er klart.\n\nLogg inn og trykk på «Vis offer» under «Mitt offer» for å se hvem det er. Ikke vis skjermen til noen.",
     button: "/offer",
   },
   new_target: {

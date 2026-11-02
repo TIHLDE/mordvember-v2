@@ -36,6 +36,23 @@ describe("tilgang til sirkelen", () => {
     expect(actions).toMatch(/import \{ myTarget \} from "@\/server\/circle";/);
   });
 
+  it("en deltaker får bare innsjekkstatusen til sitt eget offer", () => {
+    const callers = sources.filter((s) => /\bisCheckedIn\b/.test(s.text)).map((s) => s.file);
+    expect(callers.sort()).toEqual(["app/(site)/actions.ts", "server/attendance.ts"]);
+    const actions = sources.find((s) => s.file === "app/(site)/actions.ts")!.text;
+    expect(actions.match(/isCheckedIn\(/g)).toEqual(["isCheckedIn("]);
+    const body = actions.slice(actions.indexOf("export async function revealTargetAction"), actions.indexOf("export async function reportKillAction"));
+    expect(body).toMatch(/const target = await myTarget\(viewer\);\s+if \(!target\) return null;/);
+    expect(body).toMatch(/isCheckedIn\(target\.id\)/);
+  });
+
+  it("bare spillmestere ser hvem som er sjekket inn", () => {
+    const users = sources.filter((s) => /\bcheckedInPlayers\b/.test(s.text)).map((s) => s.file);
+    expect(users.sort()).toEqual(["app/admin/deltakere/page.tsx", "server/attendance.ts"]);
+    const page = sources.find((s) => s.file === "app/admin/deltakere/page.tsx")!.text;
+    expect(page).toMatch(/await guard\("gamemaster"\)/);
+  });
+
   it("sirkelsiden sjekker nødtilgang eller spillmester før noe vises", () => {
     const page = sources.find((s) => s.file === "app/admin/sirkel/page.tsx")!.text;
     expect(page).toMatch(/await guard\("circle"\)/);

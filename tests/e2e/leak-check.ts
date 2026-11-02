@@ -101,7 +101,7 @@ async function main() {
           if (p.id === role.player.id) continue;
           const allowedOnKillPage = landed === "/drap" && role.player.id === killer.id && p.id === victim.id;
           if (allowedOnKillPage) continue;
-          if (mine && p.id === mine.id) assert(!body.includes(p.name), `${role.label} ${path}: viser eget offer uten å holde inne`);
+          if (mine && p.id === mine.id) assert(!body.includes(p.name), `${role.label} ${path}: viser eget offer uten å trykke på knappen`);
         }
       }
       if (role.label === "eliminert" && landed !== "/") {
@@ -119,7 +119,7 @@ async function main() {
     const offerPage = await role.request.get(`${BASE}/offer`);
     if (role.player) {
       const target = liveTarget(role.player);
-      assert(!(await offerPage.text()).includes(target.name), `${role.label}: offeret står i HTML før knappen holdes inne`);
+      assert(!(await offerPage.text()).includes(target.name), `${role.label}: offeret står i HTML før knappen trykkes`);
     }
   }
 

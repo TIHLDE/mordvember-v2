@@ -128,6 +128,37 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
     expect(row?.checkOutAt).toEqual(evening);
   });
 
+  it("en spiller regnes som sjekket inn bare i en åpen økt fra samme dag", async () => {
+    expect(await attendance.isCheckedIn(player.id, tuesday)).toBe(false);
+    await open(tuesday);
+    const noon = osloTime("2026-11-03", "12:00");
+    expect(await attendance.isCheckedIn(player.id, noon)).toBe(true);
+    expect(await attendance.isCheckedIn(player.id, wednesdayMorning)).toBe(false);
+    await attendance.toggleCheckin(viewer, null, "out", noon);
+    expect(await attendance.isCheckedIn(player.id, noon)).toBe(false);
+  });
+
+  it("en økt som starter senere, regnes ikke som innsjekket ennå", async () => {
+    await open(tuesday);
+    const earlier = osloTime("2026-11-03", "08:00");
+    expect(await attendance.isCheckedIn(player.id, earlier)).toBe(false);
+    expect(await attendance.checkedInPlayers(season.id, earlier)).toEqual(new Set());
+  });
+
+  it("spillmesternes oversikt følger samme regel som offersiden", async () => {
+    const noon = osloTime("2026-11-03", "12:00");
+    expect(await attendance.checkedInPlayers(season.id, noon)).toEqual(new Set());
+    await open(tuesday);
+    expect(await attendance.checkedInPlayers(season.id, noon)).toEqual(new Set([player.id]));
+    expect(await attendance.checkedInPlayers(season.id, wednesdayMorning)).toEqual(new Set());
+  });
+
+  it("en økt lukket av cron regnes ikke som innsjekket", async () => {
+    await open(tuesday);
+    await attendance.closeForgottenSessions(osloTime("2026-11-03", "16:00"));
+    expect(await attendance.isCheckedIn(player.id, osloTime("2026-11-03", "16:00"))).toBe(false);
+  });
+
   it("en utsjekk som kom først, overskrives ikke av cron", async () => {
     const row = await open(tuesday);
     const out = osloTime("2026-11-03", "12:00");

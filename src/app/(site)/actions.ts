@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
-import { PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
+import { isCheckedIn, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
 import { requirePlayer, requireSeason, requireViewer } from "@/server/auth/session";
 import { myTarget } from "@/server/circle";
 import { confirmKill, disputeKill, GameError, reportKill } from "@/server/game";
@@ -65,11 +65,11 @@ export async function bioAction(_: ActionState, form: FormData) {
   });
 }
 
-export async function revealTargetAction(): Promise<{ name: string; image: string; bio: string | null } | null> {
+export async function revealTargetAction(): Promise<{ name: string; image: string; bio: string | null; checkedIn: boolean } | null> {
   const viewer = await requirePlayer();
   const target = await myTarget(viewer);
   if (!target) return null;
-  return { name: target.name, image: `/api/bilde/${target.id}`, bio: target.bio };
+  return { name: target.name, image: `/api/bilde/${target.id}`, bio: target.bio, checkedIn: await isCheckedIn(target.id) };
 }
 
 export async function reportKillAction(_: ActionState, form: FormData) {

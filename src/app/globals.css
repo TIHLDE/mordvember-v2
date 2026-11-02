@@ -167,7 +167,7 @@ html:has(.status-screen) {
       transform 350ms var(--spring);
   }
 
-  .reveal-frame[data-state="holding"] {
+  .reveal-frame[data-state="revealed"] {
     border-color: rgb(208 31 41 / 0.6);
     box-shadow: 0 0 0 4px rgb(179 18 27 / 0.15), 0 24px 60px -20px rgb(179 18 27 / 0.45);
     transform: scale(1.02);
@@ -259,7 +259,7 @@ html:has(.status-screen) {
       animation-direction: reverse;
     }
 
-    .reveal-frame[data-state="holding"],
+    .reveal-frame[data-state="revealed"],
     .lift:hover .portrait {
       transform: none;
     }
