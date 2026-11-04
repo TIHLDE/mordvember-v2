@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { emergencyAccess, players, seasons, sessions, staff, users } from "@/db/schema";
 import { env } from "../env";
 import { getCurrentSeason } from "../season";
-import { type PhotonIdentity, type PhotonTokens, refreshTokens } from "./photon";
+import { type PhotonIdentity, PhotonUnauthorizedError, type PhotonTokens, refreshTokens } from "./photon";
 import { seal, unseal } from "./token-box";
 
 const SESSION_COOKIE = "mv_session";
@@ -83,6 +83,7 @@ export async function currentPhotonToken(): Promise<string | null> {
   const refreshToken = session.photonRefreshToken ? unseal(session.photonRefreshToken) : null;
   if (!refreshToken) return null;
   const fresh = await refreshTokens(refreshToken).catch((error) => {
+    if (error instanceof PhotonUnauthorizedError) throw error;
     console.error("Kunne ikke fornye Photon-tokenet", error);
     return null;
   });

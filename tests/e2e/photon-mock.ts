@@ -19,6 +19,7 @@ let current: MockUser = { username: "mock-deltaker", name: "Mock Deltaker", lead
 const codes = new Map<string, { challenge: string; redirectUri: string; user: MockUser; offline: boolean }>();
 const tokens = new Map<string, { user: MockUser; expiresAt: number }>();
 const refreshTokens = new Map<string, MockUser>();
+const revokedRefreshTokens = new Set<string>();
 let refreshCount = 0;
 const emails: unknown[] = [];
 const errors: string[] = [];
@@ -38,6 +39,26 @@ function body(req: import("node:http").IncomingMessage): Promise<string> {
 function json(res: import("node:http").ServerResponse, status: number, value: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(value));
+}
+
+// Better Auth 1.7 svarer med RFC 6749-feil og håndhever klientens registrerte autentiseringsmetode.
+function oauthError(res: import("node:http").ServerResponse, status: number, error: string, description: string) {
+  if (status === 401) res.setHeader("WWW-Authenticate", 'Basic realm="oauth"');
+  return json(res, status, { error, error_description: description });
+}
+
+// Klienten er registrert som client_secret_basic. Hemmelighet i skjemaet gir 400, feil Basic gir 401.
+function clientAuthError(req: import("node:http").IncomingMessage, form: URLSearchParams) {
+  if (form.has("client_secret")) return { status: 400, description: "client_secret_post er ikke registrert for klienten" };
+  const [scheme, value] = (req.headers.authorization ?? "").split(" ");
+  if (scheme !== "Basic" || !value) return { status: 401, description: "mangler Basic-autentisering" };
+  const decoded = Buffer.from(value, "base64").toString();
+  const split = decoded.indexOf(":");
+  const id = decodeURIComponent(decoded.slice(0, split));
+  const secret = decodeURIComponent(decoded.slice(split + 1));
+  if (split < 0 || id !== CLIENT_ID || secret !== CLIENT_SECRET) return { status: 401, description: "feil klient-id eller hemmelighet" };
+  if (form.has("client_id") && form.get("client_id") !== id) return { status: 400, description: "client_id i skjemaet stemmer ikke med Basic" };
+  return null;
 }
 
 function bearerUser(req: import("node:http").IncomingMessage) {
@@ -60,6 +81,17 @@ createServer(async (req, res) => {
 
   if (path === "/__user" && req.method === "POST") {
     current = JSON.parse(await body(req));
+    return json(res, 200, { ok: true });
+  }
+  // Etterligner utlogging fra tihlde.org: tokenene for økten trekkes tilbake.
+  if (path === "/__revoke" && req.method === "POST") {
+    const { username } = JSON.parse(await body(req)) as { username: string };
+    for (const [token, entry] of tokens) if (entry.user.username === username) tokens.delete(token);
+    for (const [token, user] of refreshTokens) {
+      if (user.username !== username) continue;
+      refreshTokens.delete(token);
+      revokedRefreshTokens.add(token);
+    }
     return json(res, 200, { ok: true });
   }
   if (path === "/__state") return json(res, 200, { emails, errors, imageRequests, refreshCount });
@@ -90,11 +122,21 @@ createServer(async (req, res) => {
 
   if (path === "/api/auth/oauth2/token" && req.method === "POST") {
     const form = new URLSearchParams(await body(req));
+    const clientError = clientAuthError(req, form);
+    if (clientError) {
+      errors.push(`token: invalid_client (${clientError.description})`);
+      return oauthError(res, clientError.status, "invalid_client", clientError.description);
+    }
+    if (form.get("resource") !== ISSUER) {
+      errors.push("token: resource mangler");
+      return oauthError(res, 400, "invalid_target", "resource er ikke registrert");
+    }
     if (form.get("grant_type") === "refresh_token") {
       const user = refreshTokens.get(form.get("refresh_token") ?? "");
-      if (!user || form.get("client_secret") !== CLIENT_SECRET || form.get("resource") !== ISSUER) {
-        errors.push("refresh: ugyldig");
-        return json(res, 400, { error: "invalid_grant" });
+      if (!user) {
+        // Et tilbakekalt token er et gyldig avslag, ikke en feil i klienten.
+        if (!revokedRefreshTokens.has(form.get("refresh_token") ?? "")) errors.push("refresh: ugyldig");
+        return oauthError(res, 400, "invalid_grant", "ukjent eller tilbakekalt refresh-token");
       }
       refreshTokens.delete(form.get("refresh_token")!);
       refreshCount++;
@@ -105,15 +147,12 @@ createServer(async (req, res) => {
     const problems = [
       !entry && "ukjent kode",
       form.get("grant_type") !== "authorization_code" && "grant_type",
-      form.get("client_id") !== CLIENT_ID && "client_id",
-      form.get("client_secret") !== CLIENT_SECRET && "client_secret",
       entry && b64url(createHash("sha256").update(verifier).digest()) !== entry.challenge && "pkce stemmer ikke",
       entry && form.get("redirect_uri") !== entry.redirectUri && "redirect_uri ulik",
-      form.get("resource") !== ISSUER && "resource mangler",
     ].filter(Boolean);
     if (problems.length || !entry) {
       errors.push(`token: ${problems.join(", ")}`);
-      return json(res, 400, { error: problems });
+      return oauthError(res, 400, "invalid_grant", problems.join(", "));
     }
     codes.delete(form.get("code")!);
     return issue(res, entry.user, entry.offline);
@@ -121,7 +160,7 @@ createServer(async (req, res) => {
 
   if (path === "/api/auth/oauth2/userinfo") {
     const user = bearerUser(req);
-    if (!user) return json(res, 401, {});
+    if (!user) return oauthError(res, 401, "invalid_token", "tokenet er ugyldig eller tilbakekalt");
     return json(res, 200, { sub: `sub-${user.username}`, name: user.name, email: `${user.username}@example.test`, preferred_username: user.username });
   }
 

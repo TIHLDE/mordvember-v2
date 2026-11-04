@@ -24,6 +24,9 @@ export type PhotonUser = { username: string; name: string };
 
 export class PhotonForbiddenError extends Error {}
 
+// Photon trekker tilbake tokenet når brukeren logger ut av tihlde.org, så da må hen logge inn på nytt.
+export class PhotonUnauthorizedError extends Error {}
+
 export function createVerifier(): string {
   return base64url(crypto.getRandomValues(new Uint8Array(32)));
 }
@@ -57,20 +60,31 @@ export async function refreshTokens(refreshToken: string): Promise<PhotonTokens>
   return requestTokens({ grant_type: "refresh_token", refresh_token: refreshToken });
 }
 
+// Photon registrerer klienten som client_secret_basic, og fra Better Auth 1.7 avvises hemmeligheten i skjemaet
+// med 400 invalid_client. Id og hemmelighet URL-kodes før base64 (RFC 6749 §2.3.1).
+function basicAuth(): string {
+  const credentials = `${encodeURIComponent(env.photonClientId)}:${encodeURIComponent(env.photonClientSecret)}`;
+  return `Basic ${Buffer.from(credentials).toString("base64")}`;
+}
+
 async function requestTokens(grant: Record<string, string>): Promise<PhotonTokens> {
   const response = await fetch(`${env.photonIssuer}/oauth2/token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: basicAuth() },
     body: new URLSearchParams({
       ...grant,
-      client_id: env.photonClientId,
-      client_secret: env.photonClientSecret,
       // Uten resource gir Photon et ugjennomsiktig token som API-et avviser med 401.
       resource: env.photonIssuer,
     }).toString(),
     cache: "no-store",
   });
-  if (!response.ok) throw new Error(`Tokenveksling feilet (${response.status})`);
+  if (!response.ok) {
+    const { error, description } = await oauthError(response);
+    const message = `Tokenveksling feilet (${response.status}): ${error}${description ? `: ${description}` : ""}`;
+    // Refresh-tokenet er trukket tilbake eller utløpt, så brukeren må logge inn på nytt.
+    if (error === "invalid_grant" && grant.grant_type === "refresh_token") throw new PhotonUnauthorizedError(message);
+    throw new Error(message);
+  }
   const tokens = (await response.json()) as { access_token: string; refresh_token?: string; expires_in?: number };
   return {
     accessToken: tokens.access_token,
@@ -79,12 +93,25 @@ async function requestTokens(grant: Record<string, string>): Promise<PhotonToken
   };
 }
 
+// Feilsvar fra Photon følger RFC 6749: { error, error_description }.
+async function oauthError(response: Response): Promise<{ error: string; description: string | null }> {
+  const text = await response.text().catch(() => "");
+  try {
+    const body = JSON.parse(text) as { error?: unknown; error_description?: unknown };
+    if (typeof body.error === "string") {
+      return { error: body.error, description: typeof body.error_description === "string" ? body.error_description : null };
+    }
+  } catch {}
+  return { error: text.slice(0, 200), description: null };
+}
+
 // groupSlug lets the leader of that group search, since Photon otherwise requires users:view.
 export async function searchUsers(token: string, query: string, groupSlug?: string): Promise<PhotonUser[]> {
   const url = new URL(`${env.photonApi}/user/search`);
   url.searchParams.set("q", query);
   if (groupSlug) url.searchParams.set("groupSlug", groupSlug);
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (response.status === 401) throw new PhotonUnauthorizedError();
   if (response.status === 403) throw new PhotonForbiddenError();
   if (!response.ok) throw new Error(`Photon-søket svarte ${response.status}`);
   const users = (await response.json()) as { name: string | null; username: string | null }[];
@@ -93,6 +120,7 @@ export async function searchUsers(token: string, query: string, groupSlug?: stri
 
 async function photonGet<T>(url: string, token: string): Promise<T> {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (response.status === 401) throw new PhotonUnauthorizedError(`Photon ${url} svarte 401`);
   if (response.status === 403) throw new PhotonForbiddenError();
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

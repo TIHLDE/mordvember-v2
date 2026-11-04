@@ -14,7 +14,13 @@ async function searchUsers(url: string): Promise<Result[]> {
   // The timeout also covers reading the body.
   const response = await fetch(url, { signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS) }).catch(() => null);
   if (!response) throw new Error(SEARCH_FAILED);
-  const body = (await response.json().catch(() => null)) as { users?: Result[]; error?: string } | null;
+  const body = (await response.json().catch(() => null)) as { users?: Result[]; error?: string; login?: boolean } | null;
+  // Photon revokes the token when the user logs out of tihlde.org, so send them through login and back here.
+  // /api/auth/login is a route handler that redirects to Photon, so the router cannot navigate to it.
+  if (response.status === 401 && body?.login) {
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(`/api/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+  }
   if (!response.ok || !body) throw new Error(body?.error ?? SEARCH_FAILED);
   return body.users ?? [];
 }

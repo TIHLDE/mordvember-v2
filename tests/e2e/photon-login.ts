@@ -45,6 +45,21 @@ async function main() {
   assert(staffRow, "KoK-leder lagt til som spillmester ved innlogging");
   console.log("• KoK-leder blir spillmester automatisk");
 
+  await gm.goto(`${BASE}/admin/roller`);
+  const search = gm.getByRole("combobox");
+  await search.fill("mock-ordi");
+  await gm.getByRole("option", { name: /Mock Ordinær/ }).waitFor();
+  console.log("• Brukersøket i Photon bruker det lagrede tokenet");
+
+  await fetch(`${MOCK}/__revoke`, { method: "POST", body: JSON.stringify({ username: "mock-kokleder" }) });
+  const relogin = gm.waitForRequest((r) => r.url().startsWith(`${BASE}/api/auth/callback`));
+  await search.fill("mock-delt");
+  await relogin;
+  await gm.waitForURL(`${BASE}/admin/roller`);
+  await gm.getByRole("combobox").fill("mock-delt");
+  await gm.getByRole("option", { name: /Mock Deltaker/ }).waitFor();
+  console.log("• Tilbakekalt token (utlogget fra tihlde.org) sender brukeren gjennom innloggingen og tilbake");
+
   await setUser({ username: "mock-ventende", name: "Mock Ventende", leaderOf: [], pending: true });
   const pending = await (await browser.newContext()).newPage();
   await pending.goto(`${BASE}/login`);
