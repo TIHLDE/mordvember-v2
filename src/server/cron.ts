@@ -3,25 +3,13 @@ import { and, eq, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { emailOutbox, kills, seasons } from "@/db/schema";
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
-import { osloParts, weekStartOf } from "@/game/time";
+import { addDays, osloParts, weekStartOf } from "@/game/time";
 import { closeForgottenSessions } from "./attendance";
 import type { Season } from "./auth/session";
 import { deliverPendingEmails, queueEmail } from "./email";
 import { staffEmails } from "./game";
 import { notify } from "./notify";
-import { buildFridayListOnce, claimJob, releaseJob, sendThursdayWarnings } from "./weekly";
-
-async function runOnce(key: string, job: () => Promise<unknown>): Promise<boolean> {
-  if (!(await claimJob(key))) return false;
-  try {
-    await job();
-    return true;
-  } catch (error) {
-    // Kravet frigis så neste cron-kjøring prøver igjen.
-    await releaseJob(key);
-    throw error;
-  }
-}
+import { buildFridayListOnce, sendWeeklyWarnings } from "./weekly";
 
 export async function runCron(now = new Date()) {
   const done: string[] = [];
@@ -61,18 +49,18 @@ export async function runCron(now = new Date()) {
   });
 
   await step("ukejobber", async () => {
-    // Thursday 16:00 to Friday 16:00 is warning time, and the Friday list is due after that.
     const p = osloParts(now);
-    const thursdayDue = (p.isoWeekday === 4 && p.hour >= 16) || (p.isoWeekday === 5 && p.hour < 16);
     const fridayDue = (p.isoWeekday === 5 && p.hour >= 16) || p.isoWeekday >= 6;
     const weekStart = weekStartOf(now);
-    const job = thursdayDue
-      ? { name: "torsdag", run: (season: Season) => runOnce(`torsdag:${season.id}:${weekStart}`, () => sendThursdayWarnings(season, weekStart, now)) }
-      : fridayDue
-        ? { name: "fredag", run: (season: Season) => buildFridayListOnce(season, weekStart, now) }
-        : null;
-    if (!job) return;
+    const job = fridayDue
+      ? { name: "fredag", run: (season: Season) => buildFridayListOnce(season, weekStart, now) }
+      : { name: "ukevarsel", run: (season: Season) => sendWeeklyWarnings(season, weekStart, now) };
     const running = await db.select().from(seasons).where(eq(seasons.phase, "running"));
+    if (p.isoWeekday === 7 && p.hour >= 16) {
+      await Promise.all(running.map((season) =>
+        step(`ukevarsel:${season.id}`, () => sendWeeklyWarnings(season, addDays(weekStart, 7), now)),
+      ));
+    }
     await Promise.all(
       running.map((season) =>
         step(`${job.name}:${season.id}`, async () => {

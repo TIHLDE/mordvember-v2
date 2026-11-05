@@ -1,4 +1,4 @@
-import { osloDate, osloTime, weekdaysOf, weekStartOf } from "./time";
+import { addDays, osloDate, osloTime, weekdaysOf, weekStartOf } from "./time";
 
 export type WeekRules = {
   days: number;
@@ -128,4 +128,12 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
   const dLng = toRad(b.lng - a.lng);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * r * Math.asin(Math.sqrt(h));
+}
+
+// Warn at 16:00 on the day before the remaining attendance days are needed.
+export function weeklyWarningDue(evaluation: WeekEvaluation, rules: WeekRules, now: Date, weekStart = weekStartOf(now)): boolean {
+  if (evaluation.ok || evaluation.exempt) return false;
+  const daysNeeded = Math.max(1, rules.days - evaluation.countingDays);
+  const due = osloTime(addDays(weekStart, 4 - daysNeeded), "16:00");
+  return now >= due && now < osloTime(addDays(weekStart, 4), "16:00");
 }

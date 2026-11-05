@@ -42,4 +42,4 @@ Sirkelen ligger som én ordnet liste per sesong. Alle endringer skjer i en trans
 
 ## Drift
 
-`vercel.json` kjører `/api/cron` hvert tiende minutt. Jobben stenger påmeldinger, lukker glemte utsjekker, sender drapssaker videre etter 12 timer, sender torsdagsvarsel og lager fredagslista og sender e-post. Kallet krever `CRON_SECRET`, som Vercel setter selv.
+`vercel.json` kjører `/api/cron` hvert tiende minutt. Jobben stenger påmeldinger, lukker glemte utsjekker, sender drapssaker videre etter 12 timer, sender ukevarsel når deltakerne må møte de resterende dagene og lager fredagslista og sender e-post. Kallet krever `CRON_SECRET`, som Vercel setter selv.

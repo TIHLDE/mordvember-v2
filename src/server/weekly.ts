@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { jobRuns, kills, players, weeklyReviews, users } from "@/db/schema";
-import { evaluateWeek, type WeekEvaluation } from "@/game/attendance";
+import { evaluateWeek, weeklyWarningDue, type WeekEvaluation } from "@/game/attendance";
 import { fridayListDueAt, listWeekError } from "@/game/friday";
 import { addDays, osloTime } from "@/game/time";
 import { audit } from "./audit";
@@ -57,10 +57,11 @@ export async function evaluateSeasonWeek(season: Season, weekStart: string, now 
   }));
 }
 
-export async function sendThursdayWarnings(season: Season, weekStart: string, now = new Date()) {
+export async function sendWeeklyWarnings(season: Season, weekStart: string, now = new Date()) {
   const results = await evaluateSeasonWeek(season, weekStart, now);
+  const rules = await rulesForWeek(season, weekStart);
   for (const { player, evaluation } of results) {
-    if (evaluation.ok) continue;
+    if (!weeklyWarningDue(evaluation, rules, now, weekStart)) continue;
     // Eget krav per deltaker, så et nytt forsøk etter en feil halvveis ikke varsler noen to ganger.
     await db.transaction(async (tx) => {
       const [claimed] = await tx.insert(jobRuns).values({ key: `torsdag:${season.id}:${weekStart}:${player.id}` }).onConflictDoNothing().returning();
