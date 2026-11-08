@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
@@ -25,7 +25,7 @@ async function PlayerAdmin() {
     const canRemove = viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
     const canEdit = player.status === "alive";
     return (<div className="space-y-6">
-      <Link href="/admin/deltakere" className="inline-flex text-sm text-zinc-400 transition-colors hover:text-white">
+      <Link to="/admin/deltakere" className="inline-flex text-sm text-zinc-400 transition-colors hover:text-white">
         ← Alle deltakere
       </Link>
       <PageTitle sub={<>

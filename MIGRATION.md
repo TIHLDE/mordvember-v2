@@ -21,3 +21,7 @@ Root document and router created; pages, layouts and HTTP endpoints now export R
 Stage 3: Renamed [id] and both [playerId] route directories to $id/$playerId. Regenerated the route tree with Vite; public paths and parameter names preserved.
 
 Stage 4: Route params use Route.useParams; login/dev/profile/checkin/attendance search values have explicit string validation. Layouts render Outlet. Async component execution remains stage 8 work.
+
+## Stage 5 (partial)
+
+Next Link components now use TanStack Link; pathname reads use useLocation. Existing navigation entries are retained. Dynamic URL strings and navigation data need typed LinkOptions conversion; redirects still use Next and must move to loading boundaries along with stage 8. Verify back/forward, query preservation, active states and authenticated redirects before marking this stage complete.

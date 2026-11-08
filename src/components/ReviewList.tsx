@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import type { ReviewItem } from "@/game/review";
 import { Badge } from "./ui";
 
@@ -13,7 +13,7 @@ export function ReviewList({ items }: { items: ReviewItem[] }) {
             <span className="text-zinc-300">{item.text}</span>
           </span>
           {item.cta && (
-            <Link href={item.href} className="shrink-0 font-medium text-blood hover:underline">
+            <Link to={item.href} className="shrink-0 font-medium text-blood hover:underline">
               {item.cta}
             </Link>
           )}

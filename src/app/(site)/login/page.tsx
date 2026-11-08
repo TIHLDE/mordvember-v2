@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { redirect } from "next/navigation";
 import { buttonClass } from "@/components/styles";
 import { Notice, PageTitle } from "@/components/ui";
@@ -23,7 +23,7 @@ async function LoginPage() {
       {/* Not a next/link: its prefetch would run the login route and overwrite the OAuth cookie. */}
       <a href={`/api/auth/login?next=${encodeURIComponent(target)}`} className={buttonClass()}>Logg inn med TIHLDE</a>
       {process.env.NODE_ENV === "development" && (<p className="mt-8 text-sm text-zinc-500">
-          Lokal utvikling: <Link href={`/dev?next=${encodeURIComponent(target)}`} className="underline">velg testbruker</Link>
+          Lokal utvikling: <Link to={`/dev?next=${encodeURIComponent(target)}`} className="underline">velg testbruker</Link>
         </p>)}
     </div>);
 }

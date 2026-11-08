@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { desc, eq } from "drizzle-orm";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { Card, Empty, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
@@ -26,7 +26,7 @@ async function NotificationsPage() {
         {rows.length === 0 ? (<Empty>Ingen varsler.</Empty>) : (<ul className="divide-y divide-white/5">
             {rows.map((n) => (<li key={n.id} className="flex items-start justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0">
                 <span className={n.readAt ? "text-zinc-400" : "font-medium text-white"}>
-                  {n.href ? <Link href={n.href} className="hover:underline">{n.text}</Link> : n.text}
+                  {n.href ? <Link to={n.href} className="hover:underline">{n.text}</Link> : n.text}
                 </span>
                 <span className="shrink-0 text-xs text-zinc-500">{formatOslo(n.createdAt)}</span>
               </li>))}

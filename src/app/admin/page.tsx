@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Button, Card, Field, Notice, PageTitle } from "@/components/ui";
@@ -58,7 +58,7 @@ async function AdminHome() {
           <p className="mt-1 text-sm text-zinc-500">{alive} med i spillet</p>
         </Card>
         {viewer.isGamemaster &&
-            items.map((i) => (<Link key={i.href} href={i.href} className="group rounded-2xl">
+            items.map((i) => (<Link key={i.href} to={i.href} className="group rounded-2xl">
               <Card className="h-full transition-colors duration-150 group-hover:border-white/25 group-hover:bg-white/[0.05]">
                 <p className="text-sm text-zinc-400">{i.label}</p>
                 <p className={`mt-2 text-3xl font-semibold tabular-nums ${i.value ? "text-blood-light" : "text-white"}`}>{i.value}</p>

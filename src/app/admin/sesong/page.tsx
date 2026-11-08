@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { TimeField } from "@/components/DateTimePicker";
 import { NumberStepper } from "@/components/NumberStepper";
@@ -181,7 +181,7 @@ function GameAction({ phase, ringDrawn }: {
           <Button type="submit">Start spillet</Button>
         </ActionForm>) : (<p className="text-sm text-zinc-400">
           Trekk sirkelen under{" "}
-          <Link href="/admin/sirkel" className="underline">
+          <Link to="/admin/sirkel" className="underline">
             Sirkel
           </Link>{" "}
           før du starter.

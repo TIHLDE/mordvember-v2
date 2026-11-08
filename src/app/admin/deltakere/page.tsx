@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { asc, eq } from "drizzle-orm";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
@@ -94,7 +94,7 @@ function PlayerList({ rows }: {
             const image = imageStatus(p);
             const filled = bioFilled(p.bio);
             return (<li key={p.id}>
-            <Link href={`/admin/deltakere/${p.id}`} className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]">
+            <Link to={`/admin/deltakere/${p.id}`} className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`} alt="" loading="lazy" className="size-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"/>
               <div className="min-w-0 flex-1">

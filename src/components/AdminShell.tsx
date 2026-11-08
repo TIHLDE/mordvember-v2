@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { UserAvatar } from "./Avatar";
 import { cx } from "./styles";
@@ -23,7 +23,7 @@ export function AdminShell({
   banner: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = useLocation({ select: (location) => location.pathname });
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export function AdminShell({
         )}
       >
         <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/10 px-4">
-          <Link href="/" className="font-display text-2xl text-blood">
+          <Link to="/" className="font-display text-2xl text-blood">
             Mordvember
           </Link>
           <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-medium text-zinc-300">Admin</span>
@@ -61,7 +61,7 @@ export function AdminShell({
                   return (
                     <li key={l.href}>
                       <Link
-                        href={l.href}
+                        to={l.href}
                         onClick={() => setOpen(false)}
                         aria-current={active ? "page" : undefined}
                         className={cx(
@@ -80,7 +80,7 @@ export function AdminShell({
         </nav>
         <div className="shrink-0 border-t border-white/10 p-3">
           <Link
-            href="/"
+            to="/"
             className="flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
           >
             ← Tilbake til spillet
@@ -101,7 +101,7 @@ export function AdminShell({
             </svg>
           </button>
           <p className="truncate text-sm text-zinc-400">
-            <Link href="/admin" className="transition-colors hover:text-white">
+            <Link to="/admin" className="transition-colors hover:text-white">
               Admin
             </Link>
             {current && current.href !== "/admin" && (
@@ -118,7 +118,7 @@ export function AdminShell({
               </button>
             </form>
             {user.hasProfile ? (
-              <Link href="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+              <Link to="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
                 {avatar}
               </Link>
             ) : (

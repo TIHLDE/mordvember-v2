@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { buttonClass, cx, type ButtonStyle } from "./styles";
 
 export function Card({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
@@ -44,7 +44,7 @@ export function Button({
 
 export function LinkButton({ href, children, variant, size }: { href: string; children: React.ReactNode } & ButtonStyle) {
   return (
-    <Link href={href} className={buttonClass({ variant, size })}>
+    <Link to={href} className={buttonClass({ variant, size })}>
       {children}
     </Link>
   );

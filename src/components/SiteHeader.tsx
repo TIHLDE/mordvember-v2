@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
@@ -37,7 +37,7 @@ export async function SiteHeader() {
       <header className="material sticky top-0 z-40 border-b border-white/10 bg-ink/75 backdrop-blur-xl backdrop-saturate-150">
         <div className={container}>
           <div className="flex h-14 items-center gap-6">
-            <Link href="/" className="font-display text-2xl text-blood">
+            <Link to="/" className="font-display text-2xl text-blood">
               Mordvember
             </Link>
             {links.length > 0 && <NavLinks links={links} className="hidden flex-1 lg:flex" />}
@@ -50,7 +50,7 @@ export async function SiteHeader() {
                     </button>
                   </form>
                   {viewer.player ? (
-                    <Link href="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+                    <Link to="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
                       <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
                     </Link>
                   ) : (
@@ -58,7 +58,7 @@ export async function SiteHeader() {
                   )}
                 </>
               ) : (
-                <Link href="/login" className={buttonClass({ variant: "ghost", size: "sm" })}>
+                <Link to="/login" className={buttonClass({ variant: "ghost", size: "sm" })}>
                   Logg inn
                 </Link>
               )}
