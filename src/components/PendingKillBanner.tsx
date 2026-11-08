@@ -1,14 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { getViewer } from "@/server/auth/session";
-import { openKillsForPlayer } from "@/server/game";
 import { cx } from "./styles";
 
-export async function PendingKillBanner({ className }: { className: string }) {
-  const viewer = await getViewer();
-  if (!viewer?.season || !viewer.player) return null;
-  const playerId = viewer.player.id;
-  const open = await openKillsForPlayer(viewer.season.id, playerId);
-  const waiting = open.some((k) => k.status === "pending" && (k.reportedBy === "killer" ? k.victimId : k.killerId) === playerId);
+export function PendingKillBanner({ className, waiting }: { className: string; waiting: boolean }) {
   if (!waiting) return null;
   return (
     <div className="bg-blood/90 text-white">

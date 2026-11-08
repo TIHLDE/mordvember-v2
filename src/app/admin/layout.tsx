@@ -1,3 +1,4 @@
+import { getNavigation } from "@/server/navigation";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { redirect } from "next/navigation";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
@@ -6,6 +7,7 @@ import { redirectToLogin } from "@/lib/guard";
 import { getViewer } from "@/server/auth/session";
 async function AdminLayout() {
     const viewer = await getViewer();
+    const { waiting } = await getNavigation();
     if (!viewer)
         return redirectToLogin();
     if (!viewer.isGamemaster && !viewer.canManageRoles)
@@ -36,7 +38,7 @@ async function AdminLayout() {
     ]
         .map((g) => ({ ...g, links: g.links.filter((l) => l.show).map(({ show: _, ...l }) => l) }))
         .filter((g) => g.links.length > 0);
-    return (<AdminShell groups={groups} banner={<PendingKillBanner className="mx-auto w-full max-w-7xl px-4 md:px-8"/>} user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}>
+    return (<AdminShell groups={groups} banner={<PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8"/>} user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}>
       <Outlet />
     </AdminShell>);
 }

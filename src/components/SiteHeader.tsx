@@ -1,19 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { and, eq, isNull } from "drizzle-orm";
-import { db } from "@/db";
-import { notifications } from "@/db/schema";
-import { getViewer } from "@/server/auth/session";
+import type { getNavigation } from "@/server/navigation";
 import { UserAvatar } from "./Avatar";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { PendingKillBanner } from "./PendingKillBanner";
 import { buttonClass } from "./styles";
 
-export async function SiteHeader() {
-  const viewer = await getViewer();
-  let unread = 0;
-  if (viewer) {
-    unread = await db.$count(notifications, and(eq(notifications.userId, viewer.user.id), isNull(notifications.readAt)));
-  }
+export function SiteHeader({ viewer, unread, waiting }: Awaited<ReturnType<typeof getNavigation>>) {
   const playing = viewer?.player && viewer.season && viewer.season.phase === "running";
   const links: NavLink[] = viewer
     ? [
@@ -67,7 +59,7 @@ export async function SiteHeader() {
           {links.length > 0 && <NavLinks links={links} className="-mx-1 pb-3 lg:hidden" />}
         </div>
       </header>
-      <PendingKillBanner className={container} />
+      <PendingKillBanner waiting={waiting} className={container} />
     </>
   );
 }
