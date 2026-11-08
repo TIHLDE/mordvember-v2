@@ -45,7 +45,7 @@ function LoginPage() {
           <Notice tone="red">{ERRORS[feil] ?? "Innloggingen feilet."}</Notice>
         </div>
       )}
-      {/* Not a next/link: its prefetch would run the login route and overwrite the OAuth cookie. */}
+      {/* Use a plain anchor so prefetch cannot overwrite the OAuth cookie. */}
       <a href={`/api/auth/login?next=${encodeURIComponent(target)}`} className={buttonClass()}>
         Logg inn med TIHLDE
       </a>

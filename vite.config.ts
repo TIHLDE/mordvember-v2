@@ -6,7 +6,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
 const generated = [
-  ".next/**",
   ".output/**",
   ".nitro/**",
   ".tanstack/**",
@@ -16,7 +15,6 @@ const generated = [
   ".data/**",
   "test-results/**",
   "src/routeTree.gen.ts",
-  "next-env.d.ts",
 ];
 
 export default defineConfig(({ mode }) => ({

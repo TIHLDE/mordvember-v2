@@ -42,7 +42,6 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
         className="reveal-frame flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50"
       >
         {target ? (
-          // oxlint-disable-next-line @next/next/no-img-element
           <img
             src={target.image}
             alt=""

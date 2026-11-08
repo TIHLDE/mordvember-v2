@@ -31,7 +31,7 @@ export async function playerImageResponse(seasonId: string, playerId: string): P
   const stored = key ? await readImage(key) : null;
   if (stored) return image(stored.body, stored.contentType);
   if (player.useDefaultImage && photonImage?.startsWith("https://")) {
-    const upstream = await fetch(photonImage, { next: { revalidate: 3600 } }).catch(() => null);
+    const upstream = await fetch(photonImage).catch(() => null);
     const type = upstream?.headers.get("content-type") ?? "";
     if (upstream?.ok && type.startsWith("image/") && !type.includes("svg"))
       return image(upstream.body, type);
