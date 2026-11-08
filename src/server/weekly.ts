@@ -13,15 +13,6 @@ import { notify } from "./notify";
 import { rulesForWeek } from "./season";
 import { sessionsForPlayers } from "./attendance";
 
-export async function claimJob(key: string): Promise<boolean> {
-  const inserted = await db.insert(jobRuns).values({ key }).onConflictDoNothing().returning();
-  return inserted.length > 0;
-}
-
-export async function releaseJob(key: string) {
-  await db.delete(jobRuns).where(eq(jobRuns.key, key));
-}
-
 export async function evaluateSeasonWeek(season: Season, weekStart: string, now = new Date()) {
   const [rules, alive, sessions, applied] = await Promise.all([
     rulesForWeek(season, weekStart),

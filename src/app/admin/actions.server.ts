@@ -1,3 +1,5 @@
+// RPC implementations intentionally mirror the public action exports.
+// fallow-ignore-file duplicate-export
 import "@tanstack/react-start/server-only";
 
 import { redirect } from "@tanstack/react-router";
