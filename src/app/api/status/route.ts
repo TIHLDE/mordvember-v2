@@ -9,4 +9,4 @@ import { getCurrentSeason } from "@/server/season";
   return Response.json(await boardData(season), { headers: { "Cache-Control": "no-store" } });
 }
 
-export const Route = createFileRoute("/api/status")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/status")({ server: { handlers: { GET: () => GET() } } });

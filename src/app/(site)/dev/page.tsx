@@ -58,4 +58,4 @@ async function DevLoginPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/dev/")({ validateSearch: (search: Record<string, unknown>) => ({ next: typeof search.next === "string" ? search.next : undefined }), component: DevLoginPage });
+export const Route = createFileRoute("/(site)/dev/")({ validateSearch: (search: Record<string, unknown>)  : { next?: string } => ({ next: typeof search.next === "string" ? search.next : undefined }), component: DevLoginPage });

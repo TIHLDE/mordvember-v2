@@ -76,4 +76,4 @@ async function AttendanceAdmin() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/oppmote/")({ validateSearch: (search: Record<string, unknown>) => ({ uke: typeof search.uke === "string" ? search.uke : undefined }), component: AttendanceAdmin });
+export const Route = createFileRoute("/admin/oppmote/")({ validateSearch: (search: Record<string, unknown>)  : { uke?: string } => ({ uke: typeof search.uke === "string" ? search.uke : undefined }), component: AttendanceAdmin });

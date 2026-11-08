@@ -14,4 +14,4 @@ import { getCurrentSeason } from "@/server/season";
   return Response.json({ qrSvg, nextCodeInMs }, { headers: { "Cache-Control": "no-store" } });
 }
 
-export const Route = createFileRoute("/api/status/live")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/status/live")({ server: { handlers: { GET: () => GET() } } });

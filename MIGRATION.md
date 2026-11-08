@@ -25,3 +25,5 @@ Stage 4: Route params use Route.useParams; login/dev/profile/checkin/attendance 
 ## Stage 5 (partial)
 
 Next Link components now use TanStack Link; pathname reads use useLocation. Existing navigation entries are retained. Dynamic URL strings and navigation data need typed LinkOptions conversion; redirects still use Next and must move to loading boundaries along with stage 8. Verify back/forward, query preservation, active states and authenticated redirects before marking this stage complete.
+
+Stage 5 follow-up: login query strings and player detail links now use typed search/params; optional validated search fields accept omitted inputs. Zero-argument public status handlers no longer receive a Request. Full redirect migration remains dependent on explicit server loaders.

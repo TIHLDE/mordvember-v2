@@ -118,7 +118,7 @@ export function AdminShell({
               </button>
             </form>
             {user.hasProfile ? (
-              <Link to="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+              <Link to="/profil" search={{}} aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
                 {avatar}
               </Link>
             ) : (

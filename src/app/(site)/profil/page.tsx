@@ -87,4 +87,4 @@ function ImageBadge({ player }: {
     return <Badge tone="amber">Venter på godkjenning</Badge>;
 }
 
-export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>) => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), component: ProfilePage });
+export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>)  : { pameldt?: string } => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), component: ProfilePage });

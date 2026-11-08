@@ -50,7 +50,7 @@ export async function SiteHeader() {
                     </button>
                   </form>
                   {viewer.player ? (
-                    <Link to="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+                    <Link to="/profil" search={{}} aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
                       <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
                     </Link>
                   ) : (
@@ -58,7 +58,7 @@ export async function SiteHeader() {
                   )}
                 </>
               ) : (
-                <Link to="/login" className={buttonClass({ variant: "ghost", size: "sm" })}>
+                <Link to="/login" search={{}} className={buttonClass({ variant: "ghost", size: "sm" })}>
                   Logg inn
                 </Link>
               )}

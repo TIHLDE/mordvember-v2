@@ -23,9 +23,9 @@ async function LoginPage() {
       {/* Not a next/link: its prefetch would run the login route and overwrite the OAuth cookie. */}
       <a href={`/api/auth/login?next=${encodeURIComponent(target)}`} className={buttonClass()}>Logg inn med TIHLDE</a>
       {process.env.NODE_ENV === "development" && (<p className="mt-8 text-sm text-zinc-500">
-          Lokal utvikling: <Link to={`/dev?next=${encodeURIComponent(target)}`} className="underline">velg testbruker</Link>
+          Lokal utvikling: <Link to="/dev" search={{ next: target }} className="underline">velg testbruker</Link>
         </p>)}
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/login/")({ validateSearch: (search: Record<string, unknown>) => ({ feil: typeof search.feil === "string" ? search.feil : undefined, next: typeof search.next === "string" ? search.next : undefined }), component: LoginPage });
+export const Route = createFileRoute("/(site)/login/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined, next: typeof search.next === "string" ? search.next : undefined }), component: LoginPage });
