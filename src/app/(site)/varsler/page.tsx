@@ -4,13 +4,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { Card, Empty, PageTitle } from "@/components/ui";
 
-
 import { formatOslo } from "@/game/time";
-
 
 import { MarkRead } from "./MarkRead";
 function NotificationsPage() {
- const { viewer, rows } = Route.useLoaderData();
+ const { rows } = Route.useLoaderData();
 return (<div className="mx-auto max-w-2xl">
       <PageTitle>Varsler</PageTitle>
       <MarkRead hasUnread={rows.some((r) => !r.readAt)}/>
@@ -44,5 +42,5 @@ const rows = await db
         .where(eq(notifications.userId, viewer.user.id))
         .orderBy(desc(notifications.createdAt))
         .limit(100);
-return { viewer, rows };
+return { rows };
 });

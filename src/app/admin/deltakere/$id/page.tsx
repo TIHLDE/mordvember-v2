@@ -8,13 +8,12 @@ import { BioFields } from "@/components/BioFields";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Field, PageTitle } from "@/components/ui";
 
-
 import { parseBio } from "@/game/bio";
 
 import { approveImageAction, disqualifyAction, playerBioAction, playerImageAction, rejectImageAction, removePlayerAction, } from "../../actions";
 import { imageStatus, STATUS } from "../status";
 function PlayerAdmin() {
- const { viewer, id, player, canDisqualify, canRemove, canEdit } = Route.useLoaderData();
+ const { player, canDisqualify, canRemove, canEdit } = Route.useLoaderData();
 return (<div className="space-y-6">
       <Link to="/admin/deltakere" className="inline-flex text-sm text-zinc-400 transition-colors hover:text-white">
         ← Alle deltakere
@@ -110,5 +109,5 @@ if (!player)
 const canDisqualify = player.status === "alive" && viewer.season.phase === "running";
 const canRemove = viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
 const canEdit = player.status === "alive";
-return { viewer, id, player, canDisqualify, canRemove, canEdit };
+return { id, player, canDisqualify, canRemove, canEdit };
 });

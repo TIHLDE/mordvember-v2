@@ -12,7 +12,6 @@ import { weekStartOf } from "@/game/time";
 
 import type { Season } from "@/server/auth/session";
 
-
 import { ResetGameFields } from "./ResetGameFields";
 import { officeAction, resetGameAction, rulesAction, resumeGameAction, setPhaseAction, startGameAction, updateBasicsAction, } from "../actions";
 function RuleFields({ rules }: {
@@ -38,7 +37,7 @@ function RuleFields({ rules }: {
     </div>);
 }
 function SeasonAdmin() {
- const { viewer, season, settings, rules, ringDrawn, phase } = Route.useLoaderData();
+ const { season, settings, rules, ringDrawn, phase } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub={`Fase: ${phase}`}>{season.name}</PageTitle>
 
@@ -215,5 +214,5 @@ const season = viewer.season;
 const settings = season.settings;
 const rules = await rulesForWeek(season, weekStartOf(new Date()));
 const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
-return { viewer, season, settings, rules, ringDrawn, phase: phaseLabel(season.phase) };
+return { season, settings, rules, ringDrawn, phase: phaseLabel(season.phase) };
 });

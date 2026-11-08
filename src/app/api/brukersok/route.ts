@@ -23,4 +23,4 @@ import { searchPhotonUsers } from "@/server/photon-users";
   }
 }
 
-export const Route = createFileRoute("/api/brukersok")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/brukersok")({ server: { handlers: { GET: ({ request }) => GET(request) } } });

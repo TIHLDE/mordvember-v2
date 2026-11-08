@@ -16,21 +16,21 @@ const loadHome = createServerFn({ method: "GET" }).handler(async () => {
  const season = viewer?.season ?? await getCurrentSeason();
  if (!season) return null;
  // Only authenticated members may receive the participant roster.
- const grid = viewer ? await gridPlayers(season.id) : [];
+ const grid = await gridPlayers(season.id);
  const alive = visibleAliveCount(grid);
- return { viewer, season, grid, alive, phase: phaseLabel(season.phase), open: signupOpen(season), items: viewer?.player ? await myReviewItems(viewer) : [] };
+ return { viewer, season, grid: viewer ? grid : [], total: grid.length, alive, phase: phaseLabel(season.phase), open: signupOpen(season), items: viewer?.player ? await myReviewItems(viewer) : [] };
 });
 function Home() {
  const data = Route.useLoaderData();
  if (!data) return <PageTitle sub="Spillet er ikke satt opp ennå.">Mordvember</PageTitle>;
- const { viewer, season, grid, alive, phase, open, items } = data;
+ const { viewer, season, grid, total, alive, phase, open, items } = data;
  const winner = season.winnerPlayerId && alive === 1 ? grid.find(p => !p.out) : null;
  const info = season.settings.info;
  const started = season.phase === "running" || season.phase === "ended";
     return (<div className="space-y-6">
       <PageTitle sub={`${season.name} · ${phase}`} aside={<>
             <p className="text-xs text-zinc-400 sm:text-sm">{started ? "Spillere igjen" : "Påmeldt"}</p>
-            <p className="mt-1 font-display text-5xl leading-none text-blood tabular-nums sm:text-6xl">{started ? alive : grid.length}</p>
+            <p className="mt-1 font-display text-5xl leading-none text-blood tabular-nums sm:text-6xl">{started ? alive : total}</p>
           </>}>
         Mordvember
       </PageTitle>

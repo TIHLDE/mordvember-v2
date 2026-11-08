@@ -6,13 +6,12 @@ import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 
-
 import { isOverdue } from "@/game/kills";
 import { formatOslo } from "@/game/time";
 
 import { approveKillAction, rejectKillAction, undoKillAction } from "../actions";
 function KillCases() {
- const { viewer, rows, now, open, waiting, applied } = Route.useLoaderData();
+ const { viewer, open, waiting, applied } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub="Saker som er bestridt, flagget som kollisjon eller ikke bekreftet innen 12 timer.">Drapssaker</PageTitle>
       <Card title="Til avgjørelse">
@@ -86,5 +85,5 @@ const now = new Date();
 const open = rows.filter((r) => r.kill.status === "escalated" || isOverdue(r.kill, now));
 const waiting = rows.filter((r) => r.kill.status === "pending" && !isOverdue(r.kill, now));
 const applied = viewer.isGamemaster ? rows.filter((r) => r.kill.status === "applied") : [];
-return { viewer, rows, now, open, waiting, applied };
+return { viewer, open, waiting, applied };
 });

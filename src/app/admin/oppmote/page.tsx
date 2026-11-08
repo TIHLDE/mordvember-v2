@@ -6,14 +6,12 @@ import { DateTimePicker } from "@/components/DateTimePicker";
 import { inputBase } from "@/components/styles";
 import { Badge, Button, Card, Empty, Field, LinkButton, PageTitle } from "@/components/ui";
 
-
 import { addDays, formatOslo, formatOsloDate, weekStartOf } from "@/game/time";
 import { osloInputValue } from "@/lib/oslo-input";
 
-
 import { addCheckinAction, editCheckinAction } from "../actions";
 function AttendanceAdmin() {
- const { viewer, uke, week, rows, roster, flagged } = Route.useLoaderData();
+ const { week, rows, roster, flagged } = Route.useLoaderData();
 const row = (c: (typeof rows)[number]) => (<li key={c.checkin.id} className="space-y-3 py-4 text-sm first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium text-white">{c.name}</span>
@@ -85,5 +83,5 @@ const [rows, roster] = await Promise.all([
         db.select({ id: players.id, name: players.name }).from(players).where(eq(players.seasonId, viewer.season.id)).orderBy(asc(players.name)),
     ]);
 const flagged = rows.filter((r) => !r.checkin.flagsReviewed && !r.checkin.rejected && (r.checkin.autoClosed || r.checkin.flags.length > 0));
-return { viewer, uke, week, rows, roster, flagged };
+return { uke, week, rows, roster, flagged };
 });

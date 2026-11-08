@@ -14,7 +14,7 @@ function fail(origin: string, reason: string) {
   const code = new URL(request.url).searchParams.get("code");
   const state = new URL(request.url).searchParams.get("state");
   const origin = new URL(request.url).origin;
-  const stored = readOAuthState(request);
+  const stored = readOAuthState();
   if (!code) return fail(origin, "kode");
   if (!state || !stored.state || state !== stored.state || !stored.verifier) return fail(origin, "state");
 
@@ -35,8 +35,8 @@ function fail(origin: string, reason: string) {
     return fail(origin, "lagring");
   }
   const response = Response.redirect(`${origin}${safeNext(stored.next)}`, 307);
-  clearOAuthState(response);
+  clearOAuthState();
   return response;
 }
 
-export const Route = createFileRoute("/api/auth/callback")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/auth/callback")({ server: { handlers: { GET: ({ request }) => GET(request) } } });

@@ -10,9 +10,6 @@ import { Badge, Button, Card, Field, Notice, PageTitle } from "@/components/ui";
 import { parseBio } from "@/game/bio";
 import { imageState } from "@/game/review";
 
-
-
-
 import { bioAction, defaultImageAction, deleteImageAction, uploadImageAction, withdrawAction, } from "../actions";
 const loadProfile = createServerFn({ method: "GET" }).handler(async () => {
  const { getViewer } = await import("@/server/auth/session");

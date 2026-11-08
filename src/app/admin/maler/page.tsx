@@ -4,7 +4,6 @@ import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 
-
 import { saveTemplateAction } from "../actions";
 function TemplatesPage() {
  const { rows } = Route.useLoaderData();

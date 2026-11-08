@@ -6,8 +6,6 @@ import { Notice, PageTitle } from "@/components/ui";
 import { sessionCountsAt } from "@/game/attendance";
 import { formatOslo, osloDate } from "@/game/time";
 
-
-
 import { completeScanAction } from "../actions";
 import { CheckinButton } from "./CheckinButton";
 function CheckinPage() {

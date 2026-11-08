@@ -5,7 +5,6 @@ import { redirect } from "@tanstack/react-router";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
 
-
 function AdminLayout() {
  const path = useLocation({ select: location => location.pathname });
  const { viewer, waiting, groups } = Route.useLoaderData();

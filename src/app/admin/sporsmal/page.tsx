@@ -5,10 +5,9 @@ import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
-
 import { answerAction, deleteQuestionAction } from "../actions";
 function QuestionsAdmin() {
- const { viewer, rows } = Route.useLoaderData();
+ const { rows } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub="Spørsmål og svar vises uten navn for alle innloggede på spørsmålssiden.">Spørsmål</PageTitle>
       {rows.length === 0 && <Empty>Ingen spørsmål.</Empty>}
@@ -37,5 +36,5 @@ const { guard } = await import("@/lib/guard");
 const { inbox } = await import("@/server/questions");
 const viewer = await guard("gamemaster");
 const rows = await inbox(viewer);
-return { viewer, rows };
+return { rows };
 });

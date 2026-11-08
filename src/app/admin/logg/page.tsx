@@ -3,9 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
-
 function AuditPage() {
- const { viewer, rows } = Route.useLoaderData();
+ const { rows } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub="Alle adminhandlinger, inkludert hver visning av sirkelen.">Revisjonslogg</PageTitle>
       <Card>
@@ -26,5 +25,5 @@ const { guard } = await import("@/lib/guard");
 const { auditEntries } = await import("@/server/admin");
 const viewer = await guard("gamemaster");
 const rows = await auditEntries(viewer.season.id);
-return { viewer, rows: rows.map(row => ({ ...row, details: JSON.stringify(row.details) })) };
+return { rows: rows.map(row => ({ ...row, details: JSON.stringify(row.details) })) };
 });

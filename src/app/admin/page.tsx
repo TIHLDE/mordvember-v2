@@ -6,13 +6,10 @@ import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Button, Card, Field, Notice, PageTitle } from "@/components/ui";
 
-
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
 import { formatOslo } from "@/game/time";
 
 import { msAgo } from "@/lib/time";
-
-
 
 import { createSeasonAction } from "./actions";
 const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {

@@ -5,9 +5,7 @@ import { ActionForm } from "@/components/ActionForm";
 import { inputBase } from "@/components/styles";
 import { Button, Card, Empty, PageTitle } from "@/components/ui";
 
-
 import { formatOslo } from "@/game/time";
-
 
 import { generateCircleAction, mercyAction, moveAction, startGameAction } from "../actions";
 const EVENT_LABEL: Record<string, string> = {
@@ -20,7 +18,7 @@ const EVENT_LABEL: Record<string, string> = {
     fjernet: "Deltaker fjernet",
 };
 function CirclePage() {
- const { viewer, season, circle, events, out, names, gm } = Route.useLoaderData();
+ const { season, circle, events, out, names, gm } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub={gm ? "All visning av denne siden logges." : "Du ser sirkelen med nødtilgang. Visningen er logget og spillmesterne er varslet."}>
         Sirkel
@@ -105,5 +103,5 @@ const [circle, events, out] = await Promise.all([
     ]);
 const names = new Map(circle.map((c) => [c.id, c.name]));
 const gm = viewer.isGamemaster;
-return { viewer, season, circle, events: events.map(event => ({ ...event, payload: JSON.stringify(event.payload) })), out, names, gm };
+return { season, circle, events: events.map(event => ({ ...event, payload: JSON.stringify(event.payload) })), out, names, gm };
 });

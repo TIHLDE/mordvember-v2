@@ -12,8 +12,8 @@ import { env } from "@/server/env";
   const verifier = createVerifier();
   const next = safeNext(new URL(request.url).searchParams.get("next"));
   const response = Response.redirect(authorizeUrl(redirectUri(new URL(request.url).origin), state, await challengeFor(verifier)), 307);
-  saveOAuthState(response, { state, verifier, next });
+  saveOAuthState({ state, verifier, next });
   return response;
 }
 
-export const Route = createFileRoute("/api/auth/login")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/auth/login")({ server: { handlers: { GET: ({ request }) => GET(request) } } });

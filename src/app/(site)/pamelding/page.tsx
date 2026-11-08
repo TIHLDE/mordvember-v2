@@ -7,8 +7,6 @@ import { inputClass } from "@/components/styles";
 import { Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 import { bioFromPhoton } from "@/game/bio";
 
-
-
 import { signUpAction } from "../actions";
 const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
  const { getViewer } = await import("@/server/auth/session");

@@ -4,7 +4,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { notFound, redirect } from "@tanstack/react-router";
 import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
 
-
 import { safeNext } from "@/lib/redirect";
 
 const TEST_PREFIX = "test-";
@@ -63,7 +62,6 @@ const loadDevLoginPage = createServerFn({ method: "GET" }).validator((value: unk
 const { asc, like } = await import("drizzle-orm");
 const { db } = await import("@/db");
 const { users } = await import("@/db/schema");
-const { onLogin } = await import("@/server/auth/login");
 if (process.env.NODE_ENV !== "development")
         throw notFound();
 const [{ next }, testUsers] = await Promise.all([

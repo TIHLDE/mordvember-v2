@@ -5,8 +5,6 @@ import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
-
-
 import { deleteQuestionAction } from "../../admin/actions";
 import { askAction } from "../actions";
 function QuestionsPage() {

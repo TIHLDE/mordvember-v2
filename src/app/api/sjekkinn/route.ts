@@ -21,4 +21,4 @@ import { getCurrentSeason } from "@/server/season";
   return response;
 }
 
-export const Route = createFileRoute("/api/sjekkinn")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/sjekkinn")({ server: { handlers: { GET: ({ request }) => GET(request) } } });

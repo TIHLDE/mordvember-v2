@@ -4,10 +4,9 @@ import { ActionForm } from "@/components/ActionForm";
 import { Button, Card, Empty, PageTitle } from "@/components/ui";
 import { UserSearch } from "@/components/UserSearch";
 
-
 import { addStaffAction, removeStaffAction } from "../actions";
 function RolesAdmin() {
- const { viewer, rows } = Route.useLoaderData();
+ const { rows } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub="Spillmestere styrer spillet og ser sirkelen.">Spillmestere</PageTitle>
       <Card title="Legg til">
@@ -40,5 +39,5 @@ const { guard } = await import("@/lib/guard");
 const { listStaff } = await import("@/server/admin");
 const viewer = await guard("roles");
 const rows = await listStaff(viewer.season.id);
-return { viewer, rows };
+return { rows };
 });

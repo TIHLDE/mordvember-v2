@@ -8,4 +8,4 @@ import { endSession } from "@/server/auth/session";
   return Response.redirect(`${new URL(request.url).origin}/`, 303);
 }
 
-export const Route = createFileRoute("/api/auth/logout")({ server: { handlers: { POST: ({ request, params }) => POST(request) } } });
+export const Route = createFileRoute("/api/auth/logout")({ server: { handlers: { POST: ({ request }) => POST(request) } } });

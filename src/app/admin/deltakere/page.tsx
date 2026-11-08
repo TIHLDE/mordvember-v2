@@ -6,15 +6,12 @@ import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 
-
 import { BIO_FIELDS, parseBio } from "@/game/bio";
-
-
 
 import { addPlayerAction } from "../actions";
 import { imageStatus, STATUS } from "./status";
 function PlayersAdmin() {
- const { viewer, running, list, present, rows, pending, rest, waiting, noBio, candidates } = Route.useLoaderData();
+ const { viewer, rows, pending, rest, waiting, noBio, candidates } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub={`${rows.length} påmeldt${waiting ? ` · ${waiting} bilder venter på godkjenning` : ""}${noBio ? ` · ${noBio} mangler utseende` : ""}. Trykk på en deltaker for å se bildet og gjøre endringer.`}>
         Deltakere
@@ -126,5 +123,5 @@ const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
 const waiting = pending.length;
 const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
 const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
-return { viewer, running, list, present, rows, pending, rest, waiting, noBio, candidates };
+return { viewer, rows, pending, rest, waiting, noBio, candidates };
 });

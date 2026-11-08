@@ -19,7 +19,16 @@ export default defineConfig({
           "^(?!(?:__root|page|layout|route|sitemap\\[\\.\\]xml|robots\\[\\.\\]txt)\\.(?:ts|tsx)$).*\\.(?:ts|tsx)$",
       },
     }),
+    nitro({
+      routeRules: {
+        "/**": { headers: {
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "same-origin",
+          "X-Frame-Options": "DENY",
+          "Permissions-Policy": "camera=(self), geolocation=(self)",
+        } },
+      },
+    }),
     viteReact(),
-    nitro(),
   ],
 });

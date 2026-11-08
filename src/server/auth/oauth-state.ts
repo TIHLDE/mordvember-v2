@@ -8,7 +8,7 @@ type OAuthState = { state: string; verifier: string; next: string };
 
 export const redirectUri = (origin: string) => `${origin}/api/auth/callback`;
 
-export function saveOAuthState(_response: Response, value: OAuthState) {
+export function saveOAuthState(value: OAuthState) {
   setCookie(OAUTH_COOKIE, JSON.stringify(value), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -18,14 +18,20 @@ export function saveOAuthState(_response: Response, value: OAuthState) {
   });
 }
 
-export function readOAuthState(_request: Request): Partial<OAuthState> {
+export function readOAuthState(): Partial<OAuthState> {
   try {
-    return JSON.parse(getCookie(OAUTH_COOKIE) ?? "{}") as Partial<OAuthState>;
+    const value: unknown = JSON.parse(getCookie(OAUTH_COOKIE) ?? "{}");
+    if (!value || typeof value !== "object") return {};
+    return {
+      state: "state" in value && typeof value.state === "string" ? value.state : undefined,
+      verifier: "verifier" in value && typeof value.verifier === "string" ? value.verifier : undefined,
+      next: "next" in value && typeof value.next === "string" ? value.next : undefined,
+    };
   } catch {
     return {};
   }
 }
 
-export function clearOAuthState(_response: Response) {
+export function clearOAuthState() {
   deleteCookie(OAUTH_COOKIE, { path: "/" });
 }

@@ -7,14 +7,12 @@ import { ActionForm } from "@/components/ActionForm";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { Badge, Button, Card, Empty, Field, PageTitle } from "@/components/ui";
 
-
 import { formatOslo } from "@/game/time";
 import { osloInputValue } from "@/lib/oslo-input";
 
-
 import { confirmKillAction, disputeKillAction, reportKillAction } from "../actions";
 function KillsPage() {
- const { viewer, me, mine, open, history, running, now } = Route.useLoaderData();
+ const { viewer, me, open, history, running, now } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub="Ingenting endres før drapet er bekreftet av begge eller godkjent av spillmesterne.">Drap</PageTitle>
 
@@ -100,5 +98,5 @@ const open = mine.filter((m) => m.kill.status === "pending" || m.kill.status ===
 const history = mine.filter((m) => m.kill.status === "applied" || m.kill.status === "rejected");
 const running = viewer.season.phase === "running" && viewer.player!.status === "alive";
 const now = osloInputValue(new Date());
-return { viewer, me, mine, open, history, running, now };
+return { viewer, me, open, history, running, now };
 });

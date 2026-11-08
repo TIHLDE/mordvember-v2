@@ -11,4 +11,4 @@ const MAX_LENGTH = 2000;
   return new Response(null, { status: 204 });
 }
 
-export const Route = createFileRoute("/api/klientfeil")({ server: { handlers: { POST: ({ request, params }) => POST(request) } } });
+export const Route = createFileRoute("/api/klientfeil")({ server: { handlers: { POST: ({ request }) => POST(request) } } });

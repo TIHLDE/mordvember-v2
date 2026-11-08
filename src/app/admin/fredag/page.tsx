@@ -6,10 +6,9 @@ import { Badge, Button, Card, Empty, Notice, PageTitle } from "@/components/ui";
 import { earlierGameWeeks } from "@/game/friday";
 import { formatOsloDate, weekStartOf } from "@/game/time";
 
-
 import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../actions";
 function FridayList() {
- const { viewer, all, pending, decided, running, now, thisWeek, current, atRisk, earlier, missing } = Route.useLoaderData();
+ const { pending, decided, running, thisWeek, current, atRisk, earlier, missing } = Route.useLoaderData();
 return (<div className="space-y-6">
       <PageTitle sub="Lista lages automatisk fredag kl. 16.00. Ingen ryker automatisk.">Fredagslista</PageTitle>
       <Card title="Til gjennomgang">
@@ -93,5 +92,5 @@ const current = running ? await evaluateSeasonWeek(viewer.season, thisWeek, now)
 const atRisk = current.filter((c) => !c.evaluation.ok);
 const earlier = running && viewer.season.startedAt ? earlierGameWeeks(viewer.season.startedAt, now) : [];
 const missing = await missingFridayLists(viewer.season.id, earlier);
-return { viewer, all, pending, decided, running, now, thisWeek, current, atRisk, earlier, missing };
+return { pending, decided, running, thisWeek, current, atRisk, earlier, missing };
 });

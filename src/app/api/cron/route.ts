@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { runCron } from "@/server/cron";
 import { env } from "@/server/env";
 
-export const maxDuration = 60;
+// Deployment requirement: allow this cron endpoint at least 60 seconds (see MIGRATION.md).
 
  async function GET(request: Request) {
   const expected = Buffer.from(`Bearer ${env.cronSecret}`);
@@ -15,4 +15,4 @@ export const maxDuration = 60;
   return Response.json({ ok: failed.length === 0, done, failed }, { status: failed.length ? 500 : 200 });
 }
 
-export const Route = createFileRoute("/api/cron")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
+export const Route = createFileRoute("/api/cron")({ server: { handlers: { GET: ({ request }) => GET(request) } } });
