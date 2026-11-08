@@ -55,42 +55,42 @@ export default defineConfig(({ mode }) => ({
   },
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
-  plugins:
-    mode === "test"
-      ? []
-      : lazyPlugins(() => [
-          tailwindcss(),
-          tanstackStart({
-            srcDirectory: "src",
-            router: {
-              routesDirectory: "app",
-              indexToken: "page",
-              routeToken: /layout|route/,
-              routeFileIgnorePattern:
-                "^(?!(?:__root|page|layout|route|sitemap\\[\\.\\]xml|robots\\[\\.\\]txt)\\.(?:ts|tsx)$).*\\.(?:ts|tsx)$",
+  plugins: lazyPlugins(() => {
+    if (mode === "test") return [];
+    return [
+      tailwindcss(),
+      tanstackStart({
+        srcDirectory: "src",
+        router: {
+          routesDirectory: "app",
+          indexToken: "page",
+          routeToken: /layout|route/,
+          routeFileIgnorePattern:
+            "^(?!(?:__root|page|layout|route|sitemap\\[\\.\\]xml|robots\\[\\.\\]txt)\\.(?:ts|tsx)$).*\\.(?:ts|tsx)$",
+        },
+      }),
+      nitro({
+        experimental: { tasks: true },
+        tasks: {
+          "game:cron": {
+            handler: fileURLToPath(new URL("./src/tasks/game-cron.ts", import.meta.url)),
+            description: "Process scheduled game updates and queued email",
+          },
+        },
+        scheduledTasks: { "*/10 * * * *": ["game:cron"] },
+        vercel: { functionRules: { "/_vercel/cron": { maxDuration: 60 } } },
+        routeRules: {
+          "/**": {
+            headers: {
+              "X-Content-Type-Options": "nosniff",
+              "Referrer-Policy": "same-origin",
+              "X-Frame-Options": "DENY",
+              "Permissions-Policy": "camera=(self), geolocation=(self)",
             },
-          }),
-          nitro({
-            experimental: { tasks: true },
-            tasks: {
-              "game:cron": {
-                handler: fileURLToPath(new URL("./src/tasks/game-cron.ts", import.meta.url)),
-                description: "Process scheduled game updates and queued email",
-              },
-            },
-            scheduledTasks: { "*/10 * * * *": ["game:cron"] },
-            vercel: { functionRules: { "/_vercel/cron": { maxDuration: 60 } } },
-            routeRules: {
-              "/**": {
-                headers: {
-                  "X-Content-Type-Options": "nosniff",
-                  "Referrer-Policy": "same-origin",
-                  "X-Frame-Options": "DENY",
-                  "Permissions-Policy": "camera=(self), geolocation=(self)",
-                },
-              },
-            },
-          }),
-          viteReact(),
-        ]),
+          },
+        },
+      }),
+      viteReact(),
+    ];
+  }),
 }));
