@@ -204,7 +204,7 @@ function PhaseButton({ phase, label }: {
     </ActionForm>);
 }
 
-export const Route = createFileRoute("/admin/sesong/")({ loader: () => loadSeasonAdmin(), component: SeasonAdmin });
+export const Route = createFileRoute("/admin/sesong/")({ loader: ({ location }) => loadSeasonAdmin({ headers: { "x-mv-path": location.href } }), component: SeasonAdmin });
 
 const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
 const { guard } = await import("@/lib/guard");

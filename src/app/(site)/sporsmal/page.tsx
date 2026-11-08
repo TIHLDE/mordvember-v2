@@ -37,7 +37,7 @@ return (<div className="mx-auto max-w-2xl space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/sporsmal/")({ loader: () => loadQuestionsPage(), component: QuestionsPage });
+export const Route = createFileRoute("/(site)/sporsmal/")({ loader: ({ location }) => loadQuestionsPage({ headers: { "x-mv-path": location.href } }), component: QuestionsPage });
 
 const loadQuestionsPage = createServerFn({ method: "GET" }).handler(async () => {
 const { redirectToLogin } = await import("@/lib/guard");

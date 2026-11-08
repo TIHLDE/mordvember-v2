@@ -19,7 +19,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/logg/")({ loader: () => loadAuditPage(), component: AuditPage });
+export const Route = createFileRoute("/admin/logg/")({ loader: ({ location }) => loadAuditPage({ headers: { "x-mv-path": location.href } }), component: AuditPage });
 
 const loadAuditPage = createServerFn({ method: "GET" }).handler(async () => {
 const { guard } = await import("@/lib/guard");

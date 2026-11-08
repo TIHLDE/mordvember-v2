@@ -77,7 +77,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/fredag/")({ loader: () => loadFridayList(), component: FridayList });
+export const Route = createFileRoute("/admin/fredag/")({ loader: ({ location }) => loadFridayList({ headers: { "x-mv-path": location.href } }), component: FridayList });
 
 const loadFridayList = createServerFn({ method: "GET" }).handler(async () => {
 const { guard } = await import("@/lib/guard");

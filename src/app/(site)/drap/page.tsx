@@ -72,7 +72,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/drap/")({ loader: () => loadKillsPage(), component: KillsPage });
+export const Route = createFileRoute("/(site)/drap/")({ loader: ({ location }) => loadKillsPage({ headers: { "x-mv-path": location.href } }), component: KillsPage });
 
 const loadKillsPage = createServerFn({ method: "GET" }).handler(async () => {
 const { and, desc, eq, inArray, or } = await import("drizzle-orm");

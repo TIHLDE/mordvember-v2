@@ -105,4 +105,4 @@ function SessionStatus({ attendance, open, now, checkout = false }: {
     </>);
 }
 
-export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), loader: () => loadCheckin(), component: CheckinPage });
+export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), loader: ({ location }) => loadCheckin({ headers: { "x-mv-path": location.href } }), component: CheckinPage });

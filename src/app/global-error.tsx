@@ -29,8 +29,7 @@ export default function GlobalError({ error }: { error: unknown }) {
   }, [error]);
 
   return (
-    <html lang="nb">
-      <body className="font-sans text-zinc-200 antialiased">
+    <>
         <main className="mx-auto max-w-md px-4 py-20 text-center">
           <h1 className="font-display text-4xl text-blood">Siden lastet ikke</h1>
           <p className="mt-3 mb-6 text-sm text-zinc-400">Dette skyldes ofte dårlig nett. Prøv igjen.</p>
@@ -38,7 +37,6 @@ export default function GlobalError({ error }: { error: unknown }) {
             Last inn på nytt
           </button>
         </main>
-      </body>
-    </html>
+    </>
   );
 }

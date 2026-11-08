@@ -69,7 +69,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/oppmote/")({ validateSearch: (search: Record<string, unknown>)  : { uke?: string } => ({ uke: typeof search.uke === "string" ? search.uke : undefined }), loaderDeps: ({ search }) => ({ uke: search.uke }), loader: ({ deps }) => loadAttendanceAdmin({ data: deps.uke ?? "" }), component: AttendanceAdmin });
+export const Route = createFileRoute("/admin/oppmote/")({ validateSearch: (search: Record<string, unknown>)  : { uke?: string } => ({ uke: typeof search.uke === "string" ? search.uke : undefined }), loaderDeps: ({ search }) => ({ uke: search.uke }), loader: ({ deps, location }) => loadAttendanceAdmin({ data: deps.uke ?? "", headers: { "x-mv-path": location.href } }), component: AttendanceAdmin });
 
 const loadAttendanceAdmin = createServerFn({ method: "GET" }).validator((value: unknown) => { if (typeof value !== "string") throw new Error("Ugyldig parameter"); return value; }).handler(async ({ data }) => {
 const { asc, eq } = await import("drizzle-orm");

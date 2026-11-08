@@ -1,19 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
 
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
 
 
 function AdminLayout() {
+ const path = useLocation({ select: location => location.pathname });
  const { viewer, waiting, groups } = Route.useLoaderData();
 return (<AdminShell groups={groups} banner={<PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8"/>} user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}>
-      <Outlet />
+      <div key={path} className="page-enter"><Outlet /></div>
     </AdminShell>);
 }
 
-export const Route = createFileRoute("/admin")({ loader: () => loadAdminLayout(), component: AdminLayout });
+export const Route = createFileRoute("/admin")({ loader: ({ location }) => loadAdminLayout({ headers: { "x-mv-path": location.href } }), component: AdminLayout });
 
 const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
 const { getNavigation } = await import("@/server/navigation");

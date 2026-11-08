@@ -89,7 +89,7 @@ function PlayerList({ rows }: {
     </ul>);
 }
 
-export const Route = createFileRoute("/admin/deltakere/")({ loader: () => loadPlayersAdmin(), component: PlayersAdmin });
+export const Route = createFileRoute("/admin/deltakere/")({ loader: ({ location }) => loadPlayersAdmin({ headers: { "x-mv-path": location.href } }), component: PlayersAdmin });
 
 const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
 const { asc, eq } = await import("drizzle-orm");

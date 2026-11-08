@@ -27,19 +27,19 @@ describe("tilgang til sirkelen", () => {
   });
 
   it("bare godkjente filer importerer sirkelmodulen", () => {
-    const importers = sources.filter((s) => /from "@\/server\/circle"|from "\.\/circle"/.test(s.text)).map((s) => s.file);
-    expect(importers.sort()).toEqual(["app/(site)/actions.ts", "app/admin/sirkel/page.tsx", "server/game.ts"]);
+    const importers = sources.filter((s) => /from "@\/server\/circle"|from "\.\/circle"|import\("@\/server\/circle"\)/.test(s.text)).map((s) => s.file);
+    expect(importers.sort()).toEqual(["app/(site)/actions.server.ts", "app/admin/sirkel/page.tsx", "server/game.ts"]);
   });
 
   it("deltakerhandlingene bruker bare myTarget fra sirkelmodulen", () => {
-    const actions = sources.find((s) => s.file === "app/(site)/actions.ts")!.text;
+    const actions = sources.find((s) => s.file === "app/(site)/actions.server.ts")!.text;
     expect(actions).toMatch(/import \{ myTarget \} from "@\/server\/circle";/);
   });
 
   it("en deltaker får bare innsjekkstatusen til sitt eget offer", () => {
     const callers = sources.filter((s) => /\bisCheckedIn\b/.test(s.text)).map((s) => s.file);
-    expect(callers.sort()).toEqual(["app/(site)/actions.ts", "server/attendance.ts"]);
-    const actions = sources.find((s) => s.file === "app/(site)/actions.ts")!.text;
+    expect(callers.sort()).toEqual(["app/(site)/actions.server.ts", "server/attendance.ts"]);
+    const actions = sources.find((s) => s.file === "app/(site)/actions.server.ts")!.text;
     expect(actions.match(/isCheckedIn\(/g)).toEqual(["isCheckedIn("]);
     const body = actions.slice(actions.indexOf("export async function revealTargetAction"), actions.indexOf("export async function reportKillAction"));
     expect(body).toMatch(/const target = await myTarget\(viewer\);\s+if \(!target\) return null;/);
@@ -79,7 +79,7 @@ describe("tilgang til sirkelen", () => {
   });
 
   it("hver adminhandling krever innlogging med riktig rolle", () => {
-    const actions = sources.find((s) => s.file === "app/admin/actions.ts")!.text;
+    const actions = sources.find((s) => s.file === "app/admin/actions.server.ts")!.text;
     const exported = [...actions.matchAll(/export async function (\w+)\([^)]*\) \{([\s\S]*?)\n\}/g)];
     expect(exported.length).toBeGreaterThan(20);
     for (const [, name, body] of exported) {
@@ -94,7 +94,7 @@ describe("tilgang til sirkelen", () => {
 
   it("utviklerinnlogging er sperret utenfor utvikling", () => {
     const dev = sources.find((s) => s.file === "app/(site)/dev/page.tsx")!.text;
-    expect(dev.match(/process\.env\.NODE_ENV !== "development"\) notFound\(\)/g)?.length).toBe(2);
+    expect(dev.match(/process\.env\.NODE_ENV !== "development"\)\s+throw notFound\(\)/g)?.length).toBe(2);
     expect(dev).toMatch(/startsWith\(TEST_PREFIX\)/);
   });
 });

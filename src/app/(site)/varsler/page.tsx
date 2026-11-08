@@ -27,7 +27,7 @@ return (<div className="mx-auto max-w-2xl">
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/varsler/")({ loader: () => loadNotificationsPage(), component: NotificationsPage });
+export const Route = createFileRoute("/(site)/varsler/")({ loader: ({ location }) => loadNotificationsPage({ headers: { "x-mv-path": location.href } }), component: NotificationsPage });
 
 const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async () => {
 const { desc, eq } = await import("drizzle-orm");

@@ -24,7 +24,7 @@ return (<div className="max-w-xl space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/nodtilgang/")({ loader: () => loadEmergencyPage(), component: EmergencyPage });
+export const Route = createFileRoute("/admin/nodtilgang/")({ loader: ({ location }) => loadEmergencyPage({ headers: { "x-mv-path": location.href } }), component: EmergencyPage });
 
 const loadEmergencyPage = createServerFn({ method: "GET" }).handler(async () => {
 const { guard } = await import("@/lib/guard");

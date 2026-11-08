@@ -25,7 +25,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/maler/")({ loader: () => loadTemplatesPage(), component: TemplatesPage });
+export const Route = createFileRoute("/admin/maler/")({ loader: ({ location }) => loadTemplatesPage({ headers: { "x-mv-path": location.href } }), component: TemplatesPage });
 
 const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => {
 const { guard } = await import("@/lib/guard");

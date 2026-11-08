@@ -56,4 +56,4 @@ function SignupPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/pamelding/")({ loader: () => loadSignup(), component: SignupPage });
+export const Route = createFileRoute("/(site)/pamelding/")({ loader: ({ location }) => loadSignup({ headers: { "x-mv-path": location.href } }), component: SignupPage });

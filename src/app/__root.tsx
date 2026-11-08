@@ -1,3 +1,4 @@
+import GlobalError from "./global-error";
 import "@fontsource/creepster/400.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
@@ -13,9 +14,11 @@ export const Route = createRootRoute({
     { name: "description", content: "Mordvember i TIHLDE" },
     { name: "robots", content: "noindex, nofollow" },
   ] }),
-  component: RootLayout,
+  shellComponent: RootLayout,
+  component: Outlet,
+  errorComponent: GlobalError,
 });
 
-function RootLayout() {
-  return <html lang="nb"><head><HeadContent /></head><body className="font-sans text-zinc-200 antialiased"><Outlet /><Scripts /></body></html>;
+function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html lang="nb"><head><HeadContent /></head><body className="font-sans text-zinc-200 antialiased">{children}<Scripts /></body></html>;
 }

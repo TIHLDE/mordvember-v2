@@ -93,7 +93,7 @@ function ImageReview({ player, canEdit }: {
     </Card>);
 }
 
-export const Route = createFileRoute("/admin/deltakere/$id/")({ loader: ({ params }) => loadPlayerAdmin({ data: params.id }), component: PlayerAdmin });
+export const Route = createFileRoute("/admin/deltakere/$id/")({ loader: ({ params, location }) => loadPlayerAdmin({ data: params.id, headers: { "x-mv-path": location.href } }), component: PlayerAdmin });
 
 const loadPlayerAdmin = createServerFn({ method: "GET" }).validator((value: unknown) => { if (typeof value !== "string") throw new Error("Ugyldig parameter"); return value; }).handler(async ({ data }) => {
 const { and, eq } = await import("drizzle-orm");

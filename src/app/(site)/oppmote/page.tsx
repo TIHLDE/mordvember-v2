@@ -57,4 +57,4 @@ function AttendancePage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/oppmote/")({ loader: () => getAttendance(), component: AttendancePage });
+export const Route = createFileRoute("/(site)/oppmote/")({ loader: ({ location }) => getAttendance({ headers: { "x-mv-path": location.href } }), component: AttendancePage });

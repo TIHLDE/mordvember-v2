@@ -86,4 +86,4 @@ function playerStatus(player: NonNullable<Viewer["player"]>, season: Season) {
     return season.phase === "running" ? "Du er fortsatt med." : "Spillet har ikke startet ennå.";
 }
 
-export const Route = createFileRoute("/(site)/")({ loader: () => loadHome(), component: Home });
+export const Route = createFileRoute("/(site)/")({ loader: ({ location }) => loadHome({ headers: { "x-mv-path": location.href } }), component: Home });

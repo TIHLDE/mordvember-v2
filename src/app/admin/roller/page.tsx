@@ -33,7 +33,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/roller/")({ loader: () => loadRolesAdmin(), component: RolesAdmin });
+export const Route = createFileRoute("/admin/roller/")({ loader: ({ location }) => loadRolesAdmin({ headers: { "x-mv-path": location.href } }), component: RolesAdmin });
 
 const loadRolesAdmin = createServerFn({ method: "GET" }).handler(async () => {
 const { guard } = await import("@/lib/guard");

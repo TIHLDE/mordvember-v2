@@ -1,12 +1,13 @@
 import { getNavigation } from "@/server/navigation";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 function SiteLayout() {
+    const path = useLocation({ select: location => location.pathname });
     const navigation = Route.useLoaderData();
     return (<>
       <SiteHeader {...navigation} />
-      <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16"><Outlet /></main>
+      <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16"><div key={path} className="page-enter"><Outlet /></div></main>
     </>);
 }
 
-export const Route = createFileRoute("/(site)")({ loader: () => getNavigation(), component: SiteLayout });
+export const Route = createFileRoute("/(site)")({ loader: ({ location }) => getNavigation({ headers: { "x-mv-path": location.href } }), component: SiteLayout });

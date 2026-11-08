@@ -82,7 +82,7 @@ return (<div className="space-y-6">
     </div>);
 }
 
-export const Route = createFileRoute("/admin/sirkel/")({ loader: () => loadCirclePage(), component: CirclePage });
+export const Route = createFileRoute("/admin/sirkel/")({ loader: ({ location }) => loadCirclePage({ headers: { "x-mv-path": location.href } }), component: CirclePage });
 
 const loadCirclePage = createServerFn({ method: "GET" }).handler(async () => {
 const { and, asc, eq, ne } = await import("drizzle-orm");

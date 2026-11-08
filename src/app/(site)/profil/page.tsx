@@ -93,4 +93,4 @@ function ImageBadge({ player }: {
     return <Badge tone="amber">Venter på godkjenning</Badge>;
 }
 
-export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>)  : { pameldt?: string } => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), loader: () => loadProfile(), component: ProfilePage });
+export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>)  : { pameldt?: string } => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), loader: ({ location }) => loadProfile({ headers: { "x-mv-path": location.href } }), component: ProfilePage });

@@ -24,4 +24,4 @@ function TargetPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/offer/")({ loader: () => getTargetStatus(), component: TargetPage });
+export const Route = createFileRoute("/(site)/offer/")({ loader: ({ location }) => getTargetStatus({ headers: { "x-mv-path": location.href } }), component: TargetPage });

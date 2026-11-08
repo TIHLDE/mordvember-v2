@@ -81,4 +81,4 @@ function AdminHome() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/")({ loader: () => loadAdminHome(), component: AdminHome });
+export const Route = createFileRoute("/admin/")({ loader: ({ location }) => loadAdminHome({ headers: { "x-mv-path": location.href } }), component: AdminHome });
