@@ -5,6 +5,20 @@ import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 
 import { saveTemplateAction } from "../actions";
+
+const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const { templates } = await import("@/server/admin");
+  await guard("gamemaster");
+  const rows = await templates();
+  return { rows };
+});
+
+export const Route = createFileRoute("/admin/maler/")({
+  loader: ({ location }) => loadTemplatesPage({ headers: { "x-mv-path": location.href } }),
+  component: TemplatesPage,
+});
+
 function TemplatesPage() {
   const { rows } = Route.useLoaderData();
   return (
@@ -37,16 +51,3 @@ function TemplatesPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/maler/")({
-  loader: ({ location }) => loadTemplatesPage({ headers: { "x-mv-path": location.href } }),
-  component: TemplatesPage,
-});
-
-const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { templates } = await import("@/server/admin");
-  await guard("gamemaster");
-  const rows = await templates();
-  return { rows };
-});

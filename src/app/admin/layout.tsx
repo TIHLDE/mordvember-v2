@@ -5,29 +5,6 @@ import { redirect } from "@tanstack/react-router";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
 
-function AdminLayout() {
-  const path = useLocation({ select: (location) => location.pathname });
-  const { viewer, waiting, groups } = Route.useLoaderData();
-  return (
-    <AdminShell
-      groups={groups}
-      banner={
-        <PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8" />
-      }
-      user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}
-    >
-      <div key={path} className="page-enter">
-        <Outlet />
-      </div>
-    </AdminShell>
-  );
-}
-
-export const Route = createFileRoute("/admin")({
-  loader: ({ location }) => loadAdminLayout({ headers: { "x-mv-path": location.href } }),
-  component: AdminLayout,
-});
-
 const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
   const { getNavigation } = await import("@/server/navigation");
   const { redirectToLogin } = await import("@/lib/guard");
@@ -64,3 +41,26 @@ const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
     .filter((g) => g.links.length > 0);
   return { viewer, waiting, groups };
 });
+
+export const Route = createFileRoute("/admin")({
+  loader: ({ location }) => loadAdminLayout({ headers: { "x-mv-path": location.href } }),
+  component: AdminLayout,
+});
+
+function AdminLayout() {
+  const path = useLocation({ select: (location) => location.pathname });
+  const { viewer, waiting, groups } = Route.useLoaderData();
+  return (
+    <AdminShell
+      groups={groups}
+      banner={
+        <PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8" />
+      }
+      user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}
+    >
+      <div key={path} className="page-enter">
+        <Outlet />
+      </div>
+    </AdminShell>
+  );
+}

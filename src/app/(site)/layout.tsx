@@ -1,6 +1,12 @@
 import { getNavigation } from "@/server/navigation";
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+
+export const Route = createFileRoute("/(site)")({
+  loader: ({ location }) => getNavigation({ headers: { "x-mv-path": location.href } }),
+  component: SiteLayout,
+});
+
 function SiteLayout() {
   const path = useLocation({ select: (location) => location.pathname });
   const navigation = Route.useLoaderData();
@@ -15,8 +21,3 @@ function SiteLayout() {
     </>
   );
 }
-
-export const Route = createFileRoute("/(site)")({
-  loader: ({ location }) => getNavigation({ headers: { "x-mv-path": location.href } }),
-  component: SiteLayout,
-});

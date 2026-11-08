@@ -7,6 +7,22 @@ import { formatOslo } from "@/game/time";
 
 import { deleteQuestionAction } from "../../admin/actions";
 import { askAction } from "../actions";
+
+const loadQuestionsPage = createServerFn({ method: "GET" }).handler(async () => {
+  const { redirectToLogin } = await import("@/lib/guard");
+  const { getViewer } = await import("@/server/auth/session");
+  const { seasonQuestions } = await import("@/server/questions");
+  const viewer = await getViewer();
+  if (!viewer) return redirectToLogin();
+  const all = await seasonQuestions(viewer);
+  return { viewer, all };
+});
+
+export const Route = createFileRoute("/(site)/sporsmal/")({
+  loader: ({ location }) => loadQuestionsPage({ headers: { "x-mv-path": location.href } }),
+  component: QuestionsPage,
+});
+
 function QuestionsPage() {
   const { viewer, all } = Route.useLoaderData();
   return (
@@ -67,18 +83,3 @@ function QuestionsPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/sporsmal/")({
-  loader: ({ location }) => loadQuestionsPage({ headers: { "x-mv-path": location.href } }),
-  component: QuestionsPage,
-});
-
-const loadQuestionsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { getViewer } = await import("@/server/auth/session");
-  const { seasonQuestions } = await import("@/server/questions");
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
-  const all = await seasonQuestions(viewer);
-  return { viewer, all };
-});

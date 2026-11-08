@@ -22,6 +22,34 @@ import {
   startGameAction,
   updateBasicsAction,
 } from "../actions";
+
+type Phase = Season["phase"];
+
+const GAME_STATE: Record<Phase, string> = {
+  setup: "Ikke startet",
+  signup: "Ikke startet",
+  closed: "Ikke startet",
+  running: "Pågår",
+  ended: "Stoppet",
+};
+
+const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const { hasRing } = await import("@/server/game");
+  const { phaseLabel, rulesForWeek } = await import("@/server/season");
+  const viewer = await guard("gamemaster");
+  const season = viewer.season;
+  const settings = season.settings;
+  const rules = await rulesForWeek(season, weekStartOf(new Date()));
+  const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
+  return { season, settings, rules, ringDrawn, phase: phaseLabel(season.phase) };
+});
+
+export const Route = createFileRoute("/admin/sesong/")({
+  loader: ({ location }) => loadSeasonAdmin({ headers: { "x-mv-path": location.href } }),
+  component: SeasonAdmin,
+});
+
 function RuleFields({ rules }: { rules: WeekRules }) {
   // The fields keep their own state, so remount them when the saved rules change.
   return (
@@ -47,6 +75,7 @@ function RuleFields({ rules }: { rules: WeekRules }) {
     </div>
   );
 }
+
 function SeasonAdmin() {
   const { season, settings, rules, ringDrawn, phase } = Route.useLoaderData();
   return (
@@ -154,7 +183,7 @@ function SeasonAdmin() {
     </div>
   );
 }
-type Phase = Season["phase"];
+
 function SignupControl({ phase }: { phase: Phase }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
@@ -171,13 +200,7 @@ function SignupControl({ phase }: { phase: Phase }) {
     </div>
   );
 }
-const GAME_STATE: Record<Phase, string> = {
-  setup: "Ikke startet",
-  signup: "Ikke startet",
-  closed: "Ikke startet",
-  running: "Pågår",
-  ended: "Stoppet",
-};
+
 function GameControl({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
@@ -189,6 +212,7 @@ function GameControl({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean })
     </div>
   );
 }
+
 // The next step for the game in this phase.
 function GameAction({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) {
   switch (phase) {
@@ -224,6 +248,7 @@ function GameAction({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) 
       );
   }
 }
+
 function PhaseButton({ phase, label }: { phase: string; label: string }) {
   return (
     <ActionForm action={setPhaseAction} confirm={`${label}?`}>
@@ -234,20 +259,3 @@ function PhaseButton({ phase, label }: { phase: string; label: string }) {
     </ActionForm>
   );
 }
-
-export const Route = createFileRoute("/admin/sesong/")({
-  loader: ({ location }) => loadSeasonAdmin({ headers: { "x-mv-path": location.href } }),
-  component: SeasonAdmin,
-});
-
-const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { hasRing } = await import("@/server/game");
-  const { phaseLabel, rulesForWeek } = await import("@/server/season");
-  const viewer = await guard("gamemaster");
-  const season = viewer.season;
-  const settings = season.settings;
-  const rules = await rulesForWeek(season, weekStartOf(new Date()));
-  const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
-  return { season, settings, rules, ringDrawn, phase: phaseLabel(season.phase) };
-});

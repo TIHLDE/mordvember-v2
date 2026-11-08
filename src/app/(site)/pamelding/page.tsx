@@ -8,6 +8,7 @@ import { Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 import { bioFromPhoton } from "@/game/bio";
 
 import { signUpAction } from "../actions";
+
 const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
   const { getViewer } = await import("@/server/auth/session");
   const { redirectToLogin } = await import("@/lib/guard");
@@ -21,6 +22,12 @@ const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
     open: !!viewer.season && signupOpen(viewer.season),
   };
 });
+
+export const Route = createFileRoute("/(site)/pamelding/")({
+  loader: ({ location }) => loadSignup({ headers: { "x-mv-path": location.href } }),
+  component: SignupPage,
+});
+
 function SignupPage() {
   const { user, isGamemaster, open } = Route.useLoaderData();
   if (!open) {
@@ -69,8 +76,3 @@ function SignupPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/pamelding/")({
-  loader: ({ location }) => loadSignup({ headers: { "x-mv-path": location.href } }),
-  component: SignupPage,
-});

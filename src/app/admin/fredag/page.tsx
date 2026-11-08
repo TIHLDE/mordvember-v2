@@ -7,6 +7,30 @@ import { earlierGameWeeks } from "@/game/friday";
 import { formatOsloDate, weekStartOf } from "@/game/time";
 
 import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../actions";
+
+const loadFridayList = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const { evaluateSeasonWeek, missingFridayLists, reviews } = await import("@/server/weekly");
+  const viewer = await guard("gamemaster");
+  const all = await reviews(viewer.season.id);
+  const pending = all.filter((r) => r.review.decision === "pending");
+  const decided = all.filter((r) => r.review.decision !== "pending");
+  const running = viewer.season.phase === "running";
+  const now = new Date();
+  const thisWeek = weekStartOf(now);
+  const current = running ? await evaluateSeasonWeek(viewer.season, thisWeek, now) : [];
+  const atRisk = current.filter((c) => !c.evaluation.ok);
+  const earlier =
+    running && viewer.season.startedAt ? earlierGameWeeks(viewer.season.startedAt, now) : [];
+  const missing = await missingFridayLists(viewer.season.id, earlier);
+  return { pending, decided, running, thisWeek, current, atRisk, earlier, missing };
+});
+
+export const Route = createFileRoute("/admin/fredag/")({
+  loader: ({ location }) => loadFridayList({ headers: { "x-mv-path": location.href } }),
+  component: FridayList,
+});
+
 function FridayList() {
   const { pending, decided, running, thisWeek, current, atRisk, earlier, missing } =
     Route.useLoaderData();
@@ -177,26 +201,3 @@ function FridayList() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/fredag/")({
-  loader: ({ location }) => loadFridayList({ headers: { "x-mv-path": location.href } }),
-  component: FridayList,
-});
-
-const loadFridayList = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { evaluateSeasonWeek, missingFridayLists, reviews } = await import("@/server/weekly");
-  const viewer = await guard("gamemaster");
-  const all = await reviews(viewer.season.id);
-  const pending = all.filter((r) => r.review.decision === "pending");
-  const decided = all.filter((r) => r.review.decision !== "pending");
-  const running = viewer.season.phase === "running";
-  const now = new Date();
-  const thisWeek = weekStartOf(now);
-  const current = running ? await evaluateSeasonWeek(viewer.season, thisWeek, now) : [];
-  const atRisk = current.filter((c) => !c.evaluation.ok);
-  const earlier =
-    running && viewer.season.startedAt ? earlierGameWeeks(viewer.season.startedAt, now) : [];
-  const missing = await missingFridayLists(viewer.season.id, earlier);
-  return { pending, decided, running, thisWeek, current, atRisk, earlier, missing };
-});

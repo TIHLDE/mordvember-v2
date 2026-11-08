@@ -10,6 +10,68 @@ import { BIO_FIELDS, parseBio } from "@/game/bio";
 
 import { addPlayerAction } from "../actions";
 import { imageStatus, STATUS } from "./status";
+
+type PlayerRow = {
+  id: string;
+  name: string;
+  status: keyof typeof STATUS;
+  killCount: number;
+  studyProgram: string | null;
+  studyStartYear: number | null;
+  imageKey: string | null;
+  imageApprovedAt: Date | null;
+  imageRejectedReason: string | null;
+  imageDeleted: boolean;
+  bio: string | null;
+  checkedIn: boolean | null;
+};
+
+const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
+  const { asc, eq } = await import("drizzle-orm");
+  const { db } = await import("@/db");
+  const { players } = await import("@/db/schema");
+  const { guard } = await import("@/lib/guard");
+  const { usersWithoutPlayer } = await import("@/server/admin");
+  const { checkedInPlayers } = await import("@/server/attendance");
+  const viewer = await guard("gamemaster");
+  const running = viewer.season.phase === "running";
+  const [list, present] = await Promise.all([
+    db
+      .select({
+        id: players.id,
+        name: players.name,
+        status: players.status,
+        killCount: players.killCount,
+        studyProgram: players.studyProgram,
+        studyStartYear: players.studyStartYear,
+        imageKey: players.imageKey,
+        imageApprovedAt: players.imageApprovedAt,
+        imageRejectedReason: players.imageRejectedReason,
+        imageDeleted: players.imageDeleted,
+        bio: players.bio,
+      })
+      .from(players)
+      .where(eq(players.seasonId, viewer.season.id))
+      .orderBy(asc(players.name)),
+    running ? checkedInPlayers(viewer.season.id) : new Set<string>(),
+  ]);
+  const rows = list.map((p) => ({
+    ...p,
+    checkedIn: running && p.status === "alive" ? present.has(p.id) : null,
+  }));
+  const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
+  const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
+  const waiting = pending.length;
+  const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
+  const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
+  return { viewer, rows, pending, rest, waiting, noBio, candidates };
+});
+
+export const Route = createFileRoute("/admin/deltakere/")({
+  loader: ({ location }) => loadPlayersAdmin({ headers: { "x-mv-path": location.href } }),
+  component: PlayersAdmin,
+});
+
 function PlayersAdmin() {
   const { viewer, rows, pending, rest, waiting, noBio, candidates } = Route.useLoaderData();
   return (
@@ -54,23 +116,11 @@ function PlayersAdmin() {
     </div>
   );
 }
-type PlayerRow = {
-  id: string;
-  name: string;
-  status: keyof typeof STATUS;
-  killCount: number;
-  studyProgram: string | null;
-  studyStartYear: number | null;
-  imageKey: string | null;
-  imageApprovedAt: Date | null;
-  imageRejectedReason: string | null;
-  imageDeleted: boolean;
-  bio: string | null;
-  checkedIn: boolean | null;
-};
+
 function bioFilled(bio: string | null) {
   return Object.values(parseBio(bio)).filter(Boolean).length;
 }
+
 function PlayerList({ rows }: { rows: PlayerRow[] }) {
   return (
     <ul className="-mx-2 divide-y divide-white/5 text-sm">
@@ -126,49 +176,3 @@ function PlayerList({ rows }: { rows: PlayerRow[] }) {
     </ul>
   );
 }
-
-export const Route = createFileRoute("/admin/deltakere/")({
-  loader: ({ location }) => loadPlayersAdmin({ headers: { "x-mv-path": location.href } }),
-  component: PlayersAdmin,
-});
-
-const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { asc, eq } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { players } = await import("@/db/schema");
-  const { guard } = await import("@/lib/guard");
-  const { usersWithoutPlayer } = await import("@/server/admin");
-  const { checkedInPlayers } = await import("@/server/attendance");
-  const viewer = await guard("gamemaster");
-  const running = viewer.season.phase === "running";
-  const [list, present] = await Promise.all([
-    db
-      .select({
-        id: players.id,
-        name: players.name,
-        status: players.status,
-        killCount: players.killCount,
-        studyProgram: players.studyProgram,
-        studyStartYear: players.studyStartYear,
-        imageKey: players.imageKey,
-        imageApprovedAt: players.imageApprovedAt,
-        imageRejectedReason: players.imageRejectedReason,
-        imageDeleted: players.imageDeleted,
-        bio: players.bio,
-      })
-      .from(players)
-      .where(eq(players.seasonId, viewer.season.id))
-      .orderBy(asc(players.name)),
-    running ? checkedInPlayers(viewer.season.id) : new Set<string>(),
-  ]);
-  const rows = list.map((p) => ({
-    ...p,
-    checkedIn: running && p.status === "alive" ? present.has(p.id) : null,
-  }));
-  const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
-  const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
-  const waiting = pending.length;
-  const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
-  const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
-  return { viewer, rows, pending, rest, waiting, noBio, candidates };
-});

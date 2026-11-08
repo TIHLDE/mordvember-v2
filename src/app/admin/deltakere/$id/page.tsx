@@ -19,6 +19,37 @@ import {
   removePlayerAction,
 } from "../../actions";
 import { imageStatus, STATUS } from "../status";
+
+const loadPlayerAdmin = createServerFn({ method: "GET" })
+  .validator((value: unknown) => {
+    if (typeof value !== "string") throw new Error("Ugyldig parameter");
+    return value;
+  })
+  .handler(async ({ data }) => {
+    const { and, eq } = await import("drizzle-orm");
+    const { db } = await import("@/db");
+    const { players } = await import("@/db/schema");
+    const { guard } = await import("@/lib/guard");
+    const viewer = await guard("gamemaster");
+    const { id } = { id: data };
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw notFound();
+    const player = await db.query.players.findFirst({
+      where: and(eq(players.id, id), eq(players.seasonId, viewer.season.id)),
+    });
+    if (!player) throw notFound();
+    const canDisqualify = player.status === "alive" && viewer.season.phase === "running";
+    const canRemove =
+      viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
+    const canEdit = player.status === "alive";
+    return { id, player, canDisqualify, canRemove, canEdit };
+  });
+
+export const Route = createFileRoute("/admin/deltakere/$id/")({
+  loader: ({ params, location }) =>
+    loadPlayerAdmin({ data: params.id, headers: { "x-mv-path": location.href } }),
+  component: PlayerAdmin,
+});
+
 function PlayerAdmin() {
   const { player, canDisqualify, canRemove, canEdit } = Route.useLoaderData();
   return (
@@ -97,6 +128,7 @@ function PlayerAdmin() {
     </div>
   );
 }
+
 // The photo with its approval state, and the controls to approve or reject it.
 function ImageReview({
   player,
@@ -178,33 +210,3 @@ function ImageReview({
     </Card>
   );
 }
-
-export const Route = createFileRoute("/admin/deltakere/$id/")({
-  loader: ({ params, location }) =>
-    loadPlayerAdmin({ data: params.id, headers: { "x-mv-path": location.href } }),
-  component: PlayerAdmin,
-});
-
-const loadPlayerAdmin = createServerFn({ method: "GET" })
-  .validator((value: unknown) => {
-    if (typeof value !== "string") throw new Error("Ugyldig parameter");
-    return value;
-  })
-  .handler(async ({ data }) => {
-    const { and, eq } = await import("drizzle-orm");
-    const { db } = await import("@/db");
-    const { players } = await import("@/db/schema");
-    const { guard } = await import("@/lib/guard");
-    const viewer = await guard("gamemaster");
-    const { id } = { id: data };
-    if (!/^[0-9a-f-]{36}$/i.test(id)) throw notFound();
-    const player = await db.query.players.findFirst({
-      where: and(eq(players.id, id), eq(players.seasonId, viewer.season.id)),
-    });
-    if (!player) throw notFound();
-    const canDisqualify = player.status === "alive" && viewer.season.phase === "running";
-    const canRemove =
-      viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
-    const canEdit = player.status === "alive";
-    return { id, player, canDisqualify, canRemove, canEdit };
-  });

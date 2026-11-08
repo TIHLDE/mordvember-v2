@@ -10,6 +10,40 @@ import { isOverdue } from "@/game/kills";
 import { formatOslo } from "@/game/time";
 
 import { approveKillAction, rejectKillAction, undoKillAction } from "../actions";
+
+const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
+  const { and, desc, eq, inArray } = await import("drizzle-orm");
+  const { db } = await import("@/db");
+  const { kills, players } = await import("@/db/schema");
+  const killer = alias(players, "killer");
+  const victim = alias(players, "victim");
+
+  const { guard } = await import("@/lib/guard");
+  const viewer = await guard("gamemaster");
+  const rows = await db
+    .select({ kill: kills, killer: killer.name, victim: victim.name })
+    .from(kills)
+    .innerJoin(killer, eq(killer.id, kills.killerId))
+    .innerJoin(victim, eq(victim.id, kills.victimId))
+    .where(
+      and(
+        eq(kills.seasonId, viewer.season.id),
+        inArray(kills.status, ["pending", "escalated", "applied"]),
+      ),
+    )
+    .orderBy(desc(kills.reportedAt));
+  const now = new Date();
+  const open = rows.filter((r) => r.kill.status === "escalated" || isOverdue(r.kill, now));
+  const waiting = rows.filter((r) => r.kill.status === "pending" && !isOverdue(r.kill, now));
+  const applied = viewer.isGamemaster ? rows.filter((r) => r.kill.status === "applied") : [];
+  return { viewer, open, waiting, applied };
+});
+
+export const Route = createFileRoute("/admin/drap/")({
+  loader: ({ location }) => loadKillCases({ headers: { "x-mv-path": location.href } }),
+  component: KillCases,
+});
+
 function KillCases() {
   const { viewer, open, waiting, applied } = Route.useLoaderData();
   return (
@@ -122,36 +156,3 @@ function KillCases() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/drap/")({
-  loader: ({ location }) => loadKillCases({ headers: { "x-mv-path": location.href } }),
-  component: KillCases,
-});
-
-const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
-  const { and, desc, eq, inArray } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { kills, players } = await import("@/db/schema");
-  const killer = alias(players, "killer");
-  const victim = alias(players, "victim");
-
-  const { guard } = await import("@/lib/guard");
-  const viewer = await guard("gamemaster");
-  const rows = await db
-    .select({ kill: kills, killer: killer.name, victim: victim.name })
-    .from(kills)
-    .innerJoin(killer, eq(killer.id, kills.killerId))
-    .innerJoin(victim, eq(victim.id, kills.victimId))
-    .where(
-      and(
-        eq(kills.seasonId, viewer.season.id),
-        inArray(kills.status, ["pending", "escalated", "applied"]),
-      ),
-    )
-    .orderBy(desc(kills.reportedAt));
-  const now = new Date();
-  const open = rows.filter((r) => r.kill.status === "escalated" || isOverdue(r.kill, now));
-  const waiting = rows.filter((r) => r.kill.status === "pending" && !isOverdue(r.kill, now));
-  const applied = viewer.isGamemaster ? rows.filter((r) => r.kill.status === "applied") : [];
-  return { viewer, open, waiting, applied };
-});

@@ -12,6 +12,7 @@ import { formatOslo } from "@/game/time";
 import { msAgo } from "@/lib/time";
 
 import { createSeasonAction } from "./actions";
+
 const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
   const { and, eq, isNull, lte, or, sql } = await import("drizzle-orm");
   const { db } = await import("@/db");
@@ -56,6 +57,12 @@ const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
   ];
   return { viewer, summary: { season, total, alive, items, phase: phaseLabel(season.phase) } };
 });
+
+export const Route = createFileRoute("/admin/")({
+  loader: ({ location }) => loadAdminHome({ headers: { "x-mv-path": location.href } }),
+  component: AdminHome,
+});
+
 function AdminHome() {
   const { viewer, summary } = Route.useLoaderData();
   if (!summary) {
@@ -108,8 +115,3 @@ function AdminHome() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/")({
-  loader: ({ location }) => loadAdminHome({ headers: { "x-mv-path": location.href } }),
-  component: AdminHome,
-});

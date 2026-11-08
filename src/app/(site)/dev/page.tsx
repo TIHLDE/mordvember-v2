@@ -7,6 +7,7 @@ import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
 import { safeNext } from "@/lib/redirect";
 
 const TEST_PREFIX = "test-";
+
 const devLoginRpc = createServerFn({ method: "POST" })
   .validator((value: unknown) => {
     if (!(value instanceof FormData)) throw new Error("Ugyldig skjema");
@@ -36,9 +37,43 @@ const devLoginRpc = createServerFn({ method: "POST" })
     const target = form.get("next");
     throw redirect({ href: safeNext(typeof target === "string" ? target : "/") });
   });
+
+const loadDevLoginPage = createServerFn({ method: "GET" })
+  .validator((value: unknown) => {
+    if (typeof value !== "string") throw new Error("Ugyldig parameter");
+    return value;
+  })
+  .handler(async ({ data }) => {
+    const { asc, like } = await import("drizzle-orm");
+    const { db } = await import("@/db");
+    const { users } = await import("@/db/schema");
+    if (process.env.NODE_ENV !== "development") throw notFound();
+    const next = data;
+    const testUsers = await db
+      .select()
+      .from(users)
+      .where(like(users.username, `${TEST_PREFIX}%`))
+      .orderBy(asc(users.username));
+    return { next, testUsers };
+  });
+
 function devLogin(form: FormData) {
   return devLoginRpc({ data: form });
 }
+
+export const Route = createFileRoute("/(site)/dev/")({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound();
+  },
+  validateSearch: (search: Record<string, unknown>): { next?: string } => ({
+    next: typeof search.next === "string" ? search.next : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ next: search.next }),
+  loader: ({ deps, location }) =>
+    loadDevLoginPage({ data: deps.next ?? "", headers: { "x-mv-path": location.href } }),
+  component: DevLoginPage,
+});
+
 function DevLoginPage() {
   const { next, testUsers } = Route.useLoaderData();
   return (
@@ -73,35 +108,3 @@ function DevLoginPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/dev/")({
-  beforeLoad: () => {
-    if (!import.meta.env.DEV) throw notFound();
-  },
-  validateSearch: (search: Record<string, unknown>): { next?: string } => ({
-    next: typeof search.next === "string" ? search.next : undefined,
-  }),
-  loaderDeps: ({ search }) => ({ next: search.next }),
-  loader: ({ deps, location }) =>
-    loadDevLoginPage({ data: deps.next ?? "", headers: { "x-mv-path": location.href } }),
-  component: DevLoginPage,
-});
-
-const loadDevLoginPage = createServerFn({ method: "GET" })
-  .validator((value: unknown) => {
-    if (typeof value !== "string") throw new Error("Ugyldig parameter");
-    return value;
-  })
-  .handler(async ({ data }) => {
-    const { asc, like } = await import("drizzle-orm");
-    const { db } = await import("@/db");
-    const { users } = await import("@/db/schema");
-    if (process.env.NODE_ENV !== "development") throw notFound();
-    const next = data;
-    const testUsers = await db
-      .select()
-      .from(users)
-      .where(like(users.username, `${TEST_PREFIX}%`))
-      .orderBy(asc(users.username));
-    return { next, testUsers };
-  });

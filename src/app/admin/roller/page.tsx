@@ -5,6 +5,20 @@ import { Button, Card, Empty, PageTitle } from "@/components/ui";
 import { UserSearch } from "@/components/UserSearch";
 
 import { addStaffAction, removeStaffAction } from "../actions";
+
+const loadRolesAdmin = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const { listStaff } = await import("@/server/admin");
+  const viewer = await guard("roles");
+  const rows = await listStaff(viewer.season.id);
+  return { rows };
+});
+
+export const Route = createFileRoute("/admin/roller/")({
+  loader: ({ location }) => loadRolesAdmin({ headers: { "x-mv-path": location.href } }),
+  component: RolesAdmin,
+});
+
 function RolesAdmin() {
   const { rows } = Route.useLoaderData();
   return (
@@ -51,16 +65,3 @@ function RolesAdmin() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/roller/")({
-  loader: ({ location }) => loadRolesAdmin({ headers: { "x-mv-path": location.href } }),
-  component: RolesAdmin,
-});
-
-const loadRolesAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { listStaff } = await import("@/server/admin");
-  const viewer = await guard("roles");
-  const rows = await listStaff(viewer.season.id);
-  return { rows };
-});

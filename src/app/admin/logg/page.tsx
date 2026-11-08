@@ -3,6 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
+const loadAuditPage = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const { auditEntries } = await import("@/server/admin");
+  const viewer = await guard("gamemaster");
+  const rows = await auditEntries(viewer.season.id);
+  return { rows: rows.map((row) => ({ ...row, details: JSON.stringify(row.details) })) };
+});
+
+export const Route = createFileRoute("/admin/logg/")({
+  loader: ({ location }) => loadAuditPage({ headers: { "x-mv-path": location.href } }),
+  component: AuditPage,
+});
+
 function AuditPage() {
   const { rows } = Route.useLoaderData();
   return (
@@ -28,16 +41,3 @@ function AuditPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/logg/")({
-  loader: ({ location }) => loadAuditPage({ headers: { "x-mv-path": location.href } }),
-  component: AuditPage,
-});
-
-const loadAuditPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { auditEntries } = await import("@/server/admin");
-  const viewer = await guard("gamemaster");
-  const rows = await auditEntries(viewer.season.id);
-  return { rows: rows.map((row) => ({ ...row, details: JSON.stringify(row.details) })) };
-});

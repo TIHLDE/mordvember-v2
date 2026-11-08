@@ -6,6 +6,20 @@ import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 import { answerAction, deleteQuestionAction } from "../actions";
+
+const loadQuestionsAdmin = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const { inbox } = await import("@/server/questions");
+  const viewer = await guard("gamemaster");
+  const rows = await inbox(viewer);
+  return { rows };
+});
+
+export const Route = createFileRoute("/admin/sporsmal/")({
+  loader: ({ location }) => loadQuestionsAdmin({ headers: { "x-mv-path": location.href } }),
+  component: QuestionsAdmin,
+});
+
 function QuestionsAdmin() {
   const { rows } = Route.useLoaderData();
   return (
@@ -49,16 +63,3 @@ function QuestionsAdmin() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/sporsmal/")({
-  loader: ({ location }) => loadQuestionsAdmin({ headers: { "x-mv-path": location.href } }),
-  component: QuestionsAdmin,
-});
-
-const loadQuestionsAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { inbox } = await import("@/server/questions");
-  const viewer = await guard("gamemaster");
-  const rows = await inbox(viewer);
-  return { rows };
-});

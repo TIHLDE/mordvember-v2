@@ -4,12 +4,18 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { PageTitle } from "@/components/ui";
 import { RevealButton } from "./RevealButton";
+
 const getTargetStatus = createServerFn({ method: "GET" }).handler(async () => {
   const { getViewer } = await import("@/server/auth/session");
   const viewer = await getViewer();
   if (!viewer) throw redirect({ to: "/login", search: { next: "/offer" } });
   if (!viewer.player) throw redirect({ to: "/" });
   return { running: viewer.season?.phase === "running", alive: viewer.player.status === "alive" };
+});
+
+export const Route = createFileRoute("/(site)/offer/")({
+  loader: ({ location }) => getTargetStatus({ headers: { "x-mv-path": location.href } }),
+  component: TargetPage,
 });
 
 function TargetPage() {
@@ -32,8 +38,3 @@ function TargetPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/offer/")({
-  loader: ({ location }) => getTargetStatus({ headers: { "x-mv-path": location.href } }),
-  component: TargetPage,
-});

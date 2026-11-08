@@ -29,6 +29,12 @@ const loadHome = createServerFn({ method: "GET" }).handler(async () => {
     items: viewer?.player ? await myReviewItems(viewer) : [],
   };
 });
+
+export const Route = createFileRoute("/(site)/")({
+  loader: ({ location }) => loadHome({ headers: { "x-mv-path": location.href } }),
+  component: Home,
+});
+
 function Home() {
   const data = Route.useLoaderData();
   if (!data) return <PageTitle sub="Spillet er ikke satt opp ennå.">Mordvember</PageTitle>;
@@ -80,6 +86,7 @@ function Home() {
     </div>
   );
 }
+
 // What the visitor can do next: log in, sign up, or see how they are doing.
 function ViewerCard({
   viewer,
@@ -120,13 +127,9 @@ function ViewerCard({
     </Card>
   );
 }
+
 function playerStatus(player: NonNullable<Viewer["player"]>, season: Season) {
   if (season.winnerPlayerId === player.id) return "Du vant!";
   if (player.status !== "alive") return "Du er ute av spillet.";
   return season.phase === "running" ? "Du er fortsatt med." : "Spillet har ikke startet ennå.";
 }
-
-export const Route = createFileRoute("/(site)/")({
-  loader: ({ location }) => loadHome({ headers: { "x-mv-path": location.href } }),
-  component: Home,
-});

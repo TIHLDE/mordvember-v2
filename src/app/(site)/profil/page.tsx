@@ -17,6 +17,7 @@ import {
   uploadImageAction,
   withdrawAction,
 } from "../actions";
+
 const loadProfile = createServerFn({ method: "GET" }).handler(async () => {
   const { getViewer } = await import("@/server/auth/session");
   const { redirectToLogin } = await import("@/lib/guard");
@@ -28,6 +29,17 @@ const loadProfile = createServerFn({ method: "GET" }).handler(async () => {
   if (!player || !season) throw redirect({ to: "/" });
   return { player, items: await myReviewItems(viewer), canWithdraw: signupOpen(season) };
 });
+
+type Player = Awaited<ReturnType<typeof loadProfile>>["player"];
+
+export const Route = createFileRoute("/(site)/profil/")({
+  validateSearch: (search: Record<string, unknown>): { pameldt?: string } => ({
+    pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined,
+  }),
+  loader: ({ location }) => loadProfile({ headers: { "x-mv-path": location.href } }),
+  component: ProfilePage,
+});
+
 function ProfilePage() {
   const { pameldt } = Route.useSearch();
   const { player, items, canWithdraw } = Route.useLoaderData();
@@ -63,7 +75,7 @@ function ProfilePage() {
     </div>
   );
 }
-type Player = Awaited<ReturnType<typeof loadProfile>>["player"];
+
 function ImageCard({ player }: { player: Player }) {
   const alive = player.status === "alive";
   return (
@@ -128,6 +140,7 @@ function ImageCard({ player }: { player: Player }) {
     </Card>
   );
 }
+
 function ImageBadge({ player }: { player: Player }) {
   const state = imageState(player);
   if (state === "approved") return <Badge tone="green">Godkjent</Badge>;
@@ -135,11 +148,3 @@ function ImageBadge({ player }: { player: Player }) {
   if (state === "rejected") return null;
   return <Badge tone="amber">Venter på godkjenning</Badge>;
 }
-
-export const Route = createFileRoute("/(site)/profil/")({
-  validateSearch: (search: Record<string, unknown>): { pameldt?: string } => ({
-    pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined,
-  }),
-  loader: ({ location }) => loadProfile({ headers: { "x-mv-path": location.href } }),
-  component: ProfilePage,
-});

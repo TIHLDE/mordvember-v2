@@ -8,6 +8,7 @@ import { Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 import { generateCircleAction, mercyAction, moveAction, startGameAction } from "../actions";
+
 const EVENT_LABEL: Record<string, string> = {
   trukket: "Sirkel trukket",
   flyttet: "Deltaker flyttet",
@@ -17,6 +18,43 @@ const EVENT_LABEL: Record<string, string> = {
   diskvalifisert: "Diskvalifisering",
   fjernet: "Deltaker fjernet",
 };
+
+const loadCirclePage = createServerFn({ method: "GET" }).handler(async () => {
+  const { and, asc, eq, ne } = await import("drizzle-orm");
+  const { db } = await import("@/db");
+  const { players } = await import("@/db/schema");
+  const { guard } = await import("@/lib/guard");
+  const { circleEventsForAdmin, circleForAdmin } = await import("@/server/circle");
+  const viewer = await guard("circle");
+  const season = viewer.season;
+  const [circle, events, out] = await Promise.all([
+    circleForAdmin(viewer, "sirkelside"),
+    circleEventsForAdmin(viewer),
+    viewer.isGamemaster
+      ? db
+          .select({ id: players.id, name: players.name })
+          .from(players)
+          .where(and(eq(players.seasonId, season.id), ne(players.status, "alive")))
+          .orderBy(asc(players.name))
+      : [],
+  ]);
+  const names = new Map(circle.map((c) => [c.id, c.name]));
+  const gm = viewer.isGamemaster;
+  return {
+    season,
+    circle,
+    events: events.map((event) => ({ ...event, payload: JSON.stringify(event.payload) })),
+    out,
+    names,
+    gm,
+  };
+});
+
+export const Route = createFileRoute("/admin/sirkel/")({
+  loader: ({ location }) => loadCirclePage({ headers: { "x-mv-path": location.href } }),
+  component: CirclePage,
+});
+
 function CirclePage() {
   const { season, circle, events, out, names, gm } = Route.useLoaderData();
   return (
@@ -162,39 +200,3 @@ function CirclePage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/sirkel/")({
-  loader: ({ location }) => loadCirclePage({ headers: { "x-mv-path": location.href } }),
-  component: CirclePage,
-});
-
-const loadCirclePage = createServerFn({ method: "GET" }).handler(async () => {
-  const { and, asc, eq, ne } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { players } = await import("@/db/schema");
-  const { guard } = await import("@/lib/guard");
-  const { circleEventsForAdmin, circleForAdmin } = await import("@/server/circle");
-  const viewer = await guard("circle");
-  const season = viewer.season;
-  const [circle, events, out] = await Promise.all([
-    circleForAdmin(viewer, "sirkelside"),
-    circleEventsForAdmin(viewer),
-    viewer.isGamemaster
-      ? db
-          .select({ id: players.id, name: players.name })
-          .from(players)
-          .where(and(eq(players.seasonId, season.id), ne(players.status, "alive")))
-          .orderBy(asc(players.name))
-      : [],
-  ]);
-  const names = new Map(circle.map((c) => [c.id, c.name]));
-  const gm = viewer.isGamemaster;
-  return {
-    season,
-    circle,
-    events: events.map((event) => ({ ...event, payload: JSON.stringify(event.payload) })),
-    out,
-    names,
-    gm,
-  };
-});

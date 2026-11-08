@@ -10,6 +10,48 @@ import { addDays, formatOslo, formatOsloDate, weekStartOf } from "@/game/time";
 import { osloInputValue } from "@/lib/oslo-input";
 
 import { addCheckinAction, editCheckinAction } from "../actions";
+
+const loadAttendanceAdmin = createServerFn({ method: "GET" })
+  .validator((value: unknown) => {
+    if (typeof value !== "string") throw new Error("Ugyldig parameter");
+    return value;
+  })
+  .handler(async ({ data }) => {
+    const { asc, eq } = await import("drizzle-orm");
+    const { db } = await import("@/db");
+    const { players } = await import("@/db/schema");
+    const { guard } = await import("@/lib/guard");
+    const { weekSessions } = await import("@/server/attendance");
+    const viewer = await guard("gamemaster");
+    const { uke } = { uke: data };
+    const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());
+    const [rows, roster] = await Promise.all([
+      weekSessions(viewer.season.id, week),
+      db
+        .select({ id: players.id, name: players.name })
+        .from(players)
+        .where(eq(players.seasonId, viewer.season.id))
+        .orderBy(asc(players.name)),
+    ]);
+    const flagged = rows.filter(
+      (r) =>
+        !r.checkin.flagsReviewed &&
+        !r.checkin.rejected &&
+        (r.checkin.autoClosed || r.checkin.flags.length > 0),
+    );
+    return { uke, week, rows, roster, flagged };
+  });
+
+export const Route = createFileRoute("/admin/oppmote/")({
+  validateSearch: (search: Record<string, unknown>): { uke?: string } => ({
+    uke: typeof search.uke === "string" ? search.uke : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ uke: search.uke }),
+  loader: ({ deps, location }) =>
+    loadAttendanceAdmin({ data: deps.uke ?? "", headers: { "x-mv-path": location.href } }),
+  component: AttendanceAdmin,
+});
+
 function AttendanceAdmin() {
   const { week, rows, roster, flagged } = Route.useLoaderData();
   const row = (c: (typeof rows)[number]) => (
@@ -114,44 +156,3 @@ function AttendanceAdmin() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/oppmote/")({
-  validateSearch: (search: Record<string, unknown>): { uke?: string } => ({
-    uke: typeof search.uke === "string" ? search.uke : undefined,
-  }),
-  loaderDeps: ({ search }) => ({ uke: search.uke }),
-  loader: ({ deps, location }) =>
-    loadAttendanceAdmin({ data: deps.uke ?? "", headers: { "x-mv-path": location.href } }),
-  component: AttendanceAdmin,
-});
-
-const loadAttendanceAdmin = createServerFn({ method: "GET" })
-  .validator((value: unknown) => {
-    if (typeof value !== "string") throw new Error("Ugyldig parameter");
-    return value;
-  })
-  .handler(async ({ data }) => {
-    const { asc, eq } = await import("drizzle-orm");
-    const { db } = await import("@/db");
-    const { players } = await import("@/db/schema");
-    const { guard } = await import("@/lib/guard");
-    const { weekSessions } = await import("@/server/attendance");
-    const viewer = await guard("gamemaster");
-    const { uke } = { uke: data };
-    const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());
-    const [rows, roster] = await Promise.all([
-      weekSessions(viewer.season.id, week),
-      db
-        .select({ id: players.id, name: players.name })
-        .from(players)
-        .where(eq(players.seasonId, viewer.season.id))
-        .orderBy(asc(players.name)),
-    ]);
-    const flagged = rows.filter(
-      (r) =>
-        !r.checkin.flagsReviewed &&
-        !r.checkin.rejected &&
-        (r.checkin.autoClosed || r.checkin.flags.length > 0),
-    );
-    return { uke, week, rows, roster, flagged };
-  });

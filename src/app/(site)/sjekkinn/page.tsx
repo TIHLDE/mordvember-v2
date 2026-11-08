@@ -7,14 +7,7 @@ import { formatOslo, osloDate } from "@/game/time";
 
 import { completeScanAction } from "../actions";
 import { CheckinButton } from "./CheckinButton";
-function CheckinPage() {
-  return (
-    <div className="mx-auto max-w-md py-8 text-center">
-      <PageTitle center>Oppmøte</PageTitle>
-      <CheckinState />
-    </div>
-  );
-}
+
 const loadCheckin = createServerFn({ method: "GET" })
   .validator((value: unknown) => (typeof value === "string" ? value : ""))
   .handler(async ({ data: feil }) => {
@@ -44,6 +37,28 @@ const loadCheckin = createServerFn({ method: "GET" })
       attendance: viewer?.player ? await myAttendance(viewer, now) : null,
     };
   });
+
+type Attendance = NonNullable<Awaited<ReturnType<typeof loadCheckin>>["attendance"]>;
+
+export const Route = createFileRoute("/(site)/sjekkinn/")({
+  validateSearch: (search: Record<string, unknown>): { feil?: string; next?: string } => ({
+    feil: typeof search.feil === "string" ? search.feil : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ feil: search.feil }),
+  loader: ({ deps, location }) =>
+    loadCheckin({ data: deps.feil ?? "", headers: { "x-mv-path": location.href } }),
+  component: CheckinPage,
+});
+
+function CheckinPage() {
+  return (
+    <div className="mx-auto max-w-md py-8 text-center">
+      <PageTitle center>Oppmøte</PageTitle>
+      <CheckinState />
+    </div>
+  );
+}
+
 function CheckinState() {
   const { invalidCode, player, pending, done, now, attendance } = Route.useLoaderData();
   const open = attendance?.open;
@@ -95,7 +110,7 @@ function CheckinState() {
     </div>
   );
 }
-type Attendance = NonNullable<Awaited<ReturnType<typeof loadCheckin>>["attendance"]>;
+
 function SessionStatus({
   attendance,
   open,
@@ -150,13 +165,3 @@ function SessionStatus({
     </>
   );
 }
-
-export const Route = createFileRoute("/(site)/sjekkinn/")({
-  validateSearch: (search: Record<string, unknown>): { feil?: string; next?: string } => ({
-    feil: typeof search.feil === "string" ? search.feil : undefined,
-  }),
-  loaderDeps: ({ search }) => ({ feil: search.feil }),
-  loader: ({ deps, location }) =>
-    loadCheckin({ data: deps.feil ?? "", headers: { "x-mv-path": location.href } }),
-  component: CheckinPage,
-});

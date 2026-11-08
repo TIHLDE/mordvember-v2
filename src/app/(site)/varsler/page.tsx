@@ -7,6 +7,29 @@ import { Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 import { MarkRead } from "./MarkRead";
+
+const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async () => {
+  const { desc, eq } = await import("drizzle-orm");
+  const { db } = await import("@/db");
+  const { notifications } = await import("@/db/schema");
+  const { redirectToLogin } = await import("@/lib/guard");
+  const { getViewer } = await import("@/server/auth/session");
+  const viewer = await getViewer();
+  if (!viewer) return redirectToLogin();
+  const rows = await db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, viewer.user.id))
+    .orderBy(desc(notifications.createdAt))
+    .limit(100);
+  return { rows };
+});
+
+export const Route = createFileRoute("/(site)/varsler/")({
+  loader: ({ location }) => loadNotificationsPage({ headers: { "x-mv-path": location.href } }),
+  component: NotificationsPage,
+});
+
 function NotificationsPage() {
   const { rows } = Route.useLoaderData();
   return (
@@ -41,25 +64,3 @@ function NotificationsPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/varsler/")({
-  loader: ({ location }) => loadNotificationsPage({ headers: { "x-mv-path": location.href } }),
-  component: NotificationsPage,
-});
-
-const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { desc, eq } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { notifications } = await import("@/db/schema");
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { getViewer } = await import("@/server/auth/session");
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
-  const rows = await db
-    .select()
-    .from(notifications)
-    .where(eq(notifications.userId, viewer.user.id))
-    .orderBy(desc(notifications.createdAt))
-    .limit(100);
-  return { rows };
-});

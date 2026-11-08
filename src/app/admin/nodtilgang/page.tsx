@@ -6,6 +6,18 @@ import { Button, Card, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 import { emergencyEndAction, emergencyStartAction } from "../actions";
+
+const loadEmergencyPage = createServerFn({ method: "GET" }).handler(async () => {
+  const { guard } = await import("@/lib/guard");
+  const viewer = await guard("index");
+  return { viewer };
+});
+
+export const Route = createFileRoute("/admin/nodtilgang/")({
+  loader: ({ location }) => loadEmergencyPage({ headers: { "x-mv-path": location.href } }),
+  component: EmergencyPage,
+});
+
 function EmergencyPage() {
   const { viewer } = Route.useLoaderData();
   return (
@@ -49,14 +61,3 @@ function EmergencyPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/admin/nodtilgang/")({
-  loader: ({ location }) => loadEmergencyPage({ headers: { "x-mv-path": location.href } }),
-  component: EmergencyPage,
-});
-
-const loadEmergencyPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const viewer = await guard("index");
-  return { viewer };
-});

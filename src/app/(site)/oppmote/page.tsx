@@ -3,6 +3,7 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { Badge, Card, PageTitle } from "@/components/ui";
 import { formatOslo, formatOsloDate } from "@/game/time";
+
 const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
   const { getViewer } = await import("@/server/auth/session");
   const { myAttendance } = await import("@/server/attendance");
@@ -12,6 +13,11 @@ const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
   const status = await myAttendance(viewer);
   if (!status) throw redirect({ to: "/" });
   return status;
+});
+
+export const Route = createFileRoute("/(site)/oppmote/")({
+  loader: ({ location }) => getAttendance({ headers: { "x-mv-path": location.href } }),
+  component: AttendancePage,
 });
 
 function AttendancePage() {
@@ -95,8 +101,3 @@ function AttendancePage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/oppmote/")({
-  loader: ({ location }) => getAttendance({ headers: { "x-mv-path": location.href } }),
-  component: AttendancePage,
-});

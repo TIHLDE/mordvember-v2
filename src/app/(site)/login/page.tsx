@@ -14,6 +14,25 @@ const ERRORS: Record<string, string> = {
   godkjenning:
     "TIHLDE-kontoen din venter på godkjenning fra en administrator. Du kan logge inn når den er godkjent.",
 };
+
+const checkLogin = createServerFn({ method: "GET" })
+  .validator((value: unknown) => (typeof value === "string" ? safeNext(value) : "/"))
+  .handler(async ({ data }) => {
+    const { getViewer } = await import("@/server/auth/session");
+    if (await getViewer()) throw redirect({ href: data });
+  });
+
+export const Route = createFileRoute("/(site)/login/")({
+  validateSearch: (search: Record<string, unknown>): { feil?: string; next?: string } => ({
+    feil: typeof search.feil === "string" ? search.feil : undefined,
+    next: typeof search.next === "string" ? search.next : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ next: search.next }),
+  loader: ({ deps, location }) =>
+    checkLogin({ data: deps.next ?? "/", headers: { "x-mv-path": location.href } }),
+  component: LoginPage,
+});
+
 function LoginPage() {
   const { feil, next } = Route.useSearch();
   const target = safeNext(next);
@@ -42,21 +61,3 @@ function LoginPage() {
     </div>
   );
 }
-
-export const Route = createFileRoute("/(site)/login/")({
-  validateSearch: (search: Record<string, unknown>): { feil?: string; next?: string } => ({
-    feil: typeof search.feil === "string" ? search.feil : undefined,
-    next: typeof search.next === "string" ? search.next : undefined,
-  }),
-  loaderDeps: ({ search }) => ({ next: search.next }),
-  loader: ({ deps, location }) =>
-    checkLogin({ data: deps.next ?? "/", headers: { "x-mv-path": location.href } }),
-  component: LoginPage,
-});
-
-const checkLogin = createServerFn({ method: "GET" })
-  .validator((value: unknown) => (typeof value === "string" ? safeNext(value) : "/"))
-  .handler(async ({ data }) => {
-    const { getViewer } = await import("@/server/auth/session");
-    if (await getViewer()) throw redirect({ href: data });
-  });
