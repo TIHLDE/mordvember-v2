@@ -135,7 +135,7 @@ function PlayerList({ rows }: { rows: PlayerRow[] }) {
               className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]"
             >
               <img
-                src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`}
+                src={`/api/bilde/${p.id}?v=${p.imageDeleted || p.imageRejectedReason ? "hidden" : (p.imageKey ?? "standard")}`}
                 alt=""
                 loading="lazy"
                 className="size-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"

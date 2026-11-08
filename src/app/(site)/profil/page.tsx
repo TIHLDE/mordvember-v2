@@ -80,7 +80,7 @@ function ImageCard({ player }: { player: Player }) {
     <Card title="Bilde">
       <div className="flex flex-col gap-5 sm:flex-row">
         <Portrait
-          src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`}
+          src={`/api/bilde/${player.id}?v=${player.imageDeleted || player.imageRejectedReason ? "hidden" : (player.imageKey ?? "standard")}`}
           alt=""
           className="size-36 shrink-0 rounded-xl border border-white/10 object-cover"
         />

@@ -58,3 +58,17 @@ Started Docker and migrated/seeded a disposable Postgres container on port 55439
 - `vp check` and `vp build` passed after the fixes. With a separate disposable `TEST_DATABASE_URL`, all 157 tests passed across 16 files, including the 34 previously skipped database tests.
 
 This covers the listed flows, not every mutation or failure branch. Real Photon OAuth, external email delivery, Vercel scheduling, Blob uploads, and physical-device QR/geolocation remain unverified. The earlier unavailable-database note describes the initial migration checks; a disposable database was available for this browser pass. Production unknown routes currently show the default English `Not Found` page. Start also logs a warning that its CSRF middleware has not been configured; this pass did not change request-security policy.
+
+## Local upload verification (2026-11-08)
+
+Used the T3 Code browser with a fresh disposable Postgres database and the development filesystem storage backend (`.data/uploads`). No Vercel credentials, production store, or deployment were used.
+
+- PNG upload displayed the exact fixture pixels and survived a full page reload.
+- Replacing an upload displayed the new image and removed the previous file from disk.
+- A text file renamed to `.png` was rejected; a file larger than 4 MB was blocked with an inline error. Neither replaced the saved image or crashed the page.
+- Choosing the TIHLDE image cleared the upload reference and removed its file.
+- Admin upload saved the image and approved it immediately; approval/rejection actions worked.
+- Fixed stale profile/admin portraits after rejection by including hidden-image state in their versioned URLs. Verified approval restores the image and rejection immediately displays the placeholder without reloading.
+- For the deletion check, set the disposable test participant to eliminated directly in the fixture database, then deleted the image through the browser. The file was removed, `image_key` cleared, `image_deleted` set, and the placeholder displayed.
+
+`vp check` passed; `vp test` passed 123 tests with the 34 database tests skipped in this run. This verifies local filesystem storage; it does not verify the remote Vercel Blob service.

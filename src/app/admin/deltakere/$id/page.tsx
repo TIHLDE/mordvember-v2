@@ -140,7 +140,7 @@ function ImageReview({
   return (
     <Card title="Bilde">
       <img
-        src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`}
+        src={`/api/bilde/${player.id}?v=${player.imageDeleted || player.imageRejectedReason ? "hidden" : (player.imageKey ?? "standard")}`}
         alt={player.name}
         className="mb-4 aspect-square w-full rounded-xl object-cover"
       />
