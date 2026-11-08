@@ -31,3 +31,11 @@ Stage 5 follow-up: login query strings and player detail links now use typed sea
 ## Request cookie and HTTP response migration
 
 OAuth state, sessions and pending scan cookies now use Start's request cookie API, preserving cookie flags and root path. HTTP endpoints return standard Response objects, preserving 307/303 redirects. This removes the callback Request type mismatch. Live OAuth/session/check-in smoke tests remain required; this change does not complete async page rendering or action RPC migration.
+
+## Stage 6 audit
+
+Root title, description, noindex/nofollow, language and viewport are migrated to route head. No additional metadata/generateMetadata/generateStaticParams, robots/sitemap or dynamic image conventions exist in src. Rendered-head verification awaits executable pages.
+
+## Stage 7 inventory
+
+No NEXT_PUBLIC variables exist. `.env.example` values remain server/deployment configuration (APP_URL is used to construct email/QR URLs). No secret is renamed to VITE_. `src/db`, `src/server`, `src/lib/guard.ts` and `src/lib/action.ts` must remain behind explicit server boundaries. Current production build correctly rejects browser access to server-only modules from async route components. Stage 8 must move data reads and writes behind createServerFn and return serializable data; do not disable import protection.
