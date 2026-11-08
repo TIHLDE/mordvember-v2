@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 const root = path.join(__dirname, "..", "src");
 
@@ -12,12 +12,17 @@ function files(dir: string): string[] {
   });
 }
 
-const sources = files(root).map((file) => ({ file: path.relative(root, file), text: readFileSync(file, "utf8") }));
+const sources = files(root).map((file) => ({
+  file: path.relative(root, file),
+  text: readFileSync(file, "utf8"),
+}));
 
 describe("tilgang til sirkelen", () => {
   it("bare sirkelmodulen leser sirkeltabellene", () => {
     const users = sources.filter(
-      (s) => /\bcircles\b|\bcircleEvents\b|from circles|circle_events/.test(s.text) && s.file !== "db/schema.ts",
+      (s) =>
+        /\bcircles\b|\bcircleEvents\b|from circles|circle_events/.test(s.text) &&
+        s.file !== "db/schema.ts",
     );
     expect(users.map((u) => u.file).sort()).toEqual(["server/admin.ts", "server/circle.ts"]);
     const admin = sources.find((s) => s.file === "server/admin.ts")!.text;
@@ -27,8 +32,16 @@ describe("tilgang til sirkelen", () => {
   });
 
   it("bare godkjente filer importerer sirkelmodulen", () => {
-    const importers = sources.filter((s) => /from "@\/server\/circle"|from "\.\/circle"|import\("@\/server\/circle"\)/.test(s.text)).map((s) => s.file);
-    expect(importers.sort()).toEqual(["app/(site)/actions.server.ts", "app/admin/sirkel/page.tsx", "server/game.ts"]);
+    const importers = sources
+      .filter((s) =>
+        /from "@\/server\/circle"|from "\.\/circle"|import\("@\/server\/circle"\)/.test(s.text),
+      )
+      .map((s) => s.file);
+    expect(importers.sort()).toEqual([
+      "app/(site)/actions.server.ts",
+      "app/admin/sirkel/page.tsx",
+      "server/game.ts",
+    ]);
   });
 
   it("deltakerhandlingene bruker bare myTarget fra sirkelmodulen", () => {
@@ -41,7 +54,10 @@ describe("tilgang til sirkelen", () => {
     expect(callers.sort()).toEqual(["app/(site)/actions.server.ts", "server/attendance.ts"]);
     const actions = sources.find((s) => s.file === "app/(site)/actions.server.ts")!.text;
     expect(actions.match(/isCheckedIn\(/g)).toEqual(["isCheckedIn("]);
-    const body = actions.slice(actions.indexOf("export async function revealTargetAction"), actions.indexOf("export async function reportKillAction"));
+    const body = actions.slice(
+      actions.indexOf("export async function revealTargetAction"),
+      actions.indexOf("export async function reportKillAction"),
+    );
     expect(body).toMatch(/const target = await myTarget\(viewer\);\s+if \(!target\) return null;/);
     expect(body).toMatch(/isCheckedIn\(target\.id\)/);
   });
@@ -65,7 +81,10 @@ describe("tilgang til sirkelen", () => {
 
   it("myTarget gir bare eget offer, og bare når spillet pågår og deltakeren lever", () => {
     const circle = sources.find((s) => s.file === "server/circle.ts")!.text;
-    const body = circle.slice(circle.indexOf("export async function myTarget"), circle.indexOf("export type CircleEntry"));
+    const body = circle.slice(
+      circle.indexOf("export async function myTarget"),
+      circle.indexOf("export type CircleEntry"),
+    );
     expect(body).toMatch(/viewer\.player\.status !== "alive"/);
     expect(body).toMatch(/phase !== "running"/);
     expect(body).toMatch(/targetOf\(ring, viewer\.player\.id\)/);
@@ -80,12 +99,23 @@ describe("tilgang til sirkelen", () => {
 
   it("hver adminhandling krever innlogging med riktig rolle", () => {
     const actions = sources.find((s) => s.file === "app/admin/actions.server.ts")!.text;
-    const exported = [...actions.matchAll(/export async function (\w+)\([^)]*\) \{([\s\S]*?)\n\}/g)];
+    const exported = [
+      ...actions.matchAll(/export async function (\w+)\([^)]*\) \{([\s\S]*?)\n\}/g),
+    ];
     expect(exported.length).toBeGreaterThan(20);
     for (const [, name, body] of exported) {
       expect(body, name).toMatch(/require(Gamemaster|Staff|Season|Viewer)\(\)/);
     }
-    const gmOnly = ["undoKillAction", "generateCircleAction", "startGameAction", "resumeGameAction", "moveAction", "mercyAction", "resetGameAction", "setPhaseAction"];
+    const gmOnly = [
+      "undoKillAction",
+      "generateCircleAction",
+      "startGameAction",
+      "resumeGameAction",
+      "moveAction",
+      "mercyAction",
+      "resetGameAction",
+      "setPhaseAction",
+    ];
     for (const name of gmOnly) {
       const match = exported.find(([, n]) => n === name);
       expect(match?.[2], name).toMatch(/requireGamemaster\(\)/);
@@ -94,7 +124,9 @@ describe("tilgang til sirkelen", () => {
 
   it("utviklerinnlogging er sperret utenfor utvikling", () => {
     const dev = sources.find((s) => s.file === "app/(site)/dev/page.tsx")!.text;
-    expect(dev.match(/process\.env\.NODE_ENV !== "development"\)\s+throw notFound\(\)/g)?.length).toBe(2);
+    expect(
+      dev.match(/process\.env\.NODE_ENV !== "development"\)\s+throw notFound\(\)/g)?.length,
+    ).toBe(2);
     expect(dev).toMatch(/startsWith\(TEST_PREFIX\)/);
   });
 });

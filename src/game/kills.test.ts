@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   canBeDisqualified,
   checkReport,
@@ -30,12 +30,24 @@ describe("checkReport", () => {
   const ring = ["a", "b", "c"];
 
   it("morderen kan bare melde sitt eget offer", () => {
-    expect(checkReport(ring, "a", "killer", [])).toEqual({ ok: true, killerId: "a", victimId: "b" });
+    expect(checkReport(ring, "a", "killer", [])).toEqual({
+      ok: true,
+      killerId: "a",
+      victimId: "b",
+    });
   });
 
   it("offeret melder, og serveren finner jegeren uten å vise den", () => {
-    expect(checkReport(ring, "b", "victim", [])).toEqual({ ok: true, killerId: "a", victimId: "b" });
-    expect(checkReport(ring, "a", "victim", [])).toEqual({ ok: true, killerId: "c", victimId: "a" });
+    expect(checkReport(ring, "b", "victim", [])).toEqual({
+      ok: true,
+      killerId: "a",
+      victimId: "b",
+    });
+    expect(checkReport(ring, "a", "victim", [])).toEqual({
+      ok: true,
+      killerId: "c",
+      victimId: "a",
+    });
   });
 
   it("nekter deltakere utenfor sirkelen", () => {
@@ -93,16 +105,22 @@ describe("kollisjoner", () => {
   it("samme offer i to saker", () => {
     const one = kill({ id: "k1" });
     const two = kill({ id: "k2", killerId: "z" });
-    expect(findCollisions(two, [one, two], start, now)).toContain("Offeret er også meldt drept i en annen sak");
+    expect(findCollisions(two, [one, two], start, now)).toContain(
+      "Offeret er også meldt drept i en annen sak",
+    );
   });
 
   it("et gammelt drap på en som har fått nåde teller ikke", () => {
     const old = kill({ id: "k1", killerId: "a", victimId: "b", status: "applied", killedAt: t(8) });
     const again = kill({ id: "k2", killerId: "c", victimId: "b", killedAt: t(12) });
     expect(findCollisions(again, [old, again], start, now, new Set(["b", "c"]))).toEqual([]);
-    expect(findCollisions(again, [old, again], start, now, new Set(["c"]))).toContain("Offeret er også meldt drept i en annen sak");
+    expect(findCollisions(again, [old, again], start, now, new Set(["c"]))).toContain(
+      "Offeret er også meldt drept i en annen sak",
+    );
     const byRevived = kill({ id: "k3", killerId: "b", victimId: "d", killedAt: t(12) });
-    expect(findCollisions(byRevived, [old, byRevived], start, now, new Set(["b", "d"]))).toEqual([]);
+    expect(findCollisions(byRevived, [old, byRevived], start, now, new Set(["b", "d"]))).toEqual(
+      [],
+    );
   });
 
   it("avviste og angrede saker teller ikke", () => {
@@ -114,13 +132,21 @@ describe("kollisjoner", () => {
 
   it("drap i samme minutt som starten er gyldig", () => {
     const started = new Date(Date.UTC(2026, 10, 2, 9, 0, 32));
-    expect(findCollisions(kill({ killedAt: new Date(Date.UTC(2026, 10, 2, 9, 0)) }), [], started, now)).toEqual([]);
-    expect(findCollisions(kill({ killedAt: new Date(Date.UTC(2026, 10, 2, 8, 59)) }), [], started, now)).toHaveLength(1);
+    expect(
+      findCollisions(kill({ killedAt: new Date(Date.UTC(2026, 10, 2, 9, 0)) }), [], started, now),
+    ).toEqual([]);
+    expect(
+      findCollisions(kill({ killedAt: new Date(Date.UTC(2026, 10, 2, 8, 59)) }), [], started, now),
+    ).toHaveLength(1);
   });
 
   it("tidspunkt før start og i framtiden flagges", () => {
-    expect(findCollisions(kill({ killedAt: new Date(start.getTime() - 1) }), [], start, now)).toHaveLength(1);
-    expect(findCollisions(kill({ killedAt: new Date(now.getTime() + 3_600_000) }), [], start, now)).toHaveLength(1);
+    expect(
+      findCollisions(kill({ killedAt: new Date(start.getTime() - 1) }), [], start, now),
+    ).toHaveLength(1);
+    expect(
+      findCollisions(kill({ killedAt: new Date(now.getTime() + 3_600_000) }), [], start, now),
+    ).toHaveLength(1);
   });
 });
 
@@ -137,7 +163,9 @@ describe("decideOnConfirm", () => {
   it("sender kollisjoner til spillmesterne", () => {
     const death = kill({ id: "k1", killedAt: t(10) });
     const late = kill({ id: "k2", killerId: "b", victimId: "c", killedAt: t(11) });
-    expect(decideOnConfirm(death, ["a", "b", "c"], [death, late], start, now).action).toBe("escalate");
+    expect(decideOnConfirm(death, ["a", "b", "c"], [death, late], start, now).action).toBe(
+      "escalate",
+    );
   });
 });
 

@@ -60,7 +60,7 @@ export async function startSession(identity: PhotonIdentity, tokens?: PhotonToke
     ...(tokens ? sealedTokens(tokens) : {}),
     expiresAt: new Date(Date.now() + SESSION_DAYS * 86400_000),
   });
-  const jar = await cookies();
+  const jar = cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -72,7 +72,7 @@ export async function startSession(identity: PhotonIdentity, tokens?: PhotonToke
 }
 
 export async function currentPhotonToken(): Promise<string | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const token = (cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const id = hash(token);
   const session = await db.query.sessions.findFirst({ where: and(eq(sessions.id, id), gt(sessions.expiresAt, new Date())) });
@@ -96,7 +96,7 @@ export async function currentPhotonToken(): Promise<string | null> {
 }
 
 export async function endSession() {
-  const jar = await cookies();
+  const jar = cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (token) await db.delete(sessions).where(eq(sessions.id, hash(token)));
   jar.delete(SESSION_COOKIE);
@@ -120,7 +120,7 @@ export type Viewer = {
 };
 
 export const getViewer = cache(async (): Promise<Viewer | null> => {
-  const jar = await cookies();
+  const jar = cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const row = await db

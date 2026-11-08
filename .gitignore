@@ -54,3 +54,4 @@ Style.css
 /.output/
 /.nitro/
 /.tanstack/
+.vitest/

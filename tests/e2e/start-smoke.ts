@@ -30,7 +30,7 @@ for(const chunked of [false,true]) {
 
 const login = await fetch(base + '/login');
 const html = await login.text();
-const asset = html.match(/(?:src|href)="(\/assets\/[^\"]+\.js)"/);
+const asset = html.match(/(?:src|href)="(\/assets\/[^"]+\.js)"/);
 assert.ok(asset, 'Login page should reference a client asset');
 const assetResponse = await fetch(base + asset[1]);
 assert.equal(assetResponse.status, 200);

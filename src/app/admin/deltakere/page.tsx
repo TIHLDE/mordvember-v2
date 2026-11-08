@@ -64,7 +64,6 @@ function PlayerList({ rows }: {
             const filled = bioFilled(p.bio);
             return (<li key={p.id}>
             <Link to="/admin/deltakere/$id" params={{ id: p.id }} className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`} alt="" loading="lazy" className="size-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"/>
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2">

@@ -97,7 +97,6 @@ function CheckinQr({ svg }: { svg: string }) {
       <div className="appear mt-6 flex min-h-0 flex-1 flex-col items-center">
         <div className="aspect-square min-h-0 flex-1 rounded-2xl bg-white p-4 shadow-2xl">
           {/* As an image, so the SVG markup is never parsed into the page. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`} alt="QR-kode for oppmøte" className="h-full w-full" />
         </div>
         <p className="mt-5 text-center text-2xl text-zinc-400">Skann for å sjekke inn eller ut</p>

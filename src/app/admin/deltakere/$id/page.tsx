@@ -63,7 +63,6 @@ function ImageReview({ player, canEdit }: {
 }) {
     const image = imageStatus(player);
     return (<Card title="Bilde">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={`/api/bilde/${player.id}?v=${player.imageKey ?? "standard"}`} alt={player.name} className="mb-4 aspect-square w-full rounded-xl object-cover"/>
       <p className="mb-4 flex flex-wrap gap-1">
         <Badge>{player.imageDeleted ? "Slettet" : player.useDefaultImage ? "TIHLDE-bilde" : "Opplastet"}</Badge>

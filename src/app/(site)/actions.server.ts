@@ -97,7 +97,7 @@ export async function disputeKillAction(_: ActionState, form: FormData) {
 export async function completeScanAction(intent: "in" | "out", position: { lat: number; lng: number } | null): Promise<ActionState> {
   return run(async () => {
     const viewer = await requirePlayer();
-    const jar = await cookies();
+    const jar = cookies();
     if (!readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, viewer.season.id)) {
       throw new GameError("QR-koden er utløpt. Skann på nytt.");
     }

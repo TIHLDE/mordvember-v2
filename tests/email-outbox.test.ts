@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const url = process.env.TEST_DATABASE_URL;
 if (url) {
@@ -20,7 +20,8 @@ describe.skipIf(!url)("e-postkøen ved nullstilling mot database", async () => {
   let season: typeof schema.seasons.$inferSelect;
   let gm: Viewer;
 
-  const subjects = async () => (await db.select().from(schema.emailOutbox)).map((m) => m.subject).sort();
+  const subjects = async () =>
+    (await db.select().from(schema.emailOutbox)).map((m) => m.subject).sort();
   const mail = (subject: string, over: Partial<typeof schema.emailOutbox.$inferInsert> = {}) => ({
     to: `${subject}@example.test`,
     subject,
@@ -32,8 +33,14 @@ describe.skipIf(!url)("e-postkøen ved nullstilling mot database", async () => {
   beforeAll(async () => {
     await migrate(drizzle(sql), { migrationsFolder: "drizzle" });
     await sql`truncate table users, seasons, email_outbox, audit_log, job_runs restart identity cascade`;
-    const [user] = await db.insert(schema.users).values({ username: "epost-gm", name: "gm", email: "gm@example.test" }).returning();
-    [season] = await db.insert(schema.seasons).values({ name: "Epost", phase: "ended", settings: defaultSettings() }).returning() as [typeof season];
+    const [user] = await db
+      .insert(schema.users)
+      .values({ username: "epost-gm", name: "gm", email: "gm@example.test" })
+      .returning();
+    [season] = (await db
+      .insert(schema.seasons)
+      .values({ name: "Epost", phase: "ended", settings: defaultSettings() })
+      .returning()) as [typeof season];
     gm = {
       user: user!,
       isKokLeader: false,
@@ -57,12 +64,14 @@ describe.skipIf(!url)("e-postkøen ved nullstilling mot database", async () => {
   });
 
   it("sletter all usendt e-post, men ikke sendt", async () => {
-    await db.insert(schema.emailOutbox).values([
-      mail("ventende"),
-      mail("feilet", { status: "failed", attempts: 5 }),
-      mail("hentet", { claimedAt: new Date(), attempts: 1 }),
-      mail("sendt", { status: "sent", sentAt: new Date() }),
-    ]);
+    await db
+      .insert(schema.emailOutbox)
+      .values([
+        mail("ventende"),
+        mail("feilet", { status: "failed", attempts: 5 }),
+        mail("hentet", { claimedAt: new Date(), attempts: 1 }),
+        mail("sendt", { status: "sent", sentAt: new Date() }),
+      ]);
     await reset();
     expect(await subjects()).toEqual(["sendt"]);
   });

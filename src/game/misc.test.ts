@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { msUntilNextCode, qrCode, QR_WINDOW_MS, verifyQrCode } from "./qr";
 
 describe("QR-kode", () => {
@@ -16,7 +16,9 @@ describe("QR-kode", () => {
     const start = Math.ceil(now / QR_WINDOW_MS) * QR_WINDOW_MS;
     expect(msUntilNextCode(start)).toBe(QR_WINDOW_MS);
     expect(msUntilNextCode(start + QR_WINDOW_MS - 1)).toBe(1);
-    expect(qrCode(secret, "s1", start + 5 + msUntilNextCode(start + 5))).not.toBe(qrCode(secret, "s1", start + 5));
+    expect(qrCode(secret, "s1", start + 5 + msUntilNextCode(start + 5))).not.toBe(
+      qrCode(secret, "s1", start + 5),
+    );
   });
 
   it("avviser feil sesong, feil hemmelighet og tukling", () => {
@@ -42,7 +44,8 @@ describe("QR-kode", () => {
 
   it("godtar URL-kodet kode fra /api/sjekkinn?k=", () => {
     const code = qrCode(secret, "s1", now);
-    const read = (k: string) => new URL(`https://example.com/api/sjekkinn?k=${k}`).searchParams.get("k") ?? "";
+    const read = (k: string) =>
+      new URL(`https://example.com/api/sjekkinn?k=${k}`).searchParams.get("k") ?? "";
     expect(verifyQrCode(secret, "s1", read(encodeURIComponent(code)), now)).toBe(true);
     expect(verifyQrCode(secret, "s1", read(code.replace(".", "%2E")), now)).toBe(true);
     expect(verifyQrCode(secret, "s1", read(encodeURIComponent(`${code}.ekstra`)), now)).toBe(false);

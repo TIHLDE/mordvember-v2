@@ -18,7 +18,6 @@ async function searchUsers(url: string): Promise<Result[]> {
   // Photon revokes the token when the user logs out of tihlde.org, so send them through login and back here.
   // /api/auth/login is a route handler that redirects to Photon, so the router cannot navigate to it.
   if (response.status === 401 && body?.login) {
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`/api/auth/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
   }
   if (!response.ok || !body) throw new Error(body?.error ?? SEARCH_FAILED);

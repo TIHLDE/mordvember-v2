@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
 import { osloTime } from "@/game/time";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -33,7 +33,10 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
 
   const rows = () => db.select().from(schema.checkins).orderBy(schema.checkins.checkInAt);
   const open = async (checkInAt: Date) => {
-    const [row] = await db.insert(schema.checkins).values({ seasonId: season.id, playerId: player.id, checkInAt }).returning();
+    const [row] = await db
+      .insert(schema.checkins)
+      .values({ seasonId: season.id, playerId: player.id, checkInAt })
+      .returning();
     return row!;
   };
 
@@ -42,12 +45,37 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
     await sql`truncate table users, seasons, job_runs restart identity cascade`;
     const users = await db
       .insert(schema.users)
-      .values(["gm", "spiller"].map((u) => ({ username: `oppmote-${u}`, name: u, email: `${u}@example.test` })))
+      .values(
+        ["gm", "spiller"].map((u) => ({
+          username: `oppmote-${u}`,
+          name: u,
+          email: `${u}@example.test`,
+        })),
+      )
       .returning();
     const settings = { ...defaultSettings(), defaultRules: rules };
-    [season] = await db.insert(schema.seasons).values({ name: "Oppmøtetest", phase: "running", startedAt: osloTime(week1, "09:00"), settings }).returning() as [typeof season];
-    [player] = await db.insert(schema.players).values({ seasonId: season.id, userId: users[1]!.id, name: "spiller", consentAt: new Date() }).returning() as [typeof player];
-    const base = { isKokLeader: false, isIndexLeader: false, isSuperadmin: false, season, emergencyUntil: null, canSeeCircle: false, canManageRoles: false };
+    [season] = (await db
+      .insert(schema.seasons)
+      .values({
+        name: "Oppmøtetest",
+        phase: "running",
+        startedAt: osloTime(week1, "09:00"),
+        settings,
+      })
+      .returning()) as [typeof season];
+    [player] = (await db
+      .insert(schema.players)
+      .values({ seasonId: season.id, userId: users[1]!.id, name: "spiller", consentAt: new Date() })
+      .returning()) as [typeof player];
+    const base = {
+      isKokLeader: false,
+      isIndexLeader: false,
+      isSuperadmin: false,
+      season,
+      emergencyUntil: null,
+      canSeeCircle: false,
+      canManageRoles: false,
+    };
     viewer = { ...base, user: users[1]!, player, isGamemaster: false };
     gm = { ...base, user: users[0]!, player: null, isGamemaster: true };
   });
@@ -85,7 +113,11 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
     await open(tuesday);
     await attendance.toggleCheckin(viewer, null, "out", wednesdayMorning);
     const [byPlayer] = await rows();
-    expect(byPlayer).toMatchObject({ checkOutAt: byCron?.checkOutAt, autoClosed: true, approved: false });
+    expect(byPlayer).toMatchObject({
+      checkOutAt: byCron?.checkOutAt,
+      autoClosed: true,
+      approved: false,
+    });
   });
 
   it("innsjekk lukker den gamle økta og starter en ny", async () => {
@@ -95,13 +127,19 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
     const [old, fresh, ...rest] = await rows();
     expect(rest).toEqual([]);
     expect(old).toMatchObject({ autoClosed: true, checkOutAt: osloTime("2026-11-03", "16:00") });
-    expect(fresh).toMatchObject({ autoClosed: false, checkOutAt: null, checkInAt: wednesdayMorning });
+    expect(fresh).toMatchObject({
+      autoClosed: false,
+      checkOutAt: null,
+      checkInAt: wednesdayMorning,
+    });
     expect((await attendance.myAttendance(viewer, wednesdayMorning))?.open?.id).toBe(fresh?.id);
   });
 
   it("en innsjekk som avvises, lar den gamle økta stå urørt", async () => {
     await open(tuesday);
-    await expect(attendance.toggleCheckin(viewer, { lat: 0, lng: 0 }, "in", wednesdayMorning)).rejects.toThrow("Du må være på Gløshaugen");
+    await expect(
+      attendance.toggleCheckin(viewer, { lat: 0, lng: 0 }, "in", wednesdayMorning),
+    ).rejects.toThrow("Du må være på Gløshaugen");
     const [row] = await rows();
     expect(row).toMatchObject({ autoClosed: false, checkOutAt: null });
   });
@@ -109,7 +147,9 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
   it("en økt som står åpen over helga, vises og lukkes med reglene fra sin egen uke", async () => {
     const friday = osloTime("2026-11-06", "09:00");
     await open(friday);
-    await db.insert(schema.weekRules).values({ seasonId: season.id, weekStart: week2, rules: { ...rules, windowEnd: "12:00" } });
+    await db
+      .insert(schema.weekRules)
+      .values({ seasonId: season.id, weekStart: week2, rules: { ...rules, windowEnd: "12:00" } });
     const monday = osloTime(week2, "08:30");
     const status = await attendance.myAttendance(viewer, monday);
     expect(status?.stale?.checkInAt).toEqual(friday);
@@ -175,6 +215,8 @@ describe.skipIf(!url)("glemte utsjekker mot database", async () => {
     expect((await attendance.toggleCheckin(viewer, null, "out", noon)).kind).toBe("out");
     const [row] = await rows();
     expect(row).toMatchObject({ checkOutAt: noon, autoClosed: false });
-    await expect(attendance.toggleCheckin(viewer, null, "out", noon)).rejects.toThrow("Du er ikke sjekket inn");
+    await expect(attendance.toggleCheckin(viewer, null, "out", noon)).rejects.toThrow(
+      "Du er ikke sjekket inn",
+    );
   });
 });

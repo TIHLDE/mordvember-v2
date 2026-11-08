@@ -1,6 +1,6 @@
 # TanStack Start migration
 
-Application migration stages 0–10 are implemented. Next packages/configuration remain intentionally installed for the guide's user-controlled cleanup step. Deployment has not been switched or published.
+Application migration stages 0–10 are implemented. Next packages/configuration remain intentionally installed for the guide's user-controlled cleanup step. Deployment now builds TanStack Start through Vite Plus; no deployment has been published.
 
 ## Completed
 
@@ -22,20 +22,26 @@ Security headers cover application responses and Nitro static assets. Applicatio
 
 ## Verification
 
-- `pnpm typecheck`: passes.
-- `pnpm lint`: passes without warnings; generated build output and route tree are excluded.
-- `pnpm test`: 116 passed; 34 database-dependent tests skipped (10 test files passed, 4 skipped).
-- `pnpm build`: passes and generates `.output/server/index.mjs`.
-- `E2E_BASE=http://localhost:3104 pnpm test:start-smoke`: passes against the production build. Covers login/status rendering, metadata, production-only dev-login denial, protected-route redirects with query preservation, unauthorized APIs, logout cookie deletion, missing OAuth code, malformed OAuth state, security headers, and fixed-length/chunked 413 body limits.
+- `vp check`: unified Oxfmt, Oxlint and TypeScript checks.
+- Oxlint and Oxfmt share the generated-output and route-tree exclusions in `vite.config.ts`.
+- `vp test`: 118 passed; 34 database-dependent tests skipped (11 test files passed, 4 skipped).
+- `vp build`: passes and generates `.output/server/index.mjs`.
+- `NITRO_PRESET=vercel vp build`: generates a single ten-minute `/_vercel/cron` schedule and a cron function with `maxDuration: 60`.
+- Dev server `/_nitro/tasks`: lists the same `game:cron` schedule. Task success/failure is tested with a mocked game job; no database jobs were executed.
+- `E2E_BASE=http://localhost:3104 vp run test:start-smoke`: passes against the production build. Covers login/status rendering, metadata, production-only dev-login denial, protected-route redirects with query preservation, unauthorized APIs, logout cookie deletion, missing OAuth code, malformed OAuth state, security headers, and fixed-length/chunked 413 body limits.
 - Browser bundles pass Start import protection; no server-only import bypass was added.
 
 ## Remaining user-controlled work
 
 | Affected area | Behavior to preserve | Why deferred / replacement | Required verification |
 | --- | --- | --- | --- |
-| `vercel.json`, `package.json` `build:vercel`, `scripts/vercel-build.ts`, hosting dashboard | Production preflight, database migration/build, cron schedule, environment and Blob configuration | The guide excludes deployment infrastructure changes. Existing deployment still targets Next; choose a Nitro/Start hosting preset and update the build command/framework together before deploying. Current Nitro dependency is a 3.x release candidate. | Staging deploy with real environment, migrations, static assets, SSR, OAuth callback URL, Blob storage, cron authentication/schedule and logs. |
-| `src/app/api/cron/route.ts` / hosting configuration | Cron may run for up to 60 seconds | `maxDuration` is a deployment setting; its inert export was replaced with a comment. Configure the equivalent duration on the chosen platform. | Exercise a realistic cron run and confirm no premature timeout or duplicate processing. |
 | Database-backed game flows and Photon OAuth | Session refresh, role enforcement, circle privacy, uploads, geolocation/check-in, mutation refresh and email delivery | No local database was available; Docker's daemon socket was unavailable. No production services were used for verification. Existing DB/e2e suites remain the replacement validation path. | Run with a dedicated test database and seeded development app: DB tests, `test:e2e`, `test:leak`, and mock Photon `test:photon`; verify expired sessions, logout, role changes, image failure states and navigation refresh. |
-| `next`, `eslint-config-next`, `next.config.ts`, TypeScript Next plugin and `.next` includes, `next-env.d.ts`, Tailwind PostCSS configuration | Deliberate retention during staged migration | The guide requires a separate user decision before final framework cleanup. No application runtime depends on Next now. | Approve removal, adapt lint configuration as needed, then rerun typecheck/lint/tests/build and deployment smoke checks. |
+| `next`, `next.config.ts`, TypeScript Next plugin and `.next` includes, `next-env.d.ts`, Tailwind PostCSS configuration | Deliberate retention during staged migration | The guide requires a separate user decision before final framework cleanup. No application runtime depends on Next now. | Approve removal, then rerun typecheck/lint/tests/build and deployment smoke checks. |
 
 Recommended sequence: validate the remaining integration flows, choose the Next/config cleanup timing, rerun the dedicated type/lint checks after cleanup, then complete the production route/SSR/navigation/metadata/middleware/image/deployment smoke pass.
+
+## Vite Plus and scheduled jobs follow-up
+
+Vite Plus 1.5.0 now owns lint (Oxlint), format (Oxfmt), tests (Vitest), development and builds in `vite.config.ts`. Test imports use `vite-plus/test`; ESLint and standalone Vitest/tsx have been removed. The `vite` dependency is an alias to Vite Plus core for plugin compatibility, managed by the workspace catalog/override. Use `vp` for dependency management; pnpm remains the lockfile backend. Node is pinned through `.node-version`. The existing DateTimePicker restriction is preserved by a typed local Oxlint rule.
+
+Nitro experimental tasks register `game:cron` explicitly and schedule it every ten minutes in dev/Node and Vercel. The existing authenticated `/api/cron` remains available for manual calls. `vercel.json` now selects TanStack Start and the Vite Plus build preflight; it contains no cron definition. Production preflight requires CRON_SECRET so the generated Vercel task endpoint cannot be deployed without its authentication secret. Scheduled game failures surface as failed tasks.

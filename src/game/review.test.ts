@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { imageState, reviewItems, type ReviewInput } from "./review";
 
 const base: ReviewInput = {
@@ -13,10 +13,18 @@ const base: ReviewInput = {
 
 describe("status for deltakeren", () => {
   it("leser bildestatus", () => {
-    expect(imageState({ imageApprovedAt: null, imageRejectedReason: null, imageDeleted: false })).toBe("pending");
-    expect(imageState({ imageApprovedAt: null, imageRejectedReason: "uklart", imageDeleted: false })).toBe("rejected");
-    expect(imageState({ imageApprovedAt: new Date(), imageRejectedReason: null, imageDeleted: false })).toBe("approved");
-    expect(imageState({ imageApprovedAt: null, imageRejectedReason: "uklart", imageDeleted: true })).toBe("deleted");
+    expect(
+      imageState({ imageApprovedAt: null, imageRejectedReason: null, imageDeleted: false }),
+    ).toBe("pending");
+    expect(
+      imageState({ imageApprovedAt: null, imageRejectedReason: "uklart", imageDeleted: false }),
+    ).toBe("rejected");
+    expect(
+      imageState({ imageApprovedAt: new Date(), imageRejectedReason: null, imageDeleted: false }),
+    ).toBe("approved");
+    expect(
+      imageState({ imageApprovedAt: null, imageRejectedReason: "uklart", imageDeleted: true }),
+    ).toBe("deleted");
   });
 
   it("har ingenting å vise når alt er godkjent", () => {
@@ -24,10 +32,16 @@ describe("status for deltakeren", () => {
   });
 
   it("ber om nytt bilde når det er avvist, og venter ellers", () => {
-    const rejected = reviewItems({ ...base, image: { imageApprovedAt: null, imageRejectedReason: "uklart", imageDeleted: false } });
+    const rejected = reviewItems({
+      ...base,
+      image: { imageApprovedAt: null, imageRejectedReason: "uklart", imageDeleted: false },
+    });
     expect(rejected).toMatchObject([{ kind: "action", href: "/profil" }]);
     expect(rejected[0]!.text).toContain("uklart");
-    const pending = reviewItems({ ...base, image: { imageApprovedAt: null, imageRejectedReason: null, imageDeleted: false } });
+    const pending = reviewItems({
+      ...base,
+      image: { imageApprovedAt: null, imageRejectedReason: null, imageDeleted: false },
+    });
     expect(pending).toMatchObject([{ kind: "waiting" }]);
   });
 
@@ -45,12 +59,22 @@ describe("status for deltakeren", () => {
   });
 
   it("viser glemt utsjekk og fredagsvurdering som ventende", () => {
-    const items = reviewItems({ ...base, unclosedCheckinDates: ["2026-10-20"], pendingReviewWeeks: ["2026-10-19"] });
+    const items = reviewItems({
+      ...base,
+      unclosedCheckinDates: ["2026-10-20"],
+      pendingReviewWeeks: ["2026-10-19"],
+    });
     expect(items).toHaveLength(2);
     expect(items.every((i) => i.kind === "waiting" && i.href === "/oppmote")).toBe(true);
   });
 
   it("viser ikke bildestatus for den som er ute", () => {
-    expect(reviewItems({ ...base, alive: false, image: { imageApprovedAt: null, imageRejectedReason: null, imageDeleted: false } })).toEqual([]);
+    expect(
+      reviewItems({
+        ...base,
+        alive: false,
+        image: { imageApprovedAt: null, imageRejectedReason: null, imageDeleted: false },
+      }),
+    ).toEqual([]);
   });
 });
