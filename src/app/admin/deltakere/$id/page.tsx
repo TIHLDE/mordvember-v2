@@ -102,4 +102,4 @@ function ImageReview({ player, canEdit }: {
     </Card>);
 }
 
-export const Route = createFileRoute("/admin/deltakere/id/")({ component: PlayerAdmin });
+export const Route = createFileRoute("/admin/deltakere/$id/")({ component: PlayerAdmin });

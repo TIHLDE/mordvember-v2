@@ -8,4 +8,4 @@ import { getCurrentSeason } from "@/server/season";
   return playerImageResponse(season.id, playerId);
 }
 
-export const Route = createFileRoute("/api/status/bilde/playerId")({ server: { handlers: { GET: ({ request, params }) => GET(request, { params: Promise.resolve(params) }) } } });
+export const Route = createFileRoute("/api/status/bilde/$playerId")({ server: { handlers: { GET: ({ request, params }) => GET(request, { params: Promise.resolve(params) }) } } });

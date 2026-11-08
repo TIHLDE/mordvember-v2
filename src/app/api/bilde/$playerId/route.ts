@@ -9,4 +9,4 @@ import { playerImageResponse } from "@/server/player-image";
   return playerImageResponse(viewer.season.id, playerId);
 }
 
-export const Route = createFileRoute("/api/bilde/playerId")({ server: { handlers: { GET: ({ request, params }) => GET(request, { params: Promise.resolve(params) }) } } });
+export const Route = createFileRoute("/api/bilde/$playerId")({ server: { handlers: { GET: ({ request, params }) => GET(request, { params: Promise.resolve(params) }) } } });

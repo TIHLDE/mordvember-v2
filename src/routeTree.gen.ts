@@ -43,10 +43,10 @@ import { Route as AdminSporsmalPageRouteImport } from './app/admin/sporsmal/page
 import { Route as ApiAuthCallbackRouteRouteImport } from './app/api/auth/callback/route'
 import { Route as ApiAuthLoginRouteRouteImport } from './app/api/auth/login/route'
 import { Route as ApiAuthLogoutRouteRouteImport } from './app/api/auth/logout/route'
-import { Route as ApiBildeChar91playerIdChar93RouteRouteImport } from './app/api/bilde/[playerId]/route'
+import { Route as ApiBildePlayerIdRouteRouteImport } from './app/api/bilde/$playerId/route'
 import { Route as ApiStatusLiveRouteRouteImport } from './app/api/status/live/route'
-import { Route as AdminDeltakereChar91idChar93PageRouteImport } from './app/admin/deltakere/[id]/page'
-import { Route as ApiStatusBildeChar91playerIdChar93RouteRouteImport } from './app/api/status/bilde/[playerId]/route'
+import { Route as AdminDeltakereIdPageRouteImport } from './app/admin/deltakere/$id/page'
+import { Route as ApiStatusBildePlayerIdRouteRouteImport } from './app/api/status/bilde/$playerId/route'
 
 const siteLayoutRoute = siteLayoutRouteImport.update({
   id: '/(site)',
@@ -217,27 +217,25 @@ const ApiAuthLogoutRouteRoute = ApiAuthLogoutRouteRouteImport.update({
   path: '/api/auth/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiBildeChar91playerIdChar93RouteRoute =
-  ApiBildeChar91playerIdChar93RouteRouteImport.update({
-    id: '/api/bilde/playerId',
-    path: '/api/bilde/playerId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiBildePlayerIdRouteRoute = ApiBildePlayerIdRouteRouteImport.update({
+  id: '/api/bilde/$playerId',
+  path: '/api/bilde/$playerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStatusLiveRouteRoute = ApiStatusLiveRouteRouteImport.update({
   id: '/live',
   path: '/live',
   getParentRoute: () => ApiStatusRouteRoute,
 } as any)
-const AdminDeltakereChar91idChar93PageRoute =
-  AdminDeltakereChar91idChar93PageRouteImport.update({
-    id: '/deltakere/id/',
-    path: '/deltakere/id/',
-    getParentRoute: () => AdminLayoutRoute,
-  } as any)
-const ApiStatusBildeChar91playerIdChar93RouteRoute =
-  ApiStatusBildeChar91playerIdChar93RouteRouteImport.update({
-    id: '/bilde/playerId',
-    path: '/bilde/playerId',
+const AdminDeltakereIdPageRoute = AdminDeltakereIdPageRouteImport.update({
+  id: '/deltakere/$id/',
+  path: '/deltakere/$id/',
+  getParentRoute: () => AdminLayoutRoute,
+} as any)
+const ApiStatusBildePlayerIdRouteRoute =
+  ApiStatusBildePlayerIdRouteRouteImport.update({
+    id: '/bilde/$playerId',
+    path: '/bilde/$playerId',
     getParentRoute: () => ApiStatusRouteRoute,
   } as any)
 
@@ -254,7 +252,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/callback': typeof ApiAuthCallbackRouteRoute
   '/api/auth/login': typeof ApiAuthLoginRouteRoute
   '/api/auth/logout': typeof ApiAuthLogoutRouteRoute
-  '/api/bilde/playerId': typeof ApiBildeChar91playerIdChar93RouteRoute
+  '/api/bilde/$playerId': typeof ApiBildePlayerIdRouteRoute
   '/api/status/live': typeof ApiStatusLiveRouteRoute
   '/dev/': typeof siteDevPageRoute
   '/drap/': typeof siteDrapPageRoute
@@ -277,8 +275,8 @@ export interface FileRoutesByFullPath {
   '/admin/sesong/': typeof AdminSesongPageRoute
   '/admin/sirkel/': typeof AdminSirkelPageRoute
   '/admin/sporsmal/': typeof AdminSporsmalPageRoute
-  '/api/status/bilde/playerId': typeof ApiStatusBildeChar91playerIdChar93RouteRoute
-  '/admin/deltakere/id/': typeof AdminDeltakereChar91idChar93PageRoute
+  '/api/status/bilde/$playerId': typeof ApiStatusBildePlayerIdRouteRoute
+  '/admin/deltakere/$id/': typeof AdminDeltakereIdPageRoute
 }
 export interface FileRoutesByTo {
   '/api/brukersok': typeof ApiBrukersokRouteRoute
@@ -292,7 +290,7 @@ export interface FileRoutesByTo {
   '/api/auth/callback': typeof ApiAuthCallbackRouteRoute
   '/api/auth/login': typeof ApiAuthLoginRouteRoute
   '/api/auth/logout': typeof ApiAuthLogoutRouteRoute
-  '/api/bilde/playerId': typeof ApiBildeChar91playerIdChar93RouteRoute
+  '/api/bilde/$playerId': typeof ApiBildePlayerIdRouteRoute
   '/api/status/live': typeof ApiStatusLiveRouteRoute
   '/dev': typeof siteDevPageRoute
   '/drap': typeof siteDrapPageRoute
@@ -315,8 +313,8 @@ export interface FileRoutesByTo {
   '/admin/sesong': typeof AdminSesongPageRoute
   '/admin/sirkel': typeof AdminSirkelPageRoute
   '/admin/sporsmal': typeof AdminSporsmalPageRoute
-  '/api/status/bilde/playerId': typeof ApiStatusBildeChar91playerIdChar93RouteRoute
-  '/admin/deltakere/id': typeof AdminDeltakereChar91idChar93PageRoute
+  '/api/status/bilde/$playerId': typeof ApiStatusBildePlayerIdRouteRoute
+  '/admin/deltakere/$id': typeof AdminDeltakereIdPageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -333,7 +331,7 @@ export interface FileRoutesById {
   '/api/auth/callback': typeof ApiAuthCallbackRouteRoute
   '/api/auth/login': typeof ApiAuthLoginRouteRoute
   '/api/auth/logout': typeof ApiAuthLogoutRouteRoute
-  '/api/bilde/playerId': typeof ApiBildeChar91playerIdChar93RouteRoute
+  '/api/bilde/$playerId': typeof ApiBildePlayerIdRouteRoute
   '/api/status/live': typeof ApiStatusLiveRouteRoute
   '/(site)/dev/': typeof siteDevPageRoute
   '/(site)/drap/': typeof siteDrapPageRoute
@@ -356,8 +354,8 @@ export interface FileRoutesById {
   '/admin/sesong/': typeof AdminSesongPageRoute
   '/admin/sirkel/': typeof AdminSirkelPageRoute
   '/admin/sporsmal/': typeof AdminSporsmalPageRoute
-  '/api/status/bilde/playerId': typeof ApiStatusBildeChar91playerIdChar93RouteRoute
-  '/admin/deltakere/id/': typeof AdminDeltakereChar91idChar93PageRoute
+  '/api/status/bilde/$playerId': typeof ApiStatusBildePlayerIdRouteRoute
+  '/admin/deltakere/$id/': typeof AdminDeltakereIdPageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -374,7 +372,7 @@ export interface FileRouteTypes {
     | '/api/auth/callback'
     | '/api/auth/login'
     | '/api/auth/logout'
-    | '/api/bilde/playerId'
+    | '/api/bilde/$playerId'
     | '/api/status/live'
     | '/dev/'
     | '/drap/'
@@ -397,8 +395,8 @@ export interface FileRouteTypes {
     | '/admin/sesong/'
     | '/admin/sirkel/'
     | '/admin/sporsmal/'
-    | '/api/status/bilde/playerId'
-    | '/admin/deltakere/id/'
+    | '/api/status/bilde/$playerId'
+    | '/admin/deltakere/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/api/brukersok'
@@ -412,7 +410,7 @@ export interface FileRouteTypes {
     | '/api/auth/callback'
     | '/api/auth/login'
     | '/api/auth/logout'
-    | '/api/bilde/playerId'
+    | '/api/bilde/$playerId'
     | '/api/status/live'
     | '/dev'
     | '/drap'
@@ -435,8 +433,8 @@ export interface FileRouteTypes {
     | '/admin/sesong'
     | '/admin/sirkel'
     | '/admin/sporsmal'
-    | '/api/status/bilde/playerId'
-    | '/admin/deltakere/id'
+    | '/api/status/bilde/$playerId'
+    | '/admin/deltakere/$id'
   id:
     | '__root__'
     | '/(site)'
@@ -452,7 +450,7 @@ export interface FileRouteTypes {
     | '/api/auth/callback'
     | '/api/auth/login'
     | '/api/auth/logout'
-    | '/api/bilde/playerId'
+    | '/api/bilde/$playerId'
     | '/api/status/live'
     | '/(site)/dev/'
     | '/(site)/drap/'
@@ -475,8 +473,8 @@ export interface FileRouteTypes {
     | '/admin/sesong/'
     | '/admin/sirkel/'
     | '/admin/sporsmal/'
-    | '/api/status/bilde/playerId'
-    | '/admin/deltakere/id/'
+    | '/api/status/bilde/$playerId'
+    | '/admin/deltakere/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -491,7 +489,7 @@ export interface RootRouteChildren {
   ApiAuthCallbackRouteRoute: typeof ApiAuthCallbackRouteRoute
   ApiAuthLoginRouteRoute: typeof ApiAuthLoginRouteRoute
   ApiAuthLogoutRouteRoute: typeof ApiAuthLogoutRouteRoute
-  ApiBildeChar91playerIdChar93RouteRoute: typeof ApiBildeChar91playerIdChar93RouteRoute
+  ApiBildePlayerIdRouteRoute: typeof ApiBildePlayerIdRouteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -734,11 +732,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthLogoutRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/bilde/playerId': {
-      id: '/api/bilde/playerId'
-      path: '/api/bilde/playerId'
-      fullPath: '/api/bilde/playerId'
-      preLoaderRoute: typeof ApiBildeChar91playerIdChar93RouteRouteImport
+    '/api/bilde/$playerId': {
+      id: '/api/bilde/$playerId'
+      path: '/api/bilde/$playerId'
+      fullPath: '/api/bilde/$playerId'
+      preLoaderRoute: typeof ApiBildePlayerIdRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/status/live': {
@@ -748,18 +746,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStatusLiveRouteRouteImport
       parentRoute: typeof ApiStatusRouteRoute
     }
-    '/admin/deltakere/id/': {
-      id: '/admin/deltakere/id/'
-      path: '/deltakere/id'
-      fullPath: '/admin/deltakere/id/'
-      preLoaderRoute: typeof AdminDeltakereChar91idChar93PageRouteImport
+    '/admin/deltakere/$id/': {
+      id: '/admin/deltakere/$id/'
+      path: '/deltakere/$id'
+      fullPath: '/admin/deltakere/$id/'
+      preLoaderRoute: typeof AdminDeltakereIdPageRouteImport
       parentRoute: typeof AdminLayoutRoute
     }
-    '/api/status/bilde/playerId': {
-      id: '/api/status/bilde/playerId'
-      path: '/bilde/playerId'
-      fullPath: '/api/status/bilde/playerId'
-      preLoaderRoute: typeof ApiStatusBildeChar91playerIdChar93RouteRouteImport
+    '/api/status/bilde/$playerId': {
+      id: '/api/status/bilde/$playerId'
+      path: '/bilde/$playerId'
+      fullPath: '/api/status/bilde/$playerId'
+      preLoaderRoute: typeof ApiStatusBildePlayerIdRouteRouteImport
       parentRoute: typeof ApiStatusRouteRoute
     }
   }
@@ -810,7 +808,7 @@ interface AdminLayoutRouteChildren {
   AdminSesongPageRoute: typeof AdminSesongPageRoute
   AdminSirkelPageRoute: typeof AdminSirkelPageRoute
   AdminSporsmalPageRoute: typeof AdminSporsmalPageRoute
-  AdminDeltakereChar91idChar93PageRoute: typeof AdminDeltakereChar91idChar93PageRoute
+  AdminDeltakereIdPageRoute: typeof AdminDeltakereIdPageRoute
 }
 
 const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
@@ -826,7 +824,7 @@ const AdminLayoutRouteChildren: AdminLayoutRouteChildren = {
   AdminSesongPageRoute: AdminSesongPageRoute,
   AdminSirkelPageRoute: AdminSirkelPageRoute,
   AdminSporsmalPageRoute: AdminSporsmalPageRoute,
-  AdminDeltakereChar91idChar93PageRoute: AdminDeltakereChar91idChar93PageRoute,
+  AdminDeltakereIdPageRoute: AdminDeltakereIdPageRoute,
 }
 
 const AdminLayoutRouteWithChildren = AdminLayoutRoute._addFileChildren(
@@ -835,13 +833,12 @@ const AdminLayoutRouteWithChildren = AdminLayoutRoute._addFileChildren(
 
 interface ApiStatusRouteRouteChildren {
   ApiStatusLiveRouteRoute: typeof ApiStatusLiveRouteRoute
-  ApiStatusBildeChar91playerIdChar93RouteRoute: typeof ApiStatusBildeChar91playerIdChar93RouteRoute
+  ApiStatusBildePlayerIdRouteRoute: typeof ApiStatusBildePlayerIdRouteRoute
 }
 
 const ApiStatusRouteRouteChildren: ApiStatusRouteRouteChildren = {
   ApiStatusLiveRouteRoute: ApiStatusLiveRouteRoute,
-  ApiStatusBildeChar91playerIdChar93RouteRoute:
-    ApiStatusBildeChar91playerIdChar93RouteRoute,
+  ApiStatusBildePlayerIdRouteRoute: ApiStatusBildePlayerIdRouteRoute,
 }
 
 const ApiStatusRouteRouteWithChildren = ApiStatusRouteRoute._addFileChildren(
@@ -860,8 +857,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthCallbackRouteRoute: ApiAuthCallbackRouteRoute,
   ApiAuthLoginRouteRoute: ApiAuthLoginRouteRoute,
   ApiAuthLogoutRouteRoute: ApiAuthLogoutRouteRoute,
-  ApiBildeChar91playerIdChar93RouteRoute:
-    ApiBildeChar91playerIdChar93RouteRoute,
+  ApiBildePlayerIdRouteRoute: ApiBildePlayerIdRouteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
