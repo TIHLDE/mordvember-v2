@@ -1,20 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { Badge, Card, PageTitle } from "@/components/ui";
 import { formatOslo, formatOsloDate } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
-import { myAttendance } from "@/server/attendance";
-import { getViewer } from "@/server/auth/session";
-export const dynamic = "force-dynamic";
-async function AttendancePage() {
+const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
+    const { getViewer } = await import("@/server/auth/session");
+    const { myAttendance } = await import("@/server/attendance");
     const viewer = await getViewer();
-    if (!viewer)
-        return redirectToLogin();
-    if (!viewer.player)
-        redirect("/");
+    if (!viewer) throw redirect({ to: "/login", search: { next: "/oppmote" } });
+    if (!viewer.player) throw redirect({ to: "/" });
     const status = await myAttendance(viewer);
-    if (!status)
-        redirect("/");
+    if (!status) throw redirect({ to: "/" });
+    return status;
+});
+
+function AttendancePage() {
+    const status = Route.useLoaderData();
     const { rules, days, todays, open, stale, counted, required } = status;
     return (<div className="space-y-6">
       <PageTitle sub={`Krav denne uka: ${rules.days} dager med minst ${rules.hours} timer sammenhengende mellom ${rules.windowStart} og ${rules.windowEnd}${rules.killsRequired ? `, og ${rules.killsRequired} drap totalt i spillet` : ""}.`}>
@@ -56,4 +57,4 @@ async function AttendancePage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/oppmote/")({ component: AttendancePage });
+export const Route = createFileRoute("/(site)/oppmote/")({ loader: () => getAttendance(), component: AttendancePage });

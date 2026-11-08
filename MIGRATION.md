@@ -39,3 +39,7 @@ Root title, description, noindex/nofollow, language and viewport are migrated to
 ## Stage 7 inventory
 
 No NEXT_PUBLIC variables exist. `.env.example` values remain server/deployment configuration (APP_URL is used to construct email/QR URLs). No secret is renamed to VITE_. `src/db`, `src/server`, `src/lib/guard.ts` and `src/lib/action.ts` must remain behind explicit server boundaries. Current production build correctly rejects browser access to server-only modules from async route components. Stage 8 must move data reads and writes behind createServerFn and return serializable data; do not disable import protection.
+
+## Stage 8 first data route
+
+`src/app/(site)/oppmote/page.tsx` now uses a GET server function and route loader. Its React component is synchronous, server imports are contained in the handler, and login/home redirects use TanStack redirect. Start serializes the attendance dates for loader consumption. Typecheck passes. Verify logged-out return path, non-player redirect, date rendering, and weekly attendance against a seeded database. Other async routes and shared async header/banner components remain to be converted.
