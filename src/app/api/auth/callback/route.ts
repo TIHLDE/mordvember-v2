@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/redirect";
 import { exchangeCode, fetchIdentity, PhotonForbiddenError } from "@/server/auth/photon";
@@ -10,10 +11,10 @@ function fail(origin: string, reason: string) {
   return NextResponse.redirect(`${origin}/login?feil=${reason}`);
 }
 
-export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
-  const state = request.nextUrl.searchParams.get("state");
-  const origin = request.nextUrl.origin;
+ async function GET(request: Request) {
+  const code = new URL(request.url).searchParams.get("code");
+  const state = new URL(request.url).searchParams.get("state");
+  const origin = new URL(request.url).origin;
   const stored = readOAuthState(request);
   if (!code) return fail(origin, "kode");
   if (!state || !stored.state || state !== stored.state || !stored.verifier) return fail(origin, "state");
@@ -38,3 +39,5 @@ export async function GET(request: NextRequest) {
   clearOAuthState(response);
   return response;
 }
+
+export const Route = createFileRoute("/api/auth/callback")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });

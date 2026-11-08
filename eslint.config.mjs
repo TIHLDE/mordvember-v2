@@ -16,7 +16,7 @@ const config = [
       ],
     },
   },
-  { ignores: [".next/**", "node_modules/**", "drizzle/**", "next-env.d.ts", ".data/**"] },
+  { ignores: ["src/routeTree.gen.ts", ".next/**", "node_modules/**", "drizzle/**", "next-env.d.ts", ".data/**"] },
 ];
 
 export default config;

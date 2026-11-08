@@ -9,3 +9,11 @@ Stage 1: Installed Start, Router, Vite, Nitro and Tailwind's Vite plugin alongsi
 - `next.config.ts`: server actions accept 6 MB bodies. Translate the limit at explicit server request boundaries and verify upload limits.
 - `postcss.config.mjs`: Tailwind PostCSS integration retained alongside the new Vite plugin pending runtime verification.
 - `package.json`, `scripts/vercel-build.ts`: build:vercel still targets Next. Deployment changes require a separate user decision; verify Nitro hosting and build environment before switching deployment.
+
+## Stage 2
+
+Root document and router created; pages, layouts and HTTP endpoints now export Route. Route generation runs through Vite. Async server rendering and removed route props deliberately remain for stages 4/8.
+
+- `src/app/global-error.tsx`: Next's document-level error handling requires a root error component adaptation. Preserve error logging and fallback; verify thrown SSR and client errors before completion.
+- `src/app/(site)/template.tsx`, `src/app/admin/template.tsx`: Next remounts templates on navigation. These are ignored by Start; inspect animation/remount behavior and adapt with a keyed component if needed; verify navigation transitions.
+- `src/app/api/auth/*`, `src/server/auth/*`: NextResponse cookie mutation and next/headers remain pending explicit auth request-boundary migration. Verify OAuth state, PKCE, session creation/refresh/logout and cookie flags before completion.

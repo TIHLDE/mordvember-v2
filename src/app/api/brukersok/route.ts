@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { NextResponse, type NextRequest } from "next/server";
 import { PhotonUnauthorizedError } from "@/server/auth/photon";
 import { AccessError, getViewer } from "@/server/auth/session";
@@ -6,11 +7,11 @@ import { searchPhotonUsers } from "@/server/photon-users";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+ async function GET(request: Request) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Logg inn" }, { status: 401 });
   try {
-    const users = await searchPhotonUsers(viewer, request.nextUrl.searchParams.get("q") ?? "");
+    const users = await searchPhotonUsers(viewer, new URL(request.url).searchParams.get("q") ?? "");
     return NextResponse.json({ users });
   } catch (error) {
     if (error instanceof PhotonUnauthorizedError) {
@@ -22,3 +23,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Søket i Photon feilet. Prøv igjen." }, { status: 502 });
   }
 }
+
+export const Route = createFileRoute("/api/brukersok")({ server: { handlers: { GET: ({ request, params }) => GET(request) } } });
