@@ -7,7 +7,11 @@ vi.mock("@/server/cron", () => ({
   runCron: vi.fn<() => Promise<{ done: string[]; failed: string[] }>>(),
 }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubEnv("VERCEL", undefined);
+  vi.stubEnv("CRON_SECRET", undefined);
+});
 afterEach(() => vi.unstubAllEnvs());
 
 describe("scheduled game cron", () => {
