@@ -6,7 +6,7 @@ import {
   SCAN_RESULT_COOKIE,
 } from "@/server/attendance";
 import { getViewer } from "@/server/auth/session";
-import { redirectToLogin } from "@/lib/guard";
+import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -28,7 +28,7 @@ const loadCheckin = createServerFn({ method: "GET" })
       : !!jar.get(PENDING_SCAN_COOKIE);
     const invalidCode = feil === "kode" && !pending;
     if (!viewer && !invalidCode) {
-      return redirectToLogin();
+      await requireViewer();
     }
     const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
     const now = new Date();
@@ -49,8 +49,7 @@ export const Route = createFileRoute("/(site)/sjekkinn/")({
     feil: typeof search.feil === "string" ? search.feil : undefined,
   }),
   loaderDeps: ({ search }) => ({ feil: search.feil }),
-  loader: ({ deps, location }) =>
-    loadCheckin({ data: deps.feil ?? "", headers: { "x-mv-path": location.href } }),
+  loader: ({ deps }) => loadCheckin({ data: deps.feil ?? "" }),
   component: CheckinPage,
 });
 

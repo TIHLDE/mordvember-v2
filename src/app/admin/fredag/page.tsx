@@ -27,7 +27,7 @@ const loadFridayList = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/fredag/")({
-  loader: ({ location }) => loadFridayList({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadFridayList(),
   component: FridayList,
 });
 

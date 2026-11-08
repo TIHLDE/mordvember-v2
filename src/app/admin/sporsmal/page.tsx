@@ -16,7 +16,7 @@ const loadQuestionsAdmin = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const Route = createFileRoute("/admin/sporsmal/")({
-  loader: ({ location }) => loadQuestionsAdmin({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadQuestionsAdmin(),
   component: QuestionsAdmin,
 });
 

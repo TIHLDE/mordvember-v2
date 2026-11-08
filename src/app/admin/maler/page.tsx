@@ -15,7 +15,7 @@ const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => 
 });
 
 export const Route = createFileRoute("/admin/maler/")({
-  loader: ({ location }) => loadTemplatesPage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadTemplatesPage(),
   component: TemplatesPage,
 });
 

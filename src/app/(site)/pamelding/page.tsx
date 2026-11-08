@@ -1,5 +1,4 @@
-import { getViewer } from "@/server/auth/session";
-import { redirectToLogin } from "@/lib/guard";
+import { requireViewer } from "@/server/auth/session";
 import { signupOpen } from "@/server/season";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
@@ -13,8 +12,7 @@ import { bioFromPhoton } from "@/game/bio";
 import { signUpAction } from "../actions";
 
 const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   if (viewer.player) throw redirect({ to: "/profil", search: { pameldt: "1" } });
   return {
     user: viewer.user,
@@ -24,7 +22,7 @@ const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/(site)/pamelding/")({
-  loader: ({ location }) => loadSignup({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadSignup(),
   component: SignupPage,
 });
 

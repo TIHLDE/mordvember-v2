@@ -1,6 +1,6 @@
+import { requireLogin } from "@/lib/route-auth";
 import { getNavigation } from "@/server/navigation";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
@@ -9,9 +9,8 @@ import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
 
 const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
+  const viewer = await requireViewer();
   const { waiting } = await getNavigation();
-  if (!viewer) return redirectToLogin();
   if (!viewer.isGamemaster && !viewer.canManageRoles) throw redirect({ to: "/" });
   const groups: AdminNavGroup[] = [
     { links: [{ href: "/admin", label: "Oversikt", show: true, exact: true }] },
@@ -43,7 +42,8 @@ const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin")({
-  loader: ({ location }) => loadAdminLayout({ headers: { "x-mv-path": location.href } }),
+  beforeLoad: requireLogin,
+  loader: () => loadAdminLayout(),
   component: AdminLayout,
 });
 

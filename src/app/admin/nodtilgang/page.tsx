@@ -14,7 +14,7 @@ const loadEmergencyPage = createServerFn({ method: "GET" }).handler(async () => 
 });
 
 export const Route = createFileRoute("/admin/nodtilgang/")({
-  loader: ({ location }) => loadEmergencyPage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadEmergencyPage(),
   component: EmergencyPage,
 });
 

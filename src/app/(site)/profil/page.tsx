@@ -1,5 +1,4 @@
-import { getViewer } from "@/server/auth/session";
-import { redirectToLogin } from "@/lib/guard";
+import { requireViewer } from "@/server/auth/session";
 import { myReviewItems } from "@/server/review";
 import { signupOpen } from "@/server/season";
 import { createServerFn } from "@tanstack/react-start";
@@ -23,8 +22,7 @@ import {
 } from "../actions";
 
 const loadProfile = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   const { player, season } = viewer;
   if (!player || !season) throw redirect({ to: "/" });
   return { player, items: await myReviewItems(viewer), canWithdraw: signupOpen(season) };
@@ -36,7 +34,7 @@ export const Route = createFileRoute("/(site)/profil/")({
   validateSearch: (search: Record<string, unknown>): { pameldt?: string } => ({
     pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined,
   }),
-  loader: ({ location }) => loadProfile({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadProfile(),
   component: ProfilePage,
 });
 

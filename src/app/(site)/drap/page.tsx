@@ -1,8 +1,7 @@
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { kills, players } from "@/db/schema";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -21,8 +20,7 @@ const loadKillsPage = createServerFn({ method: "GET" }).handler(async () => {
   const killer = alias(players, "killer");
   const victim = alias(players, "victim");
 
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   if (!viewer.player || !viewer.season) throw redirect({ to: "/" });
   const me = viewer.player!.id;
   const mine = await db
@@ -46,7 +44,7 @@ const loadKillsPage = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/(site)/drap/")({
-  loader: ({ location }) => loadKillsPage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadKillsPage(),
   component: KillsPage,
 });
 

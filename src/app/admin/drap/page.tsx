@@ -40,7 +40,7 @@ const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/drap/")({
-  loader: ({ location }) => loadKillCases({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadKillCases(),
   component: KillCases,
 });
 

@@ -12,7 +12,7 @@ const loadAuditPage = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/logg/")({
-  loader: ({ location }) => loadAuditPage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadAuditPage(),
   component: AuditPage,
 });
 

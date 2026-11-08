@@ -1,4 +1,4 @@
-import { getViewer } from "@/server/auth/session";
+import { requireViewer } from "@/server/auth/session";
 import { myAttendance } from "@/server/attendance";
 import { createFileRoute } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
@@ -7,8 +7,7 @@ import { Badge, Card, PageTitle } from "@/components/ui";
 import { formatOslo, formatOsloDate } from "@/game/time";
 
 const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
-  if (!viewer) throw redirect({ to: "/login", search: { next: "/oppmote" } });
+  const viewer = await requireViewer();
   if (!viewer.player) throw redirect({ to: "/" });
   const status = await myAttendance(viewer);
   if (!status) throw redirect({ to: "/" });
@@ -16,7 +15,7 @@ const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/(site)/oppmote/")({
-  loader: ({ location }) => getAttendance({ headers: { "x-mv-path": location.href } }),
+  loader: () => getAttendance(),
   component: AttendancePage,
 });
 

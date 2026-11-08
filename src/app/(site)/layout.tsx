@@ -1,9 +1,16 @@
+import { requireLogin } from "@/lib/route-auth";
 import { getNavigation } from "@/server/navigation";
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 
+const publicPaths = new Set(["/", "/login", "/dev"]);
+
 export const Route = createFileRoute("/(site)")({
-  loader: ({ location }) => getNavigation({ headers: { "x-mv-path": location.href } }),
+  beforeLoad: (options) => {
+    if (!publicPaths.has(options.location.pathname.replace(/\/+$/, "") || "/"))
+      return requireLogin(options);
+  },
+  loader: () => getNavigation(),
   component: SiteLayout,
 });
 

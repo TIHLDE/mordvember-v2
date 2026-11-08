@@ -51,7 +51,7 @@ const loadCirclePage = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/sirkel/")({
-  loader: ({ location }) => loadCirclePage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadCirclePage(),
   component: CirclePage,
 });
 

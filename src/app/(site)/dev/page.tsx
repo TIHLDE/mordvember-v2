@@ -67,8 +67,7 @@ export const Route = createFileRoute("/(site)/dev/")({
     next: typeof search.next === "string" ? search.next : undefined,
   }),
   loaderDeps: ({ search }) => ({ next: search.next }),
-  loader: ({ deps, location }) =>
-    loadDevLoginPage({ data: deps.next ?? "", headers: { "x-mv-path": location.href } }),
+  loader: ({ deps }) => loadDevLoginPage({ data: deps.next ?? "" }),
   component: DevLoginPage,
 });
 

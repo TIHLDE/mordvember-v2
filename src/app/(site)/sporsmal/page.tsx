@@ -1,5 +1,4 @@
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+import { requireViewer } from "@/server/auth/session";
 import { seasonQuestions } from "@/server/questions";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
@@ -12,14 +11,13 @@ import { deleteQuestionAction } from "../../admin/actions";
 import { askAction } from "../actions";
 
 const loadQuestionsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   const all = await seasonQuestions(viewer);
   return { viewer, all };
 });
 
 export const Route = createFileRoute("/(site)/sporsmal/")({
-  loader: ({ location }) => loadQuestionsPage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadQuestionsPage(),
   component: QuestionsPage,
 });
 

@@ -29,7 +29,7 @@ const loadHome = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/(site)/")({
-  loader: ({ location }) => loadHome({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadHome(),
   component: Home,
 });
 

@@ -24,7 +24,7 @@ Security headers cover application responses and Nitro static assets. Applicatio
 
 - `vp check`: unified Oxfmt, Oxlint and TypeScript checks.
 - Oxlint and Oxfmt share the generated-output and route-tree exclusions in `vite.config.ts`.
-- `vp test`: 119 passed; 34 database-dependent tests skipped (11 test files passed, 4 skipped).
+- `vp test`: 123 passed; 34 database-dependent tests skipped (12 test files passed, 4 skipped).
 - `vp build`: passes and generates `.output/server/index.mjs`.
 - `NITRO_PRESET=vercel vp build`: generates a single ten-minute `/_vercel/cron` schedule and a cron function with `maxDuration: 60`.
 - Dev server `/_nitro/tasks`: lists the same `game:cron` schedule. Task success/failure is tested with a mocked game job; no database jobs were executed.
@@ -45,3 +45,5 @@ Recommended sequence: validate the remaining integration flows, choose the Next/
 Vite Plus 1.5.0 now owns lint (Oxlint), format (Oxfmt), tests (Vitest), development and builds in `vite.config.ts`. Test imports use `vite-plus/test`; ESLint and standalone Vitest/tsx have been removed. The `vite` dependency is an alias to Vite Plus core for plugin compatibility, managed by the workspace catalog/override. Use `vp` for dependency management; pnpm remains the lockfile backend. Node is pinned through `.node-version`. The existing DateTimePicker restriction is preserved by a typed local Oxlint rule.
 
 Nitro experimental tasks register `game:cron` explicitly and schedule it every ten minutes in dev/Node and Vercel. The existing authenticated `/api/cron` remains available for manual calls. `vercel.json` now selects TanStack Start and the Vite Plus build preflight; it contains no cron definition. Vercel build preflight and the task runtime require CRON_SECRET so the generated Vercel task endpoint cannot execute without its authentication secret, including on preview deployments. Scheduled game failures surface as failed tasks.
+
+Login redirects now run in shared site/admin `beforeLoad` guards using the router location. The custom path header and server-side login redirect helper have been removed. Server functions independently require the viewer/role; the invalid QR scan message remains readable without login. Guard tests cover destination/query preservation, authenticated navigation and pending-scan behavior.

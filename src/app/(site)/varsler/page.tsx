@@ -1,8 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -14,8 +13,7 @@ import { formatOslo } from "@/game/time";
 import { MarkRead } from "./MarkRead";
 
 const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   const rows = await db
     .select()
     .from(notifications)
@@ -26,7 +24,7 @@ const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async ()
 });
 
 export const Route = createFileRoute("/(site)/varsler/")({
-  loader: ({ location }) => loadNotificationsPage({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadNotificationsPage(),
   component: NotificationsPage,
 });
 

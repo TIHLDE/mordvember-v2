@@ -3,8 +3,7 @@ import { db } from "@/db";
 import { checkins, kills, players, questions } from "@/db/schema";
 import { phaseLabel } from "@/server/season";
 import { pendingReviewCount } from "@/server/weekly";
-import { getViewer } from "@/server/auth/session";
-import { redirectToLogin } from "@/lib/guard";
+import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -21,8 +20,7 @@ import { msAgo } from "@/lib/time";
 import { createSeasonAction } from "./actions";
 
 const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   const season = viewer.season;
   if (!season) return { viewer, summary: null };
   const [total, alive, openCases, overdue, reviews, unanswered, flagged] = await Promise.all([
@@ -59,7 +57,7 @@ const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/")({
-  loader: ({ location }) => loadAdminHome({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadAdminHome(),
   component: AdminHome,
 });
 

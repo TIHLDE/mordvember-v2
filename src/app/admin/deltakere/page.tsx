@@ -68,7 +68,7 @@ const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/deltakere/")({
-  loader: ({ location }) => loadPlayersAdmin({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadPlayersAdmin(),
   component: PlayersAdmin,
 });
 

@@ -47,8 +47,7 @@ export const Route = createFileRoute("/admin/oppmote/")({
     uke: typeof search.uke === "string" ? search.uke : undefined,
   }),
   loaderDeps: ({ search }) => ({ uke: search.uke }),
-  loader: ({ deps, location }) =>
-    loadAttendanceAdmin({ data: deps.uke ?? "", headers: { "x-mv-path": location.href } }),
+  loader: ({ deps }) => loadAttendanceAdmin({ data: deps.uke ?? "" }),
   component: AttendanceAdmin,
 });
 

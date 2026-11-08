@@ -46,7 +46,7 @@ const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/sesong/")({
-  loader: ({ location }) => loadSeasonAdmin({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadSeasonAdmin(),
   component: SeasonAdmin,
 });
 

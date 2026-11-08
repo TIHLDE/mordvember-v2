@@ -28,8 +28,7 @@ export const Route = createFileRoute("/(site)/login/")({
     next: typeof search.next === "string" ? search.next : undefined,
   }),
   loaderDeps: ({ search }) => ({ next: search.next }),
-  loader: ({ deps, location }) =>
-    checkLogin({ data: deps.next ?? "/", headers: { "x-mv-path": location.href } }),
+  loader: ({ deps }) => checkLogin({ data: deps.next ?? "/" }),
   component: LoginPage,
 });
 

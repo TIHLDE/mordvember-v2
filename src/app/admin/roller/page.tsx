@@ -15,7 +15,7 @@ const loadRolesAdmin = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/admin/roller/")({
-  loader: ({ location }) => loadRolesAdmin({ headers: { "x-mv-path": location.href } }),
+  loader: () => loadRolesAdmin(),
   component: RolesAdmin,
 });
 
