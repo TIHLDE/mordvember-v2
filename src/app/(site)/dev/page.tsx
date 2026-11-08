@@ -56,7 +56,7 @@ return (<div className="mx-auto max-w-2xl">
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/dev/")({ validateSearch: (search: Record<string, unknown>)  : { next?: string } => ({ next: typeof search.next === "string" ? search.next : undefined }), loaderDeps: ({ search }) => ({ next: search.next }), loader: ({ deps, location }) => loadDevLoginPage({ data: deps.next ?? "", headers: { "x-mv-path": location.href } }), component: DevLoginPage });
+export const Route = createFileRoute("/(site)/dev/")({ beforeLoad: () => { if (!import.meta.env.DEV) throw notFound(); }, validateSearch: (search: Record<string, unknown>)  : { next?: string } => ({ next: typeof search.next === "string" ? search.next : undefined }), loaderDeps: ({ search }) => ({ next: search.next }), loader: ({ deps, location }) => loadDevLoginPage({ data: deps.next ?? "", headers: { "x-mv-path": location.href } }), component: DevLoginPage });
 
 const loadDevLoginPage = createServerFn({ method: "GET" }).validator((value: unknown) => { if (typeof value !== "string") throw new Error("Ugyldig parameter"); return value; }).handler(async ({ data }) => {
 const { asc, like } = await import("drizzle-orm");

@@ -1,59 +1,41 @@
 # TanStack Start migration
 
-Stage 0: Node 25, pnpm 12, single app under src/app, tsx available. No configured formatter found.
-Stage 1: Installed Start, Router, Vite, Nitro and Tailwind's Vite plugin alongside Next. Scripts now target Vite/Nitro. Later stages are pending; the application is not yet runnable with Start.
+Application migration stages 0–10 are implemented. Next packages/configuration remain intentionally installed for the guide's user-controlled cleanup step. Deployment has not been switched or published.
 
-## Behavior to preserve
+## Completed
 
-- `next.config.ts`: preserve nosniff, same-origin referrer policy, frame denial and camera/geolocation permissions headers via request middleware. Verify headers on HTML and API responses before completion.
-- `next.config.ts`: server actions accept 6 MB bodies. Translate the limit at explicit server request boundaries and verify upload limits.
-- `postcss.config.mjs`: Tailwind PostCSS integration retained alongside the new Vite plugin pending runtime verification.
-- `package.json`, `scripts/vercel-build.ts`: build:vercel still targets Next. Deployment changes require a separate user decision; verify Nitro hosting and build environment before switching deployment.
+| Stage | Result | Commits |
+| --- | --- | --- |
+| 0–1 | Node/pnpm single-app inventory; Start, Router, Vite, Nitro and Tailwind Vite setup alongside Next | dbe3530 |
+| 2–3 | Root document/router, registered UI/API routes, generated tracked route tree, `$id`/`$playerId` segments | c8e107e, 683a023 |
+| 4–5 | Route-specific params, validated optional search values, TanStack links/path matching, redirects moved into loaders/server functions | d3000dc, 6787c21, e94cbc1 and server-boundary commits below |
+| 6–7 | Root head metadata preserved; environment inventory found no NEXT_PUBLIC values, no secrets exposed as VITE variables | 8f48e50 and root-route changes |
+| 8 | Cookies/HTTP responses, explicit server RPC actions/loaders, synchronous route/header/banner components, mutation invalidation | 142951a, d96ecd3, da1bd39, be5f9f7, e7f26f0, 70842c0 |
+| 9 | Request security/cache policies, return-path headers, template animation wrappers, root shell/error boundary; old proxy removed | 321295f |
+| 10 | Start server markers, 6 MB action-body cap, retained native images/Fontsource, ignored cron export documented, runtime fixes and smoke checks | 757b2d1 and final verification commit |
 
-## Stage 2
+No active `next/*` imports, `use server` directives, async route components, or ignored Next route exports remain in `src`. There were no dynamic metadata, static params, robots/sitemap, next/font, next/image, next/script, next/dynamic or TanStack Query integrations to replace. SWR remains in place. Private environment names are unchanged.
 
-Root document and router created; pages, layouts and HTTP endpoints now export Route. Route generation runs through Vite. Async server rendering and removed route props deliberately remain for stages 4/8.
+Server actions preserve authorization/domain validation, validate FormData and file sizes, and validate check-in intent/coordinates. Successful ActionForm submissions invalidate router data. Email delivery is awaited because Next's `after()` no longer runs. Server imports use Start's import-protection marker. Audit/event JSON is serialized explicitly; Start handles dates in loader results. Target identity is fetched only on explicit reveal, not in loader data.
 
-- `src/app/global-error.tsx`: Next's document-level error handling requires a root error component adaptation. Preserve error logging and fallback; verify thrown SSR and client errors before completion.
-- `src/app/(site)/template.tsx`, `src/app/admin/template.tsx`: Next remounts templates on navigation. These are ignored by Start; inspect animation/remount behavior and adapt with a keyed component if needed; verify navigation transitions.
-- `src/app/api/auth/*`, `src/server/auth/*`: NextResponse cookie mutation and next/headers remain pending explicit auth request-boundary migration. Verify OAuth state, PKCE, session creation/refresh/logout and cookie flags before completion.
+Security headers cover application responses and Nitro static assets. Application responses default to `no-store`; endpoints with explicit cache headers retain them. Action requests retain the 6 MB body limit, including chunked bodies. Keep Next's PostCSS integration until the final dependency/configuration cleanup.
 
-Stage 3: Renamed [id] and both [playerId] route directories to $id/$playerId. Regenerated the route tree with Vite; public paths and parameter names preserved.
+## Verification
 
-Stage 4: Route params use Route.useParams; login/dev/profile/checkin/attendance search values have explicit string validation. Layouts render Outlet. Async component execution remains stage 8 work.
+- `pnpm typecheck`: passes.
+- `pnpm lint`: passes without warnings; generated build output and route tree are excluded.
+- `pnpm test`: 116 passed; 34 database-dependent tests skipped (10 test files passed, 4 skipped).
+- `pnpm build`: passes and generates `.output/server/index.mjs`.
+- `E2E_BASE=http://localhost:3104 pnpm test:start-smoke`: passes against the production build. Covers login/status rendering, metadata, production-only dev-login denial, protected-route redirects with query preservation, unauthorized APIs, logout cookie deletion, missing OAuth code, malformed OAuth state, security headers, and fixed-length/chunked 413 body limits.
+- Browser bundles pass Start import protection; no server-only import bypass was added.
 
-## Stage 5 (partial)
+## Remaining user-controlled work
 
-Next Link components now use TanStack Link; pathname reads use useLocation. Existing navigation entries are retained. Dynamic URL strings and navigation data need typed LinkOptions conversion; redirects still use Next and must move to loading boundaries along with stage 8. Verify back/forward, query preservation, active states and authenticated redirects before marking this stage complete.
+| Affected area | Behavior to preserve | Why deferred / replacement | Required verification |
+| --- | --- | --- | --- |
+| `vercel.json`, `package.json` `build:vercel`, `scripts/vercel-build.ts`, hosting dashboard | Production preflight, database migration/build, cron schedule, environment and Blob configuration | The guide excludes deployment infrastructure changes. Existing deployment still targets Next; choose a Nitro/Start hosting preset and update the build command/framework together before deploying. Current Nitro dependency is a 3.x release candidate. | Staging deploy with real environment, migrations, static assets, SSR, OAuth callback URL, Blob storage, cron authentication/schedule and logs. |
+| `src/app/api/cron/route.ts` / hosting configuration | Cron may run for up to 60 seconds | `maxDuration` is a deployment setting; its inert export was replaced with a comment. Configure the equivalent duration on the chosen platform. | Exercise a realistic cron run and confirm no premature timeout or duplicate processing. |
+| Database-backed game flows and Photon OAuth | Session refresh, role enforcement, circle privacy, uploads, geolocation/check-in, mutation refresh and email delivery | No local database was available; Docker's daemon socket was unavailable. No production services were used for verification. Existing DB/e2e suites remain the replacement validation path. | Run with a dedicated test database and seeded development app: DB tests, `test:e2e`, `test:leak`, and mock Photon `test:photon`; verify expired sessions, logout, role changes, image failure states and navigation refresh. |
+| `next`, `eslint-config-next`, `next.config.ts`, TypeScript Next plugin and `.next` includes, `next-env.d.ts`, Tailwind PostCSS configuration | Deliberate retention during staged migration | The guide requires a separate user decision before final framework cleanup. No application runtime depends on Next now. | Approve removal, adapt lint configuration as needed, then rerun typecheck/lint/tests/build and deployment smoke checks. |
 
-Stage 5 follow-up: login query strings and player detail links now use typed search/params; optional validated search fields accept omitted inputs. Zero-argument public status handlers no longer receive a Request. Full redirect migration remains dependent on explicit server loaders.
-
-## Request cookie and HTTP response migration
-
-OAuth state, sessions and pending scan cookies now use Start's request cookie API, preserving cookie flags and root path. HTTP endpoints return standard Response objects, preserving 307/303 redirects. This removes the callback Request type mismatch. Live OAuth/session/check-in smoke tests remain required; this change does not complete async page rendering or action RPC migration.
-
-## Stage 6 audit
-
-Root title, description, noindex/nofollow, language and viewport are migrated to route head. No additional metadata/generateMetadata/generateStaticParams, robots/sitemap or dynamic image conventions exist in src. Rendered-head verification awaits executable pages.
-
-## Stage 7 inventory
-
-No NEXT_PUBLIC variables exist. `.env.example` values remain server/deployment configuration (APP_URL is used to construct email/QR URLs). No secret is renamed to VITE_. `src/db`, `src/server`, `src/lib/guard.ts` and `src/lib/action.ts` must remain behind explicit server boundaries. Current production build correctly rejects browser access to server-only modules from async route components. Stage 8 must move data reads and writes behind createServerFn and return serializable data; do not disable import protection.
-
-## Stage 8 first data route
-
-`src/app/(site)/oppmote/page.tsx` now uses a GET server function and route loader. Its React component is synchronous, server imports are contained in the handler, and login/home redirects use TanStack redirect. Start serializes the attendance dates for loader consumption. Typecheck passes. Verify logged-out return path, non-player redirect, date rendering, and weekly attendance against a seeded database. Other async routes and shared async header/banner components remain to be converted.
-
-`src/app/(site)/offer/page.tsx`: status loads through a GET server function and returns only running/alive booleans; sensitive target data remains behind an explicit POST server function invoked by RevealButton. The existing action still checks player authorization on each reveal. Verify reveal/hide, navigation cleanup and unauthorized requests. No target identity is included in loader data.
-
-Stage 8 navigation: site layout loader calls getNavigation, which returns only header identity/role/status fields, unread count and a pending-kill boolean. SiteHeader and PendingKillBanner are synchronous, with database and session reads inside the server function. Admin layout still awaits conversion and temporarily calls the same function for its banner. Verify unread counts, role-dependent menus and pending-kill visibility after mutation invalidation.
-
-Stage 8 actions: site/admin actions now expose explicit POST server functions, validate FormData/file limits and check-in coordinates, and retain authorization and domain validation in server-only implementations. ActionForm invalidates router data on successful mutations. Email delivery is awaited rather than using Next after(). Audit, circle, season, staff, questions, notifications, kill cases and player-list routes now load data through GET server functions; arbitrary audit/event payloads are serialized to JSON text. Remaining early-return/search-dependent pages and admin layout still need conversion.
-
-Stage 8 route conversion complete: all route components and nested home/check-in components are synchronous. Server data uses explicit RPC loaders; search/id inputs are validated; Next server markers replaced with Start's import-protection marker. Local development login is an explicit POST RPC gated on development mode. Shared date formatting moved out of the server action module. Production bundling passed before the final request-policy changes; rerun below records final status.
-
-Stage 8 caching: removed ignored force-dynamic exports. Start request middleware explicitly sets no-store on application responses; no prerendering is configured. SWR remains unchanged; the app does not use TanStack Query.
-
-Stage 9: Start request middleware applies security headers and no-store to application responses. Route loaders forward the intended path/query for login guards; guards use Start request headers/URL. The Next proxy has been removed because pages no longer need its URL injection. Templates are replaced by keyed page-enter wrappers in layouts. Root shell/error options preserve the document and existing client error reporting/reload fallback.
-
-Stage 10: No next/font, next/image, next/script or next/dynamic integrations were present; existing Fontsource CSS and native images remain. No active next/* runtime imports remain in src. The old Next runtime/config/TypeScript integration is intentionally retained per the guide. Cron maxDuration was replaced with an explicit deployment requirement because Start ignores that export. Nitro route rules cover security headers on static assets as well as middleware-managed application responses. Action requests enforce the previous 6 MB limit, including chunked requests, before multipart parsing.
+Recommended sequence: validate the remaining integration flows, choose the Next/config cleanup timing, rerun the dedicated type/lint checks after cleanup, then complete the production route/SSR/navigation/metadata/middleware/image/deployment smoke pass.

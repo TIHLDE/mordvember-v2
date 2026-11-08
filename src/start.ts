@@ -1,3 +1,4 @@
+import { setResponseHeader } from "@tanstack/react-start/server";
 import { createMiddleware, createStart } from "@tanstack/react-start";
 
 const MAX_ACTION_BYTES = 6 * 1024 * 1024;
@@ -28,14 +29,12 @@ const actionBodyLimit = createMiddleware().server(async ({ request, handlerType,
 
 const responsePolicy = createMiddleware().server(async ({ next }) => {
   const result = await next();
-  const response = new Response(result.response.body, result.response);
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("Referrer-Policy", "same-origin");
-  response.headers.set("X-Frame-Options", "DENY");
-  response.headers.set("Permissions-Policy", "camera=(self), geolocation=(self)");
-  // Pages contain session-specific game data; preserve Next's force-dynamic intent.
-  response.headers.set("Cache-Control", "no-store");
-  return { ...result, response };
+  setResponseHeader("X-Content-Type-Options", "nosniff");
+  setResponseHeader("Referrer-Policy", "same-origin");
+  setResponseHeader("X-Frame-Options", "DENY");
+  setResponseHeader("Permissions-Policy", "camera=(self), geolocation=(self)");
+  setResponseHeader("Cache-Control", result.response.headers.get("Cache-Control") ?? "no-store");
+  return result;
 });
 
 export const startInstance = createStart(() => ({ requestMiddleware: [responsePolicy, actionBodyLimit] }));

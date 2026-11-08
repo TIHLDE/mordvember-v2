@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { redirect } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Notice, PageTitle } from "@/components/ui";
@@ -14,7 +13,7 @@ function CheckinPage() {
       <CheckinState />
     </div>);
 }
-const loadCheckin = createServerFn({ method: "GET" }).handler(async () => {
+const loadCheckin = createServerFn({ method: "GET" }).validator((value: unknown) => typeof value === "string" ? value : "").handler(async ({ data: feil }) => {
  const { cookies } = await import("@/server/cookies");
  const { myAttendance, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } = await import("@/server/attendance");
  const { getViewer } = await import("@/server/auth/session");
@@ -22,19 +21,21 @@ const loadCheckin = createServerFn({ method: "GET" }).handler(async () => {
  const jar = cookies();
  const season = viewer?.season;
  const pending = season ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id) : !!jar.get(PENDING_SCAN_COOKIE);
+ const invalidCode = feil === "kode" && !pending;
+ if (!viewer && !invalidCode) {
+   const { redirectToLogin } = await import("@/lib/guard");
+   return redirectToLogin();
+ }
  const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
  const now = new Date();
- return { signedIn: !!viewer, player: !!viewer?.player, pending, done, now, attendance: viewer?.player ? await myAttendance(viewer, now) : null };
+ return { invalidCode, player: !!viewer?.player, pending, done, now, attendance: viewer?.player ? await myAttendance(viewer, now) : null };
 });
 function CheckinState() {
- const { feil } = Route.useSearch();
- const { signedIn, player, pending, done, now, attendance } = Route.useLoaderData();
+ const { invalidCode, player, pending, done, now, attendance } = Route.useLoaderData();
  const open = attendance?.open;
-    if (feil === "kode" && !pending)
+    if (invalidCode)
         return <p className="text-red-400">QR-koden er utløpt eller ugyldig. Skann på nytt.</p>;
     // A scanned code stays pending for ten minutes, so the check-in can be finished after logging in.
-    if (!signedIn)
-        throw redirect({ to: "/login", search: { next: "/sjekkinn" } });
     if (!player)
         return <p className="text-zinc-400">Du er ikke påmeldt.</p>;
     if (!pending && !done)
@@ -103,4 +104,4 @@ function SessionStatus({ attendance, open, now, checkout = false }: {
     </>);
 }
 
-export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), loader: ({ location }) => loadCheckin({ headers: { "x-mv-path": location.href } }), component: CheckinPage });
+export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), loaderDeps: ({ search }) => ({ feil: search.feil }), loader: ({ deps, location }) => loadCheckin({ data: deps.feil ?? "", headers: { "x-mv-path": location.href } }), component: CheckinPage });

@@ -19,6 +19,10 @@ Gå til `/login` og velg «velg testbruker». Utviklerinnloggingen finnes bare m
 
 Uten `BLOB_READ_WRITE_TOKEN` lagres opplastede bilder i `.data/uploads` under utvikling. Uten `PHOTON_EMAIL_API_KEY` skrives e-post til konsollen i stedet for å sendes.
 
+Bygg med `pnpm build`, og kjør Nitro-serveren med `pnpm start`. Kjør `E2E_BASE=http://localhost:3000 pnpm test:start-smoke` mot et kjørende produksjonsbygg for å kontrollere HTTP-status, omdirigeringer, cookies og opplastingsgrenser uten database.
+
+Vercel-oppsettet peker fortsatt på Next-bygget og må velges om separat før utrulling. Se `MIGRATION.md`.
+
 ## Tester
 
 | Kommando | Hva |
