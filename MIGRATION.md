@@ -27,3 +27,7 @@ Stage 4: Route params use Route.useParams; login/dev/profile/checkin/attendance 
 Next Link components now use TanStack Link; pathname reads use useLocation. Existing navigation entries are retained. Dynamic URL strings and navigation data need typed LinkOptions conversion; redirects still use Next and must move to loading boundaries along with stage 8. Verify back/forward, query preservation, active states and authenticated redirects before marking this stage complete.
 
 Stage 5 follow-up: login query strings and player detail links now use typed search/params; optional validated search fields accept omitted inputs. Zero-argument public status handlers no longer receive a Request. Full redirect migration remains dependent on explicit server loaders.
+
+## Request cookie and HTTP response migration
+
+OAuth state, sessions and pending scan cookies now use Start's request cookie API, preserving cookie flags and root path. HTTP endpoints return standard Response objects, preserving 307/303 redirects. This removes the callback Request type mismatch. Live OAuth/session/check-in smoke tests remain required; this change does not complete async page rendering or action RPC migration.

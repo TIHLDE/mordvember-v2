@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { cookies } from "next/headers";
+import { cookies } from "@/server/cookies";
 import { Notice, PageTitle } from "@/components/ui";
 import { sessionCountsAt } from "@/game/attendance";
 import { formatOslo, osloDate } from "@/game/time";

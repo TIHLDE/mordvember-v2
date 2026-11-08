@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { cookies } from "@/server/cookies";
 import { cache } from "react";
 import { db } from "@/db";
 import { emergencyAccess, players, seasons, sessions, staff, users } from "@/db/schema";

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { NextResponse, type NextRequest } from "next/server";
+
 import { safeNext } from "@/lib/redirect";
 import { exchangeCode, fetchIdentity, PhotonForbiddenError } from "@/server/auth/photon";
 import { onLogin } from "@/server/auth/login";
@@ -8,7 +8,7 @@ import { redirectUri, clearOAuthState, readOAuthState } from "@/server/auth/oaut
 export const dynamic = "force-dynamic";
 
 function fail(origin: string, reason: string) {
-  return NextResponse.redirect(`${origin}/login?feil=${reason}`);
+  return Response.redirect(`${origin}/login?feil=${reason}`, 307);
 }
 
  async function GET(request: Request) {
@@ -35,7 +35,7 @@ function fail(origin: string, reason: string) {
     console.error("Kunne ikke lagre innloggingen", error);
     return fail(origin, "lagring");
   }
-  const response = NextResponse.redirect(`${origin}${safeNext(stored.next)}`);
+  const response = Response.redirect(`${origin}${safeNext(stored.next)}`, 307);
   clearOAuthState(response);
   return response;
 }

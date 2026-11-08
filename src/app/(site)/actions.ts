@@ -1,7 +1,7 @@
 "use server";
 
 import { and, eq, isNull } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { cookies } from "@/server/cookies";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
