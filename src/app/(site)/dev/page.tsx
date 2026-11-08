@@ -2,8 +2,8 @@ import { db } from "@/db";
 import { onLogin } from "@/server/auth/login";
 import { asc, like } from "drizzle-orm";
 import { users } from "@/db/schema";
-import { createServerFn } from "@tanstack/react-start";
-import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 
 import { notFound, redirect } from "@tanstack/react-router";
 import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
@@ -55,10 +55,6 @@ const loadDevLoginPage = createServerFn({ method: "GET" })
     return { next, testUsers };
   });
 
-function devLogin(form: FormData) {
-  return devLoginRpc({ data: form });
-}
-
 export const Route = createFileRoute("/(site)/dev/")({
   beforeLoad: () => {
     if (!import.meta.env.DEV) throw notFound();
@@ -73,6 +69,12 @@ export const Route = createFileRoute("/(site)/dev/")({
 
 function DevLoginPage() {
   const { next, testUsers } = Route.useLoaderData();
+  const router = useRouter();
+  const login = useServerFn(devLoginRpc);
+  const devLogin = async (form: FormData) => {
+    await login({ data: form });
+    await router.invalidate();
+  };
   return (
     <div className="mx-auto max-w-2xl">
       <PageTitle sub="Bare tilgjengelig i lokal utvikling. Finnes ikke i produksjonsbygget.">

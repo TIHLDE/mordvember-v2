@@ -47,3 +47,14 @@ Vite Plus 1.5.0 now owns lint (Oxlint), format (Oxfmt), tests (Vitest), developm
 Nitro experimental tasks register `game:cron` explicitly and schedule it every ten minutes in dev/Node and Vercel. The existing authenticated `/api/cron` remains available for manual calls. `vercel.json` now selects TanStack Start and the Vite Plus build preflight; it contains no cron definition. Vercel build preflight and the task runtime require CRON_SECRET so the generated Vercel task endpoint cannot execute without its authentication secret, including on preview deployments. Scheduled game failures surface as failed tasks.
 
 Login redirects now run in shared site/admin `beforeLoad` guards using the router location. The custom path header and server-side login redirect helper have been removed. Server functions independently require the viewer/role; the invalid QR scan message remains readable without login. Guard tests cover destination/query preservation, authenticated navigation and pending-scan behavior.
+
+## T3 browser verification (2026-11-08)
+
+Started Docker and migrated/seeded a disposable Postgres container on port 55439, separate from existing local data. Used the T3 Code browser against both `vp dev` and the Node production build, including a 390 px mobile viewport.
+
+- Passed: anonymous home/login, participant login and admin denial, profile description persistence, signup, question submission and admin reply, every admin index page, participant detail/removal, mobile admin menu, closing signup, drawing the circle, starting the game, target reveal, kill reporting and victim confirmation, logout, and return-destination/query preservation.
+- The status board rendered images and reflected the confirmed kill (22 remaining of 23 participants). Production rejects `/dev`; an invalid QR code renders the intended message.
+- Fixed two browser-discovered issues: server-function redirects thrown from React form actions crashed the route, and switching development users left shared navigation data stale. Form actions now use Start's `useServerFn`; development login also invalidates router data.
+- `vp check` and `vp build` passed after the fixes. With a separate disposable `TEST_DATABASE_URL`, all 157 tests passed across 16 files, including the 34 previously skipped database tests.
+
+This covers the listed flows, not every mutation or failure branch. Real Photon OAuth, external email delivery, Vercel scheduling, Blob uploads, and physical-device QR/geolocation remain unverified. The earlier unavailable-database note describes the initial migration checks; a disposable database was available for this browser pass. Production unknown routes currently show the default English `Not Found` page. Start also logs a warning that its CSRF middleware has not been configured; this pass did not change request-security policy.
