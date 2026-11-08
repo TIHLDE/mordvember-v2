@@ -3,7 +3,7 @@ import { getNavigation } from "@/server/navigation";
 import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
@@ -48,7 +48,6 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const path = useLocation({ select: (location) => location.pathname });
   const { viewer, waiting, groups } = Route.useLoaderData();
   return (
     <AdminShell
@@ -58,9 +57,7 @@ function AdminLayout() {
       }
       user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}
     >
-      <div key={path} className="page-enter">
-        <Outlet />
-      </div>
+      <Outlet />
     </AdminShell>
   );
 }

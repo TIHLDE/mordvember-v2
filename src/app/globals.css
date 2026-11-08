@@ -198,30 +198,6 @@ html:has(.status-screen) {
     line-height: 1.05;
   }
 
-  .page-enter > * > * {
-    animation: rise var(--spring-duration) var(--spring) backwards;
-    animation-delay: calc(min(var(--i, 0), 6) * 40ms);
-  }
-
-  .page-enter > * > :nth-child(1) {
-    --i: 0;
-  }
-  .page-enter > * > :nth-child(2) {
-    --i: 1;
-  }
-  .page-enter > * > :nth-child(3) {
-    --i: 2;
-  }
-  .page-enter > * > :nth-child(4) {
-    --i: 3;
-  }
-  .page-enter > * > :nth-child(5) {
-    --i: 4;
-  }
-  .page-enter > * > :nth-child(n + 6) {
-    --i: 5;
-  }
-
   .appear {
     animation: appear 320ms var(--ease-out) backwards;
   }
@@ -332,7 +308,6 @@ html:has(.status-screen) {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .page-enter > * > *,
     .appear,
     .toast,
     .toast[data-leaving],
