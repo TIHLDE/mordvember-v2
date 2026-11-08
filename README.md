@@ -27,13 +27,13 @@ Vercel bruker TanStack Start og `vp run build:vercel`, som beholder produksjonss
 
 ## Tester
 
-| Kommando | Hva |
-|---|---|
-| `vp test` | Spillmotoren (sirkel, drap, kollisjoner, angring, nåde, diskvalifisering, oppmøte, ukesjekk) og en statisk kontroll av hvem som får lese sirkelen |
-| `TEST_DATABASE_URL=… vp test` | Tar også med tilgangstester mot en egen database. Databasen tømmes. |
-| `vp run test:e2e` | Hele spillet i nettleser, fra påmelding til vinner. Krever `vp dev` og ferske testdata. |
-| `vp run test:photon` | Ekte innlogging og e-post mot en lokal etterligning av Photon (`vp run photon:mock`). Start `vp dev` med `PHOTON_ISSUER=http://localhost:4010/api/auth`, `PHOTON_CLIENT_ID=mordvember-test`, `PHOTON_CLIENT_SECRET=mock-hemmelighet` og `PHOTON_EMAIL_API_KEY=mock-epostnokkel`. |
-| `vp run test:leak` | Henter alle sider som deltaker, eliminert, medlem, Index-leder og ikke innlogget, og ser etter lekkasje av sirkelen. Krever ferske testdata. |
+| Kommando                      | Hva                                                                                                                                                                                                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vp test`                     | Spillmotoren (sirkel, drap, kollisjoner, angring, nåde, diskvalifisering, oppmøte, ukesjekk) og en statisk kontroll av hvem som får lese sirkelen                                                                                                                                |
+| `TEST_DATABASE_URL=… vp test` | Tar også med tilgangstester mot en egen database. Databasen tømmes.                                                                                                                                                                                                              |
+| `vp run test:e2e`             | Hele spillet i nettleser, fra påmelding til vinner. Krever `vp dev` og ferske testdata.                                                                                                                                                                                          |
+| `vp run test:photon`          | Ekte innlogging og e-post mot en lokal etterligning av Photon (`vp run photon:mock`). Start `vp dev` med `PHOTON_ISSUER=http://localhost:4010/api/auth`, `PHOTON_CLIENT_ID=mordvember-test`, `PHOTON_CLIENT_SECRET=mock-hemmelighet` og `PHOTON_EMAIL_API_KEY=mock-epostnokkel`. |
+| `vp run test:leak`            | Henter alle sider som deltaker, eliminert, medlem, Index-leder og ikke innlogget, og ser etter lekkasje av sirkelen. Krever ferske testdata.                                                                                                                                     |
 
 ## Oppbygning
 
@@ -48,4 +48,4 @@ Sirkelen ligger som én ordnet liste per sesong. Alle endringer skjer i en trans
 
 ## Drift
 
-`scheduledTasks` i `vite.config.ts` kjører Nitro-oppgaven `game:cron` hvert tiende minutt. Samme plan kjører lokalt under `vp dev`/Nitro-serveren og genererer Vercel Cron Jobs ved Vercel-bygg. Jobben stenger påmeldinger, lukker glemte utsjekker, sender drapssaker videre etter 12 timer, sender ukevarsel når deltakerne må møte de resterende dagene og lager fredagslista og sender e-post. Sett `CRON_SECRET` i Vercel-prosjektet; Vercel sender den i Authorization-headeren til Nitros genererte `/_vercel/cron`-endepunkt. Det eksisterende `/api/cron`-endepunktet beholdes for autentiserte manuelle kall.
+`scheduledTasks` i `vite.config.ts` kjører Nitro-oppgaven `game:cron` hvert tiende minutt. Samme plan kjører lokalt under `vp dev`/Nitro-serveren og genererer Vercel Cron Jobs ved Vercel-bygg. Jobben stenger påmeldinger, lukker glemte utsjekker, sender drapssaker videre etter 12 timer, sender ukevarsel når deltakerne må møte de resterende dagene og lager fredagslista og sender e-post. Sett `CRON_SECRET` i Vercel-prosjektet for både produksjon og preview; Vercel sender den i Authorization-headeren til Nitros genererte `/_vercel/cron`-endepunkt. Det eksisterende `/api/cron`-endepunktet beholdes for autentiserte manuelle kall.
