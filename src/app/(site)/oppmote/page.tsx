@@ -17,7 +17,7 @@ export default async function AttendancePage() {
   return (
     <div className="space-y-6">
       <PageTitle
-        sub={`Krav denne uka: ${rules.days} dager med minst ${rules.hours} timer sammenhengende mellom ${rules.windowStart} og ${rules.windowEnd}${rules.killsRequired ? `, og ${rules.killsRequired} drap` : ""}.`}
+        sub={`Krav denne uka: ${rules.days} dager med minst ${rules.hours} timer sammenhengende mellom ${rules.windowStart} og ${rules.windowEnd}${rules.killsRequired ? `, og ${rules.killsRequired} drap totalt i spillet` : ""}.`}
       >
         Oppmøte
       </PageTitle>
@@ -25,7 +25,7 @@ export default async function AttendancePage() {
         <p className="text-sm text-zinc-300">Skann QR-koden på statusskjermen med mobilkameraet for å sjekke inn eller ut.</p>
         {rules.killsRequired > 0 && (
           <p className="mt-2 text-sm text-zinc-400">
-            Drap fra mandag til søndag teller på kravet, men fredagslista lages automatisk fredag kl. 16.00. Vil du være sikker, må drapene være bekreftet før det.
+            Bekreftede drap fra hele spillet teller på kravet, også fra tidligere uker. Fredagslista lages automatisk fredag kl. 16.00, så drapene må være bekreftet før det for å komme med der.
           </p>
         )}
       </Card>

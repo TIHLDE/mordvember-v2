@@ -92,6 +92,17 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
     expect(await notices()).toBe(1);
   });
 
+  it("teller tidligere ukers drap mot det gjeldende drapskravet", async () => {
+    await db.update(schema.weekRules).set({ rules: { ...rules, days: 0 } });
+    try {
+      const results = await weekly.evaluateSeasonWeek(season, week2, monday);
+      expect(results.find((r) => r.player.id === ids.passes)?.evaluation).toMatchObject({ kills: 1, ok: true });
+      expect(results.find((r) => r.player.id === ids.exempt)?.evaluation).toMatchObject({ kills: 0, ok: false });
+    } finally {
+      await db.update(schema.weekRules).set({ rules: { ...rules, days: 5 } });
+    }
+  });
+
   describe("drap i helga", () => {
     const saturday = async () => {
       const [kill] = await db

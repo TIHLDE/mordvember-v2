@@ -37,7 +37,7 @@ function RuleFields({ rules }: { rules: WeekRules }) {
       <Field label="Timer">
         <NumberStepper name="hours" min={0} max={8} step={0.5} defaultValue={rules.hours} />
       </Field>
-      <Field label="Drap">
+      <Field label="Drap totalt">
         <NumberStepper name="killsRequired" min={0} max={20} defaultValue={rules.killsRequired} />
       </Field>
       <Field label="Fra">
@@ -106,9 +106,9 @@ export default async function SeasonAdmin() {
               uke
             </p>
             <p>
-              <strong className="text-zinc-200">Drap:</strong> Hvor mange drap spillerne må gjøre i
-              spillet hver uke. Dette kommer i tillegg til å være på skolen. Velger du 0, trenger de
-              ikke å gjøre noen drap. Drap fra mandag til søndag teller, men den automatiske
+              <strong className="text-zinc-200">Drap:</strong> Hvor mange bekreftede drap spillerne må ha totalt i
+              spillet. Drap fra tidligere uker teller også når kravet økes. Dette kommer i tillegg
+              til å være på skolen. Velger du 0, trenger de ikke å gjøre noen drap. Den automatiske
               fredagslista lages fredag kl. 16.00, så drap etter det teller bare på lister som lages
               senere. Saker som allerede står på lista, endres ikke.
             </p>

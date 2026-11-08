@@ -98,8 +98,8 @@ export function evaluateWeek(input: {
   const { weekStart, rules, now } = input;
   const exempt = input.requirementsFromWeek !== null && input.requirementsFromWeek > weekStart;
   const days = countingDays(input.sessions, weekStart, rules, now);
-  // Attendance counts Monday to Friday, but kills count the whole week.
-  const kills = input.killTimes.filter((t) => weekStartOf(t) === weekStart).length;
+  // Kills accumulate throughout the game, up to the week being evaluated.
+  const kills = input.killTimes.filter((t) => weekStartOf(t) <= weekStart).length;
   const missing: string[] = [];
   if (!exempt) {
     if (days < rules.days) {

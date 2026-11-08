@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { jobRuns, kills, players, weeklyReviews, users } from "@/db/schema";
 import { evaluateWeek, weeklyWarningDue, type WeekEvaluation } from "@/game/attendance";
@@ -39,7 +39,6 @@ export async function evaluateSeasonWeek(season: Season, weekStart: string, now 
         and(
           eq(kills.seasonId, season.id),
           eq(kills.status, "applied"),
-          gte(kills.killedAt, osloTime(weekStart, "00:00")),
           lt(kills.killedAt, osloTime(addDays(weekStart, 7), "00:00")),
         ),
       ),
