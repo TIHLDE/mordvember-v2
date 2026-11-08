@@ -1,36 +1,44 @@
+import { createServerFn } from "@tanstack/react-start";
+import { redirect } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
-import { cookies } from "@/server/cookies";
+
 import { Notice, PageTitle } from "@/components/ui";
 import { sessionCountsAt } from "@/game/attendance";
 import { formatOslo, osloDate } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
-import { myAttendance, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } from "@/server/attendance";
-import { getViewer } from "@/server/auth/session";
+
+
+
 import { completeScanAction } from "../actions";
 import { CheckinButton } from "./CheckinButton";
-export const dynamic = "force-dynamic";
-async function CheckinPage() {
+function CheckinPage() {
     return (<div className="mx-auto max-w-md py-8 text-center">
       <PageTitle center>Oppmøte</PageTitle>
-      <CheckinState searchParams={Promise.resolve(Route.useSearch())}/>
+      <CheckinState />
     </div>);
 }
-async function CheckinState({ searchParams }: {
-    searchParams: Promise<{
-        feil?: string;
-    }>;
-}) {
-    const [{ feil }, viewer, jar] = await Promise.all([searchParams, getViewer(), cookies()]);
-    const season = viewer?.season;
-    const pending = season ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id) : !!jar.get(PENDING_SCAN_COOKIE);
+const loadCheckin = createServerFn({ method: "GET" }).handler(async () => {
+ const { cookies } = await import("@/server/cookies");
+ const { myAttendance, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } = await import("@/server/attendance");
+ const { getViewer } = await import("@/server/auth/session");
+ const viewer = await getViewer();
+ const jar = cookies();
+ const season = viewer?.season;
+ const pending = season ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id) : !!jar.get(PENDING_SCAN_COOKIE);
+ const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
+ const now = new Date();
+ return { signedIn: !!viewer, player: !!viewer?.player, pending, done, now, attendance: viewer?.player ? await myAttendance(viewer, now) : null };
+});
+function CheckinState() {
+ const { feil } = Route.useSearch();
+ const { signedIn, player, pending, done, now, attendance } = Route.useLoaderData();
+ const open = attendance?.open;
     if (feil === "kode" && !pending)
         return <p className="text-red-400">QR-koden er utløpt eller ugyldig. Skann på nytt.</p>;
     // A scanned code stays pending for ten minutes, so the check-in can be finished after logging in.
-    if (!viewer)
-        return redirectToLogin();
-    if (!viewer.player)
+    if (!signedIn)
+        throw redirect({ to: "/login", search: { next: "/sjekkinn" } });
+    if (!player)
         return <p className="text-zinc-400">Du er ikke påmeldt.</p>;
-    const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
     if (!pending && !done)
         return <p className="text-zinc-400">Skann QR-koden på statusskjermen for å sjekke inn eller ut.</p>;
     if (done === "out")
@@ -38,9 +46,6 @@ async function CheckinState({ searchParams }: {
     if (done === "forgotten") {
         return <Notice tone="amber">Du glemte å sjekke ut, så økta er lukket uten å telle som oppmøte. Var du der, kan spillmesterne godkjenne den.</Notice>;
     }
-    const now = new Date();
-    const attendance = await myAttendance(viewer, now);
-    const open = attendance?.open;
     if (done === "in") {
         return (<div className="space-y-4">
         <p className="success-pop font-display text-4xl text-emerald-400">Du er sjekket inn</p>
@@ -62,7 +67,7 @@ async function CheckinState({ searchParams }: {
       <SessionStatus attendance={attendance} open={open} now={now} checkout/>
     </div>);
 }
-type Attendance = NonNullable<Awaited<ReturnType<typeof myAttendance>>>;
+type Attendance = NonNullable<Awaited<ReturnType<typeof loadCheckin>>["attendance"]>;
 function SessionStatus({ attendance, open, now, checkout = false }: {
     attendance: Attendance;
     open: NonNullable<Attendance["open"]>;
@@ -100,4 +105,4 @@ function SessionStatus({ attendance, open, now, checkout = false }: {
     </>);
 }
 
-export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), component: CheckinPage });
+export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), loader: () => loadCheckin(), component: CheckinPage });

@@ -9,11 +9,10 @@ import { Badge, Button, Card, Empty, Field, PageTitle } from "@/components/ui";
 
 
 import { formatOslo } from "@/game/time";
-import { osloInputValue } from "@/lib/action";
+import { osloInputValue } from "@/lib/oslo-input";
 
 
 import { confirmKillAction, disputeKillAction, reportKillAction } from "../actions";
-export const dynamic = "force-dynamic";
 function KillsPage() {
  const { viewer, me, mine, open, history, running, now } = Route.useLoaderData();
 return (<div className="space-y-6">

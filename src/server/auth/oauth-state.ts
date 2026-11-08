@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
 
 // The login route stores this cookie and the callback route reads it back after Photon redirects.

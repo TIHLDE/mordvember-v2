@@ -9,7 +9,6 @@ import { formatOslo } from "@/game/time";
 
 
 import { MarkRead } from "./MarkRead";
-export const dynamic = "force-dynamic";
 function NotificationsPage() {
  const { viewer, rows } = Route.useLoaderData();
 return (<div className="mx-auto max-w-2xl">

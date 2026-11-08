@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { cache } from "react";
 import { db, type Tx } from "@/db";

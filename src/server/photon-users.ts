@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { PhotonForbiddenError, type PhotonUser, searchUsers } from "./auth/photon";
 import { AccessError, currentPhotonToken, type Viewer } from "./auth/session";
 import { GameError } from "./game";

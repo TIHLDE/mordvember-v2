@@ -13,7 +13,6 @@ import { BIO_FIELDS, parseBio } from "@/game/bio";
 
 import { addPlayerAction } from "../actions";
 import { imageStatus, STATUS } from "./status";
-export const dynamic = "force-dynamic";
 function PlayersAdmin() {
  const { viewer, running, list, present, rows, pending, rest, waiting, noBio, candidates } = Route.useLoaderData();
 return (<div className="space-y-6">

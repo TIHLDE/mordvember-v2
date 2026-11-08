@@ -8,7 +8,6 @@ import { formatOsloDate, weekStartOf } from "@/game/time";
 
 
 import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../actions";
-export const dynamic = "force-dynamic";
 function FridayList() {
  const { viewer, all, pending, decided, running, now, thisWeek, current, atRisk, earlier, missing } = Route.useLoaderData();
 return (<div className="space-y-6">

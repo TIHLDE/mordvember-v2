@@ -1,10 +1,11 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
 import { buttonClass } from "@/components/styles";
 import { Notice, PageTitle } from "@/components/ui";
 import { safeNext } from "@/lib/redirect";
-import { getViewer } from "@/server/auth/session";
+
 const ERRORS: Record<string, string> = {
     kode: "Innloggingen ble avbrutt.",
     state: "Innloggingen kom ikke fra denne nettleseren. Prøv igjen.",
@@ -12,10 +13,8 @@ const ERRORS: Record<string, string> = {
     lagring: "Innloggingen gikk gjennom, men vi fikk ikke lagret den. Prøv igjen om litt.",
     godkjenning: "TIHLDE-kontoen din venter på godkjenning fra en administrator. Du kan logge inn når den er godkjent.",
 };
-async function LoginPage() {
+function LoginPage() {
     const { feil, next } = Route.useSearch();
-    if (await getViewer())
-        redirect(safeNext(next));
     const target = safeNext(next);
     return (<div className="mx-auto max-w-md py-10 text-center">
       <PageTitle center sub="Logg inn med TIHLDE-brukeren din for å se deltakerne og melde deg på.">Logg inn</PageTitle>
@@ -28,4 +27,9 @@ async function LoginPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/login/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined, next: typeof search.next === "string" ? search.next : undefined }), component: LoginPage });
+export const Route = createFileRoute("/(site)/login/")({ validateSearch: (search: Record<string, unknown>)  : { feil?: string; next?: string } => ({ feil: typeof search.feil === "string" ? search.feil : undefined, next: typeof search.next === "string" ? search.next : undefined }), loaderDeps: ({ search }) => ({ next: search.next }), loader: ({ deps }) => checkLogin({ data: deps.next ?? "/" }), component: LoginPage });
+
+const checkLogin = createServerFn({ method: "GET" }).validator((value: unknown) => typeof value === "string" ? safeNext(value) : "/").handler(async ({ data }) => {
+ const { getViewer } = await import("@/server/auth/session");
+ if (await getViewer()) throw redirect({ href: data });
+});

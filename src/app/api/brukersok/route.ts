@@ -5,7 +5,6 @@ import { AccessError, getViewer } from "@/server/auth/session";
 import { GameError } from "@/server/game";
 import { searchPhotonUsers } from "@/server/photon-users";
 
-export const dynamic = "force-dynamic";
 
  async function GET(request: Request) {
   const viewer = await getViewer();

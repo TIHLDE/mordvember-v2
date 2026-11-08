@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { env } from "../env";
 
 const KOK_GROUP_SLUG = "kok";

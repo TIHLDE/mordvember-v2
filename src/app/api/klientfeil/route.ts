@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 
-export const dynamic = "force-dynamic";
 
 const MAX_LENGTH = 2000;
 

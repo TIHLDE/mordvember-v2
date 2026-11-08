@@ -1,29 +1,32 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { inputClass } from "@/components/styles";
 import { Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 import { bioFromPhoton } from "@/game/bio";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
-import { signupOpen } from "@/server/season";
+
+
+
 import { signUpAction } from "../actions";
-export const dynamic = "force-dynamic";
-async function SignupPage() {
-    const viewer = await getViewer();
-    if (!viewer)
-        return redirectToLogin();
-    const season = viewer.season;
-    if (viewer.player)
-        redirect("/profil?pameldt=1");
-    if (!season || !signupOpen(season)) {
+const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
+ const { getViewer } = await import("@/server/auth/session");
+ const { redirectToLogin } = await import("@/lib/guard");
+ const { signupOpen } = await import("@/server/season");
+ const viewer = await getViewer();
+ if (!viewer) return redirectToLogin();
+ if (viewer.player) throw redirect({ to: "/profil", search: { pameldt: "1" } });
+ return { user: viewer.user, isGamemaster: viewer.isGamemaster, open: !!viewer.season && signupOpen(viewer.season) };
+});
+function SignupPage() {
+ const { user, isGamemaster, open } = Route.useLoaderData();
+    if (!open) {
         return <PageTitle sub="Påmeldingen er ikke åpen nå.">Påmelding</PageTitle>;
     }
-    if (viewer.isGamemaster) {
+    if (isGamemaster) {
         return <PageTitle sub="Spillmestere kan ikke delta i samme sesong.">Påmelding</PageTitle>;
     }
-    const user = viewer.user;
     return (<div className="mx-auto max-w-xl space-y-4">
       <PageTitle>Påmelding</PageTitle>
       <ActionForm action={signUpAction} className="space-y-4">
@@ -53,4 +56,4 @@ async function SignupPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/pamelding/")({ component: SignupPage });
+export const Route = createFileRoute("/(site)/pamelding/")({ loader: () => loadSignup(), component: SignupPage });

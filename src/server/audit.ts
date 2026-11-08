@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { db, type Tx } from "@/db";
 import { auditLog } from "@/db/schema";
 

@@ -6,7 +6,6 @@ import { Button, Card, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 import { emergencyEndAction, emergencyStartAction } from "../actions";
-export const dynamic = "force-dynamic";
 function EmergencyPage() {
  const { viewer } = Route.useLoaderData();
 return (<div className="max-w-xl space-y-6">

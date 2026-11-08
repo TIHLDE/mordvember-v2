@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { endSession } from "@/server/auth/session";
 
-export const dynamic = "force-dynamic";
 
  async function POST(request: Request) {
   await endSession();

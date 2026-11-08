@@ -1,22 +1,25 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { asc, like } from "drizzle-orm";
-import { notFound, redirect } from "next/navigation";
+
+import { notFound, redirect } from "@tanstack/react-router";
 import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { users } from "@/db/schema";
+
+
 import { safeNext } from "@/lib/redirect";
-import { onLogin } from "@/server/auth/login";
+
 const TEST_PREFIX = "test-";
-async function devLogin(form: FormData) {
-    "use server";
+const devLoginRpc = createServerFn({ method: "POST" }).validator((value: unknown) => { if (!(value instanceof FormData)) throw new Error("Ugyldig skjema"); return value; }).handler(async ({ data: form }) => {
+const { db } = await import("@/db");
+const { onLogin } = await import("@/server/auth/login");
+
     if (process.env.NODE_ENV !== "development")
-        notFound();
+        throw notFound();
     const username = String(form.get("username") ?? "");
     if (!username.startsWith(TEST_PREFIX))
-        notFound();
+        throw notFound();
     const user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.username, username) });
     if (!user)
-        notFound();
+        throw notFound();
     await onLogin({
         username: user.username,
         name: user.name,
@@ -28,16 +31,12 @@ async function devLogin(form: FormData) {
         isKokLeader: form.get("kok") === "on",
         isIndexLeader: form.get("index") === "on",
     });
-    redirect(safeNext(String(form.get("next") ?? "/")));
-}
-async function DevLoginPage() {
-    if (process.env.NODE_ENV !== "development")
-        notFound();
-    const [{ next }, testUsers] = await Promise.all([
-        Route.useSearch(),
-        db.select().from(users).where(like(users.username, `${TEST_PREFIX}%`)).orderBy(asc(users.username)),
-    ]);
-    return (<div className="mx-auto max-w-2xl">
+    throw redirect({ href: safeNext(String(form.get("next") ?? "/")) });
+});
+function devLogin(form: FormData) { return devLoginRpc({ data: form }); }
+function DevLoginPage() {
+ const { next, testUsers } = Route.useLoaderData();
+return (<div className="mx-auto max-w-2xl">
       <PageTitle sub="Bare tilgjengelig i lokal utvikling. Finnes ikke i produksjonsbygget.">Testbrukere</PageTitle>
       {!testUsers.length && <p className="text-zinc-400">Ingen testbrukere. Kjør pnpm db:seed.</p>}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -58,4 +57,18 @@ async function DevLoginPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/dev/")({ validateSearch: (search: Record<string, unknown>)  : { next?: string } => ({ next: typeof search.next === "string" ? search.next : undefined }), component: DevLoginPage });
+export const Route = createFileRoute("/(site)/dev/")({ validateSearch: (search: Record<string, unknown>)  : { next?: string } => ({ next: typeof search.next === "string" ? search.next : undefined }), loaderDeps: ({ search }) => ({ next: search.next }), loader: ({ deps }) => loadDevLoginPage({ data: deps.next ?? "" }), component: DevLoginPage });
+
+const loadDevLoginPage = createServerFn({ method: "GET" }).validator((value: unknown) => { if (typeof value !== "string") throw new Error("Ugyldig parameter"); return value; }).handler(async ({ data }) => {
+const { asc, like } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { users } = await import("@/db/schema");
+const { onLogin } = await import("@/server/auth/login");
+if (process.env.NODE_ENV !== "development")
+        throw notFound();
+const [{ next }, testUsers] = await Promise.all([
+        { next: data },
+        db.select().from(users).where(like(users.username, `${TEST_PREFIX}%`)).orderBy(asc(users.username)),
+    ]);
+return { next, testUsers };
+});

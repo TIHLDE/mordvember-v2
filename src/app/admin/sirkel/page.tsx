@@ -10,7 +10,6 @@ import { formatOslo } from "@/game/time";
 
 
 import { generateCircleAction, mercyAction, moveAction, startGameAction } from "../actions";
-export const dynamic = "force-dynamic";
 const EVENT_LABEL: Record<string, string> = {
     trukket: "Sirkel trukket",
     flyttet: "Deltaker flyttet",

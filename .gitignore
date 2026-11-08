@@ -49,3 +49,8 @@ Style.css
 /.data
 /test-results
 /AGENTS.md
+
+# TanStack Start / Nitro
+/.output/
+/.nitro/
+/.tanstack/

@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { getRequestUrl } from "@tanstack/react-start/server";
 import { notFound, redirect } from "@tanstack/react-router";
 import { safeNext } from "@/lib/redirect";

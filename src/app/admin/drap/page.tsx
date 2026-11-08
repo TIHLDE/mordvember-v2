@@ -11,7 +11,6 @@ import { isOverdue } from "@/game/kills";
 import { formatOslo } from "@/game/time";
 
 import { approveKillAction, rejectKillAction, undoKillAction } from "../actions";
-export const dynamic = "force-dynamic";
 function KillCases() {
  const { viewer, rows, now, open, waiting, applied } = Route.useLoaderData();
 return (<div className="space-y-6">

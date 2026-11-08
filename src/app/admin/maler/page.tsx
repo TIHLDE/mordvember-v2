@@ -6,7 +6,6 @@ import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui
 
 
 import { saveTemplateAction } from "../actions";
-export const dynamic = "force-dynamic";
 function TemplatesPage() {
  const { rows } = Route.useLoaderData();
 return (<div className="space-y-6">

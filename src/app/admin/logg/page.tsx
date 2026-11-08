@@ -4,7 +4,6 @@ import { Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 
-export const dynamic = "force-dynamic";
 function AuditPage() {
  const { viewer, rows } = Route.useLoaderData();
 return (<div className="space-y-6">

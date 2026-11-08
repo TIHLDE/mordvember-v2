@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { and, asc, desc, eq, gte, isNull, lt, lte } from "drizzle-orm";

@@ -1,7 +1,7 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { BIO_FIELDS, composeBio } from "@/game/bio";
 import { RingError } from "@/game/ring";
-import { osloParts, osloTime } from "@/game/time";
+import { osloTime } from "@/game/time";
 import { AccessError } from "@/server/auth/session";
 import { deliverPendingEmails } from "@/server/email";
 import { GameError } from "@/server/game";
@@ -38,7 +38,3 @@ export function osloInput(value: string): Date {
   return osloTime(match[1] as string, match[2] as string);
 }
 
-export function osloInputValue(at: Date): string {
-  const p = osloParts(at);
-  return `${p.date}T${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
-}

@@ -1,18 +1,31 @@
-import { getNavigation } from "@/server/navigation";
+import { createServerFn } from "@tanstack/react-start";
+
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
-async function AdminLayout() {
-    const viewer = await getViewer();
-    const { waiting } = await getNavigation();
-    if (!viewer)
+
+
+function AdminLayout() {
+ const { viewer, waiting, groups } = Route.useLoaderData();
+return (<AdminShell groups={groups} banner={<PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8"/>} user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}>
+      <Outlet />
+    </AdminShell>);
+}
+
+export const Route = createFileRoute("/admin")({ loader: () => loadAdminLayout(), component: AdminLayout });
+
+const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
+const { getNavigation } = await import("@/server/navigation");
+const { redirectToLogin } = await import("@/lib/guard");
+const { getViewer } = await import("@/server/auth/session");
+const viewer = await getViewer();
+const { waiting } = await getNavigation();
+if (!viewer)
         return redirectToLogin();
-    if (!viewer.isGamemaster && !viewer.canManageRoles)
-        redirect("/");
-    const groups: AdminNavGroup[] = [
+if (!viewer.isGamemaster && !viewer.canManageRoles)
+        throw redirect({ to: "/" });
+const groups: AdminNavGroup[] = [
         { links: [{ href: "/admin", label: "Oversikt", show: true, exact: true }] },
         {
             label: "Spillet",
@@ -38,9 +51,5 @@ async function AdminLayout() {
     ]
         .map((g) => ({ ...g, links: g.links.filter((l) => l.show).map(({ show: _, ...l }) => l) }))
         .filter((g) => g.links.length > 0);
-    return (<AdminShell groups={groups} banner={<PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8"/>} user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}>
-      <Outlet />
-    </AdminShell>);
-}
-
-export const Route = createFileRoute("/admin")({ component: AdminLayout });
+return { viewer, waiting, groups };
+});

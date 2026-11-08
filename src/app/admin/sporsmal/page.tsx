@@ -7,7 +7,6 @@ import { formatOslo } from "@/game/time";
 
 
 import { answerAction, deleteQuestionAction } from "../actions";
-export const dynamic = "force-dynamic";
 function QuestionsAdmin() {
  const { viewer, rows } = Route.useLoaderData();
 return (<div className="space-y-6">

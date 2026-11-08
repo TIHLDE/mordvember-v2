@@ -9,7 +9,6 @@ import { formatOslo } from "@/game/time";
 
 import { deleteQuestionAction } from "../../admin/actions";
 import { askAction } from "../actions";
-export const dynamic = "force-dynamic";
 function QuestionsPage() {
  const { viewer, all } = Route.useLoaderData();
 return (<div className="mx-auto max-w-2xl space-y-6">

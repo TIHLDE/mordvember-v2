@@ -5,7 +5,6 @@ import { redirectUri, saveOAuthState } from "@/server/auth/oauth-state";
 import { authorizeUrl, challengeFor, createVerifier } from "@/server/auth/photon";
 import { env } from "@/server/env";
 
-export const dynamic = "force-dynamic";
 
  async function GET(request: Request) {
   if (!env.photonClientId) return Response.json({ error: "PHOTON_CLIENT_ID er ikke satt" }, { status: 500 });

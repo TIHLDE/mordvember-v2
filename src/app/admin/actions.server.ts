@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 
 import { redirect } from "@tanstack/react-router";
 import type { WeekRules } from "@/game/attendance";

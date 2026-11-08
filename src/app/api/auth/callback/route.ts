@@ -5,7 +5,6 @@ import { exchangeCode, fetchIdentity, PhotonForbiddenError } from "@/server/auth
 import { onLogin } from "@/server/auth/login";
 import { redirectUri, clearOAuthState, readOAuthState } from "@/server/auth/oauth-state";
 
-export const dynamic = "force-dynamic";
 
 function fail(origin: string, reason: string) {
   return Response.redirect(`${origin}/login?feil=${reason}`, 307);

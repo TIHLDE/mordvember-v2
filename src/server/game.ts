@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { kills, players, seasons, staff, users } from "@/db/schema";

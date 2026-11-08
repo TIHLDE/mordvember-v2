@@ -15,7 +15,6 @@ import type { Season } from "@/server/auth/session";
 
 import { ResetGameFields } from "./ResetGameFields";
 import { officeAction, resetGameAction, rulesAction, resumeGameAction, setPhaseAction, startGameAction, updateBasicsAction, } from "../actions";
-export const dynamic = "force-dynamic";
 function RuleFields({ rules }: {
     rules: WeekRules;
 }) {

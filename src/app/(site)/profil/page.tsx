@@ -1,5 +1,6 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { Portrait } from "@/components/Portrait";
@@ -8,20 +9,25 @@ import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Field, Notice, PageTitle } from "@/components/ui";
 import { parseBio } from "@/game/bio";
 import { imageState } from "@/game/review";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer, type Viewer } from "@/server/auth/session";
-import { myReviewItems } from "@/server/review";
-import { signupOpen } from "@/server/season";
+
+
+
+
 import { bioAction, defaultImageAction, deleteImageAction, uploadImageAction, withdrawAction, } from "../actions";
-export const dynamic = "force-dynamic";
-async function ProfilePage() {
-    const [{ pameldt }, viewer] = await Promise.all([Route.useSearch(), getViewer()]);
-    if (!viewer)
-        return redirectToLogin();
-    const { player, season } = viewer;
-    if (!player || !season)
-        redirect("/");
-    const items = await myReviewItems(viewer);
+const loadProfile = createServerFn({ method: "GET" }).handler(async () => {
+ const { getViewer } = await import("@/server/auth/session");
+ const { redirectToLogin } = await import("@/lib/guard");
+ const { myReviewItems } = await import("@/server/review");
+ const { signupOpen } = await import("@/server/season");
+ const viewer = await getViewer();
+ if (!viewer) return redirectToLogin();
+ const { player, season } = viewer;
+ if (!player || !season) throw redirect({ to: "/" });
+ return { player, items: await myReviewItems(viewer), canWithdraw: signupOpen(season) };
+});
+function ProfilePage() {
+ const { pameldt } = Route.useSearch();
+ const { player, items, canWithdraw } = Route.useLoaderData();
     return (<div className="mx-auto max-w-xl space-y-6">
       <PageTitle sub={player.name}>Profil</PageTitle>
       {pameldt && <Notice tone="green">Du er påmeldt! Du får e-post når spillet starter.</Notice>}
@@ -36,14 +42,14 @@ async function ProfilePage() {
             <Button type="submit">Lagre</Button>
           </ActionForm>
         </Card>)}
-      {signupOpen(season) && (<Card title="Avmelding">
+      {canWithdraw && (<Card title="Avmelding">
           <ActionForm action={withdrawAction} confirm="Melde deg av Mordvember?">
             <Button type="submit" variant="danger">Meld meg av</Button>
           </ActionForm>
         </Card>)}
     </div>);
 }
-type Player = NonNullable<Viewer["player"]>;
+type Player = Awaited<ReturnType<typeof loadProfile>>["player"];
 function ImageCard({ player }: {
     player: Player;
 }) {
@@ -87,4 +93,4 @@ function ImageBadge({ player }: {
     return <Badge tone="amber">Venter på godkjenning</Badge>;
 }
 
-export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>)  : { pameldt?: string } => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), component: ProfilePage });
+export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>)  : { pameldt?: string } => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), loader: () => loadProfile(), component: ProfilePage });

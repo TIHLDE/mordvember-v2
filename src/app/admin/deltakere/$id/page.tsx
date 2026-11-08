@@ -1,30 +1,21 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { notFound } from "@tanstack/react-router";
+
 import { ActionForm } from "@/components/ActionForm";
 import { BioFields } from "@/components/BioFields";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Field, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { players } from "@/db/schema";
+
+
 import { parseBio } from "@/game/bio";
-import { guard } from "@/lib/guard";
+
 import { approveImageAction, disqualifyAction, playerBioAction, playerImageAction, rejectImageAction, removePlayerAction, } from "../../actions";
 import { imageStatus, STATUS } from "../status";
-export const dynamic = "force-dynamic";
-async function PlayerAdmin() {
-    const viewer = await guard("gamemaster");
-    const { id } = Route.useParams();
-    if (!/^[0-9a-f-]{36}$/i.test(id))
-        notFound();
-    const player = await db.query.players.findFirst({ where: and(eq(players.id, id), eq(players.seasonId, viewer.season.id)) });
-    if (!player)
-        notFound();
-    const canDisqualify = player.status === "alive" && viewer.season.phase === "running";
-    const canRemove = viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
-    const canEdit = player.status === "alive";
-    return (<div className="space-y-6">
+function PlayerAdmin() {
+ const { viewer, id, player, canDisqualify, canRemove, canEdit } = Route.useLoaderData();
+return (<div className="space-y-6">
       <Link to="/admin/deltakere" className="inline-flex text-sm text-zinc-400 transition-colors hover:text-white">
         ← Alle deltakere
       </Link>
@@ -68,7 +59,7 @@ async function PlayerAdmin() {
 }
 // The photo with its approval state, and the controls to approve or reject it.
 function ImageReview({ player, canEdit }: {
-    player: typeof players.$inferSelect;
+    player: Awaited<ReturnType<typeof loadPlayerAdmin>>["player"];
     canEdit: boolean;
 }) {
     const image = imageStatus(player);
@@ -102,4 +93,22 @@ function ImageReview({ player, canEdit }: {
     </Card>);
 }
 
-export const Route = createFileRoute("/admin/deltakere/$id/")({ component: PlayerAdmin });
+export const Route = createFileRoute("/admin/deltakere/$id/")({ loader: ({ params }) => loadPlayerAdmin({ data: params.id }), component: PlayerAdmin });
+
+const loadPlayerAdmin = createServerFn({ method: "GET" }).validator((value: unknown) => { if (typeof value !== "string") throw new Error("Ugyldig parameter"); return value; }).handler(async ({ data }) => {
+const { and, eq } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { players } = await import("@/db/schema");
+const { guard } = await import("@/lib/guard");
+const viewer = await guard("gamemaster");
+const { id } = { id: data };
+if (!/^[0-9a-f-]{36}$/i.test(id))
+        throw notFound();
+const player = await db.query.players.findFirst({ where: and(eq(players.id, id), eq(players.seasonId, viewer.season.id)) });
+if (!player)
+        throw notFound();
+const canDisqualify = player.status === "alive" && viewer.season.phase === "running";
+const canRemove = viewer.isGamemaster && viewer.season.phase !== "running" && viewer.season.phase !== "ended";
+const canEdit = player.status === "alive";
+return { viewer, id, player, canDisqualify, canRemove, canEdit };
+});

@@ -1,38 +1,32 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
+
 import { Link } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Button, Card, Field, Notice, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { checkins, kills, players, questions } from "@/db/schema";
+
+
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
 import { formatOslo } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
+
 import { msAgo } from "@/lib/time";
-import { getViewer } from "@/server/auth/session";
-import { phaseLabel } from "@/server/season";
-import { pendingReviewCount } from "@/server/weekly";
+
+
+
 import { createSeasonAction } from "./actions";
-export const dynamic = "force-dynamic";
-async function AdminHome() {
-    const viewer = await getViewer();
-    if (!viewer)
-        return redirectToLogin();
-    const season = viewer.season;
-    if (!season) {
-        return (<div className="space-y-6">
-        <PageTitle>Admin</PageTitle>
-        <Card title="Opprett spillet">
-          <ActionForm action={createSeasonAction} className="space-y-4">
-            <Field label="Navn" hint="For eksempel Mordvember 2026">
-              <input name="name" required className={inputClass}/>
-            </Field>
-            <Button type="submit">Opprett</Button>
-          </ActionForm>
-        </Card>
-      </div>);
-    }
+const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
+const {  and, eq, isNull, lte, or, sql  } = await import("drizzle-orm");
+const {  db  } = await import("@/db");
+const {  checkins, kills, players, questions  } = await import("@/db/schema");
+const {  phaseLabel  } = await import("@/server/season");
+const {  pendingReviewCount  } = await import("@/server/weekly");
+ const { getViewer } = await import("@/server/auth/session");
+ const { redirectToLogin } = await import("@/lib/guard");
+ const viewer = await getViewer();
+ if (!viewer) return redirectToLogin();
+ const season = viewer.season;
+ if (!season) return { viewer, summary: null };
     const [total, alive, openCases, overdue, reviews, unanswered, flagged] = await Promise.all([
         db.$count(players, eq(players.seasonId, season.id)),
         db.$count(players, and(eq(players.seasonId, season.id), eq(players.status, "alive"))),
@@ -48,8 +42,26 @@ async function AdminHome() {
         { label: "Ubesvarte spørsmål", value: unanswered, href: "/admin/sporsmal" },
         { label: "Merkede innsjekker", value: flagged, href: "/admin/oppmote" },
     ];
+ return { viewer, summary: { season, total, alive, items, phase: phaseLabel(season.phase) } };
+});
+function AdminHome() {
+ const { viewer, summary } = Route.useLoaderData();
+ if (!summary) {
+        return (<div className="space-y-6">
+        <PageTitle>Admin</PageTitle>
+        <Card title="Opprett spillet">
+          <ActionForm action={createSeasonAction} className="space-y-4">
+            <Field label="Navn" hint="For eksempel Mordvember 2026">
+              <input name="name" required className={inputClass}/>
+            </Field>
+            <Button type="submit">Opprett</Button>
+          </ActionForm>
+        </Card>
+      </div>);
+    }
+    const { season, total, alive, items, phase } = summary;
     return (<div className="space-y-6">
-      <PageTitle sub={`${season.name} · ${phaseLabel(season.phase)}`}>Admin</PageTitle>
+      <PageTitle sub={`${season.name} · ${phase}`}>Admin</PageTitle>
       {viewer.emergencyUntil && (<Notice tone="red">Nødtilgang er aktiv til {formatOslo(viewer.emergencyUntil)}.</Notice>)}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -69,4 +81,4 @@ async function AdminHome() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/")({ component: AdminHome });
+export const Route = createFileRoute("/admin/")({ loader: () => loadAdminHome(), component: AdminHome });

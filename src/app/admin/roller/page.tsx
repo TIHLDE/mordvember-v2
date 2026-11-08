@@ -6,7 +6,6 @@ import { UserSearch } from "@/components/UserSearch";
 
 
 import { addStaffAction, removeStaffAction } from "../actions";
-export const dynamic = "force-dynamic";
 function RolesAdmin() {
  const { viewer, rows } = Route.useLoaderData();
 return (<div className="space-y-6">
