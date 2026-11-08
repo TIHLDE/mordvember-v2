@@ -1,3 +1,9 @@
+import { asc, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { players } from "@/db/schema";
+import { guard } from "@/lib/guard";
+import { usersWithoutPlayer } from "@/server/admin";
+import { checkedInPlayers } from "@/server/attendance";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -27,12 +33,6 @@ type PlayerRow = {
 };
 
 const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { asc, eq } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { players } = await import("@/db/schema");
-  const { guard } = await import("@/lib/guard");
-  const { usersWithoutPlayer } = await import("@/server/admin");
-  const { checkedInPlayers } = await import("@/server/attendance");
   const viewer = await guard("gamemaster");
   const running = viewer.season.phase === "running";
   const [list, present] = await Promise.all([

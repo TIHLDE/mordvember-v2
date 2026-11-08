@@ -1,3 +1,7 @@
+import { db } from "@/db";
+import { onLogin } from "@/server/auth/login";
+import { asc, like } from "drizzle-orm";
+import { users } from "@/db/schema";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -14,9 +18,6 @@ const devLoginRpc = createServerFn({ method: "POST" })
     return value;
   })
   .handler(async ({ data: form }) => {
-    const { db } = await import("@/db");
-    const { onLogin } = await import("@/server/auth/login");
-
     if (process.env.NODE_ENV !== "development") throw notFound();
     const username = form.get("username");
     if (typeof username !== "string") throw notFound();
@@ -44,9 +45,6 @@ const loadDevLoginPage = createServerFn({ method: "GET" })
     return value;
   })
   .handler(async ({ data }) => {
-    const { asc, like } = await import("drizzle-orm");
-    const { db } = await import("@/db");
-    const { users } = await import("@/db/schema");
     if (process.env.NODE_ENV !== "development") throw notFound();
     const next = data;
     const testUsers = await db

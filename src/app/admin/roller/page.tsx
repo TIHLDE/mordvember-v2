@@ -1,3 +1,5 @@
+import { guard } from "@/lib/guard";
+import { listStaff } from "@/server/admin";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -7,8 +9,6 @@ import { UserSearch } from "@/components/UserSearch";
 import { addStaffAction, removeStaffAction } from "../actions";
 
 const loadRolesAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { listStaff } = await import("@/server/admin");
   const viewer = await guard("roles");
   const rows = await listStaff(viewer.season.id);
   return { rows };

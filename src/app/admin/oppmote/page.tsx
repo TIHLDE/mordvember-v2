@@ -1,3 +1,8 @@
+import { asc, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { players } from "@/db/schema";
+import { guard } from "@/lib/guard";
+import { weekSessions } from "@/server/attendance";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -17,11 +22,6 @@ const loadAttendanceAdmin = createServerFn({ method: "GET" })
     return value;
   })
   .handler(async ({ data }) => {
-    const { asc, eq } = await import("drizzle-orm");
-    const { db } = await import("@/db");
-    const { players } = await import("@/db/schema");
-    const { guard } = await import("@/lib/guard");
-    const { weekSessions } = await import("@/server/attendance");
     const viewer = await guard("gamemaster");
     const { uke } = { uke: data };
     const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());

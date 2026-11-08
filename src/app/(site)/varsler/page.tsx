@@ -1,3 +1,8 @@
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { notifications } from "@/db/schema";
+import { redirectToLogin } from "@/lib/guard";
+import { getViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -9,11 +14,6 @@ import { formatOslo } from "@/game/time";
 import { MarkRead } from "./MarkRead";
 
 const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { desc, eq } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { notifications } = await import("@/db/schema");
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { getViewer } = await import("@/server/auth/session");
   const viewer = await getViewer();
   if (!viewer) return redirectToLogin();
   const rows = await db

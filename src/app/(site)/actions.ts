@@ -1,3 +1,4 @@
+import * as serverActions from "./actions.server";
 import { createServerFn } from "@tanstack/react-start";
 import type { ActionState } from "@/lib/action";
 import { MAX_IMAGE_BYTES } from "@/lib/upload";
@@ -10,61 +11,61 @@ function validateForm(value: unknown): FormData {
 }
 const signUpActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).signUpAction(null, data));
+  .handler(async ({ data }) => serverActions.signUpAction(null, data));
 export function signUpAction(_state: ActionState, form: FormData) {
   return signUpActionRpc({ data: form });
 }
 const withdrawActionRpc = createServerFn({ method: "POST" }).handler(async () =>
-  (await import("./actions.server")).withdrawAction(null),
+  serverActions.withdrawAction(null),
 );
 export function withdrawAction(_state: ActionState) {
   return withdrawActionRpc();
 }
 const uploadImageActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).uploadImageAction(null, data));
+  .handler(async ({ data }) => serverActions.uploadImageAction(null, data));
 export function uploadImageAction(_state: ActionState, form: FormData) {
   return uploadImageActionRpc({ data: form });
 }
 const defaultImageActionRpc = createServerFn({ method: "POST" }).handler(async () =>
-  (await import("./actions.server")).defaultImageAction(null),
+  serverActions.defaultImageAction(null),
 );
 export function defaultImageAction(_state: ActionState) {
   return defaultImageActionRpc();
 }
 const deleteImageActionRpc = createServerFn({ method: "POST" }).handler(async () =>
-  (await import("./actions.server")).deleteImageAction(null),
+  serverActions.deleteImageAction(null),
 );
 export function deleteImageAction(_state: ActionState) {
   return deleteImageActionRpc();
 }
 const bioActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).bioAction(null, data));
+  .handler(async ({ data }) => serverActions.bioAction(null, data));
 export function bioAction(_state: ActionState, form: FormData) {
   return bioActionRpc({ data: form });
 }
 const revealTargetActionRpc = createServerFn({ method: "POST" }).handler(async () =>
-  (await import("./actions.server")).revealTargetAction(),
+  serverActions.revealTargetAction(),
 );
 export function revealTargetAction() {
   return revealTargetActionRpc();
 }
 const reportKillActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).reportKillAction(null, data));
+  .handler(async ({ data }) => serverActions.reportKillAction(null, data));
 export function reportKillAction(_state: ActionState, form: FormData) {
   return reportKillActionRpc({ data: form });
 }
 const confirmKillActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).confirmKillAction(null, data));
+  .handler(async ({ data }) => serverActions.confirmKillAction(null, data));
 export function confirmKillAction(_state: ActionState, form: FormData) {
   return confirmKillActionRpc({ data: form });
 }
 const disputeKillActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).disputeKillAction(null, data));
+  .handler(async ({ data }) => serverActions.disputeKillAction(null, data));
 export function disputeKillAction(_state: ActionState, form: FormData) {
   return disputeKillActionRpc({ data: form });
 }
@@ -98,9 +99,7 @@ const completeScanActionRpc = createServerFn({ method: "POST" })
       position: position === null ? null : { lat: Number(position.lat), lng: Number(position.lng) },
     };
   })
-  .handler(async ({ data }) =>
-    (await import("./actions.server")).completeScanAction(data.intent, data.position),
-  );
+  .handler(async ({ data }) => serverActions.completeScanAction(data.intent, data.position));
 export function completeScanAction(
   intent: "in" | "out",
   position: { lat: number; lng: number } | null,
@@ -109,12 +108,12 @@ export function completeScanAction(
 }
 const askActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
-  .handler(async ({ data }) => (await import("./actions.server")).askAction(null, data));
+  .handler(async ({ data }) => serverActions.askAction(null, data));
 export function askAction(_state: ActionState, form: FormData) {
   return askActionRpc({ data: form });
 }
 const markNotificationsReadActionRpc = createServerFn({ method: "POST" }).handler(async () =>
-  (await import("./actions.server")).markNotificationsReadAction(),
+  serverActions.markNotificationsReadAction(),
 );
 export function markNotificationsReadAction() {
   return markNotificationsReadActionRpc();

@@ -1,3 +1,6 @@
+import { guard } from "@/lib/guard";
+import { hasRing } from "@/server/game";
+import { phaseLabel, rulesForWeek } from "@/server/season";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -34,9 +37,6 @@ const GAME_STATE: Record<Phase, string> = {
 };
 
 const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { hasRing } = await import("@/server/game");
-  const { phaseLabel, rulesForWeek } = await import("@/server/season");
   const viewer = await guard("gamemaster");
   const season = viewer.season;
   const settings = season.settings;

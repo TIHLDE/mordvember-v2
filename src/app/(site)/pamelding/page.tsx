@@ -1,3 +1,6 @@
+import { getViewer } from "@/server/auth/session";
+import { redirectToLogin } from "@/lib/guard";
+import { signupOpen } from "@/server/season";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
@@ -10,9 +13,6 @@ import { bioFromPhoton } from "@/game/bio";
 import { signUpAction } from "../actions";
 
 const loadSignup = createServerFn({ method: "GET" }).handler(async () => {
-  const { getViewer } = await import("@/server/auth/session");
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { signupOpen } = await import("@/server/season");
   const viewer = await getViewer();
   if (!viewer) return redirectToLogin();
   if (viewer.player) throw redirect({ to: "/profil", search: { pameldt: "1" } });

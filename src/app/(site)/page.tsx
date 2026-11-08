@@ -1,3 +1,7 @@
+import { getViewer } from "@/server/auth/session";
+import { gridPlayers, visibleAliveCount } from "@/server/players";
+import { myReviewItems } from "@/server/review";
+import { getCurrentSeason, phaseLabel, signupOpen } from "@/server/season";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, LinkButton, PageTitle } from "@/components/ui";
@@ -5,13 +9,7 @@ import { PlayerGrid } from "@/components/PlayerGrid";
 import { ReviewList } from "@/components/ReviewList";
 import type { Season, Viewer } from "@/server/auth/session";
 
-import type { myReviewItems } from "@/server/review";
-
 const loadHome = createServerFn({ method: "GET" }).handler(async () => {
-  const { getViewer } = await import("@/server/auth/session");
-  const { gridPlayers, visibleAliveCount } = await import("@/server/players");
-  const { myReviewItems } = await import("@/server/review");
-  const { getCurrentSeason, phaseLabel, signupOpen } = await import("@/server/season");
   const viewer = await getViewer();
   const season = viewer?.season ?? (await getCurrentSeason());
   if (!season) return null;

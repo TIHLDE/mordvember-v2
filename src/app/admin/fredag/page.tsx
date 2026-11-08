@@ -1,3 +1,5 @@
+import { guard } from "@/lib/guard";
+import { evaluateSeasonWeek, missingFridayLists, reviews } from "@/server/weekly";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -9,8 +11,6 @@ import { formatOsloDate, weekStartOf } from "@/game/time";
 import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../actions";
 
 const loadFridayList = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { evaluateSeasonWeek, missingFridayLists, reviews } = await import("@/server/weekly");
   const viewer = await guard("gamemaster");
   const all = await reviews(viewer.season.id);
   const pending = all.filter((r) => r.review.decision === "pending");

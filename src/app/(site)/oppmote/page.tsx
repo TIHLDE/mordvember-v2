@@ -1,3 +1,5 @@
+import { getViewer } from "@/server/auth/session";
+import { myAttendance } from "@/server/attendance";
 import { createFileRoute } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
@@ -5,8 +7,6 @@ import { Badge, Card, PageTitle } from "@/components/ui";
 import { formatOslo, formatOsloDate } from "@/game/time";
 
 const getAttendance = createServerFn({ method: "GET" }).handler(async () => {
-  const { getViewer } = await import("@/server/auth/session");
-  const { myAttendance } = await import("@/server/attendance");
   const viewer = await getViewer();
   if (!viewer) throw redirect({ to: "/login", search: { next: "/oppmote" } });
   if (!viewer.player) throw redirect({ to: "/" });

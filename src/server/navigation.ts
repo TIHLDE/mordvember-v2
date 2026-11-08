@@ -1,11 +1,11 @@
+import { getViewer } from "./auth/session";
+import { openKillsForPlayer } from "./game";
+import { db } from "@/db";
+import { notifications } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 
 export const getNavigation = createServerFn({ method: "GET" }).handler(async () => {
-  const { getViewer } = await import("./auth/session");
-  const { openKillsForPlayer } = await import("./game");
-  const { db } = await import("@/db");
-  const { notifications } = await import("@/db/schema");
-  const { and, eq, isNull } = await import("drizzle-orm");
   const viewer = await getViewer();
   if (!viewer) return { viewer: null, unread: 0, waiting: false };
   const unread = await db.$count(

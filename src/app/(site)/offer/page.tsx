@@ -1,3 +1,4 @@
+import { getViewer } from "@/server/auth/session";
 import { revealTargetAction } from "../actions";
 import { createFileRoute } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
@@ -6,7 +7,6 @@ import { PageTitle } from "@/components/ui";
 import { RevealButton } from "./RevealButton";
 
 const getTargetStatus = createServerFn({ method: "GET" }).handler(async () => {
-  const { getViewer } = await import("@/server/auth/session");
   const viewer = await getViewer();
   if (!viewer) throw redirect({ to: "/login", search: { next: "/offer" } });
   if (!viewer.player) throw redirect({ to: "/" });

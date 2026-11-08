@@ -1,3 +1,8 @@
+import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { db } from "@/db";
+import { kills, players } from "@/db/schema";
+import { redirectToLogin } from "@/lib/guard";
+import { getViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -13,14 +18,9 @@ import { osloInputValue } from "@/lib/oslo-input";
 import { confirmKillAction, disputeKillAction, reportKillAction } from "../actions";
 
 const loadKillsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { and, desc, eq, inArray, or } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { kills, players } = await import("@/db/schema");
   const killer = alias(players, "killer");
   const victim = alias(players, "victim");
 
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { getViewer } = await import("@/server/auth/session");
   const viewer = await getViewer();
   if (!viewer) return redirectToLogin();
   if (!viewer.player || !viewer.season) throw redirect({ to: "/" });

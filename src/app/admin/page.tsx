@@ -1,3 +1,10 @@
+import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { checkins, kills, players, questions } from "@/db/schema";
+import { phaseLabel } from "@/server/season";
+import { pendingReviewCount } from "@/server/weekly";
+import { getViewer } from "@/server/auth/session";
+import { redirectToLogin } from "@/lib/guard";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -14,13 +21,6 @@ import { msAgo } from "@/lib/time";
 import { createSeasonAction } from "./actions";
 
 const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
-  const { and, eq, isNull, lte, or, sql } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { checkins, kills, players, questions } = await import("@/db/schema");
-  const { phaseLabel } = await import("@/server/season");
-  const { pendingReviewCount } = await import("@/server/weekly");
-  const { getViewer } = await import("@/server/auth/session");
-  const { redirectToLogin } = await import("@/lib/guard");
   const viewer = await getViewer();
   if (!viewer) return redirectToLogin();
   const season = viewer.season;

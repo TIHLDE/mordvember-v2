@@ -1,3 +1,4 @@
+import { guard } from "@/lib/guard";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -8,7 +9,6 @@ import { formatOslo } from "@/game/time";
 import { emergencyEndAction, emergencyStartAction } from "../actions";
 
 const loadEmergencyPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
   const viewer = await guard("index");
   return { viewer };
 });

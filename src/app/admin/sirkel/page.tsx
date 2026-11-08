@@ -1,3 +1,8 @@
+import { and, asc, eq, ne } from "drizzle-orm";
+import { db } from "@/db";
+import { players } from "@/db/schema";
+import { guard } from "@/lib/guard";
+import { circleEventsForAdmin, circleForAdmin } from "@/server/circle";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -20,11 +25,6 @@ const EVENT_LABEL: Record<string, string> = {
 };
 
 const loadCirclePage = createServerFn({ method: "GET" }).handler(async () => {
-  const { and, asc, eq, ne } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { players } = await import("@/db/schema");
-  const { guard } = await import("@/lib/guard");
-  const { circleEventsForAdmin, circleForAdmin } = await import("@/server/circle");
   const viewer = await guard("circle");
   const season = viewer.season;
   const [circle, events, out] = await Promise.all([

@@ -1,3 +1,12 @@
+import { cookies } from "@/server/cookies";
+import {
+  myAttendance,
+  PENDING_SCAN_COOKIE,
+  readPendingScan,
+  SCAN_RESULT_COOKIE,
+} from "@/server/attendance";
+import { getViewer } from "@/server/auth/session";
+import { redirectToLogin } from "@/lib/guard";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -11,10 +20,6 @@ import { CheckinButton } from "./CheckinButton";
 const loadCheckin = createServerFn({ method: "GET" })
   .validator((value: unknown) => (typeof value === "string" ? value : ""))
   .handler(async ({ data: feil }) => {
-    const { cookies } = await import("@/server/cookies");
-    const { myAttendance, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } =
-      await import("@/server/attendance");
-    const { getViewer } = await import("@/server/auth/session");
     const viewer = await getViewer();
     const jar = cookies();
     const season = viewer?.season;
@@ -23,7 +28,6 @@ const loadCheckin = createServerFn({ method: "GET" })
       : !!jar.get(PENDING_SCAN_COOKIE);
     const invalidCode = feil === "kode" && !pending;
     if (!viewer && !invalidCode) {
-      const { redirectToLogin } = await import("@/lib/guard");
       return redirectToLogin();
     }
     const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;

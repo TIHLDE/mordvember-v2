@@ -1,3 +1,7 @@
+import { getViewer } from "@/server/auth/session";
+import { redirectToLogin } from "@/lib/guard";
+import { myReviewItems } from "@/server/review";
+import { signupOpen } from "@/server/season";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { redirect } from "@tanstack/react-router";
@@ -19,10 +23,6 @@ import {
 } from "../actions";
 
 const loadProfile = createServerFn({ method: "GET" }).handler(async () => {
-  const { getViewer } = await import("@/server/auth/session");
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { myReviewItems } = await import("@/server/review");
-  const { signupOpen } = await import("@/server/season");
   const viewer = await getViewer();
   if (!viewer) return redirectToLogin();
   const { player, season } = viewer;

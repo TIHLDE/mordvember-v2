@@ -1,3 +1,6 @@
+import { getNavigation } from "@/server/navigation";
+import { redirectToLogin } from "@/lib/guard";
+import { getViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
@@ -6,9 +9,6 @@ import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
 
 const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
-  const { getNavigation } = await import("@/server/navigation");
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { getViewer } = await import("@/server/auth/session");
   const viewer = await getViewer();
   const { waiting } = await getNavigation();
   if (!viewer) return redirectToLogin();

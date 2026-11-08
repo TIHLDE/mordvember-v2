@@ -1,3 +1,6 @@
+import { redirectToLogin } from "@/lib/guard";
+import { getViewer } from "@/server/auth/session";
+import { seasonQuestions } from "@/server/questions";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -9,9 +12,6 @@ import { deleteQuestionAction } from "../../admin/actions";
 import { askAction } from "../actions";
 
 const loadQuestionsPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { redirectToLogin } = await import("@/lib/guard");
-  const { getViewer } = await import("@/server/auth/session");
-  const { seasonQuestions } = await import("@/server/questions");
   const viewer = await getViewer();
   if (!viewer) return redirectToLogin();
   const all = await seasonQuestions(viewer);

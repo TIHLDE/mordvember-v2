@@ -1,3 +1,4 @@
+import { getViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -18,7 +19,6 @@ const ERRORS: Record<string, string> = {
 const checkLogin = createServerFn({ method: "GET" })
   .validator((value: unknown) => (typeof value === "string" ? safeNext(value) : "/"))
   .handler(async ({ data }) => {
-    const { getViewer } = await import("@/server/auth/session");
     if (await getViewer()) throw redirect({ href: data });
   });
 

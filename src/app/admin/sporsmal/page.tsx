@@ -1,3 +1,5 @@
+import { guard } from "@/lib/guard";
+import { inbox } from "@/server/questions";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -8,8 +10,6 @@ import { formatOslo } from "@/game/time";
 import { answerAction, deleteQuestionAction } from "../actions";
 
 const loadQuestionsAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { inbox } = await import("@/server/questions");
   const viewer = await guard("gamemaster");
   const rows = await inbox(viewer);
   return { rows };

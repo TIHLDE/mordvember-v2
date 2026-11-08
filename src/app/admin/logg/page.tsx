@@ -1,11 +1,11 @@
+import { guard } from "@/lib/guard";
+import { auditEntries } from "@/server/admin";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
 
 const loadAuditPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { auditEntries } = await import("@/server/admin");
   const viewer = await guard("gamemaster");
   const rows = await auditEntries(viewer.season.id);
   return { rows: rows.map((row) => ({ ...row, details: JSON.stringify(row.details) })) };

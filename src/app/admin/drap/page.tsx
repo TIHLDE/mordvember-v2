@@ -1,3 +1,7 @@
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { db } from "@/db";
+import { kills, players } from "@/db/schema";
+import { guard } from "@/lib/guard";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -12,13 +16,9 @@ import { formatOslo } from "@/game/time";
 import { approveKillAction, rejectKillAction, undoKillAction } from "../actions";
 
 const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
-  const { and, desc, eq, inArray } = await import("drizzle-orm");
-  const { db } = await import("@/db");
-  const { kills, players } = await import("@/db/schema");
   const killer = alias(players, "killer");
   const victim = alias(players, "victim");
 
-  const { guard } = await import("@/lib/guard");
   const viewer = await guard("gamemaster");
   const rows = await db
     .select({ kill: kills, killer: killer.name, victim: victim.name })

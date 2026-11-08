@@ -1,3 +1,5 @@
+import { guard } from "@/lib/guard";
+import { templates } from "@/server/admin";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -7,8 +9,6 @@ import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui
 import { saveTemplateAction } from "../actions";
 
 const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => {
-  const { guard } = await import("@/lib/guard");
-  const { templates } = await import("@/server/admin");
   await guard("gamemaster");
   const rows = await templates();
   return { rows };

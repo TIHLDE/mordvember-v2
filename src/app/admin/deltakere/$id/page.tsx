@@ -1,3 +1,7 @@
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { players } from "@/db/schema";
+import { guard } from "@/lib/guard";
 import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -26,10 +30,6 @@ const loadPlayerAdmin = createServerFn({ method: "GET" })
     return value;
   })
   .handler(async ({ data }) => {
-    const { and, eq } = await import("drizzle-orm");
-    const { db } = await import("@/db");
-    const { players } = await import("@/db/schema");
-    const { guard } = await import("@/lib/guard");
     const viewer = await guard("gamemaster");
     const { id } = { id: data };
     if (!/^[0-9a-f-]{36}$/i.test(id)) throw notFound();
