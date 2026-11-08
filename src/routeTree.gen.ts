@@ -240,13 +240,13 @@ const ApiStatusBildePlayerIdRouteRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof sitePageRoute
   '/admin': typeof AdminLayoutRouteWithChildren
   '/api/brukersok': typeof ApiBrukersokRouteRoute
   '/api/cron': typeof ApiCronRouteRoute
   '/api/klientfeil': typeof ApiKlientfeilRouteRoute
   '/api/sjekkinn': typeof ApiSjekkinnRouteRoute
   '/api/status': typeof ApiStatusRouteRouteWithChildren
-  '/': typeof sitePageRoute
   '/admin/': typeof AdminPageRoute
   '/status/': typeof StatusPageRoute
   '/api/auth/callback': typeof ApiAuthCallbackRouteRoute
@@ -360,13 +360,13 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/admin'
     | '/api/brukersok'
     | '/api/cron'
     | '/api/klientfeil'
     | '/api/sjekkinn'
     | '/api/status'
-    | '/'
     | '/admin/'
     | '/status/'
     | '/api/auth/callback'
@@ -497,7 +497,7 @@ declare module '@tanstack/react-router' {
     '/(site)': {
       id: '/(site)'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof siteLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
