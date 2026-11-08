@@ -1,13 +1,18 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, gt, isNull } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { cookies } from "@/server/cookies";
 import { cache } from "react";
 import { db } from "@/db";
 import { emergencyAccess, players, seasons, sessions, staff, users } from "@/db/schema";
 import { env } from "../env";
 import { getCurrentSeason } from "../season";
-import { type PhotonIdentity, PhotonUnauthorizedError, type PhotonTokens, refreshTokens } from "./photon";
+import {
+  type PhotonIdentity,
+  PhotonUnauthorizedError,
+  type PhotonTokens,
+  refreshTokens,
+} from "./photon";
 import { seal, unseal } from "./token-box";
 
 const SESSION_COOKIE = "mv_session";
@@ -23,7 +28,10 @@ function sealedTokens(tokens: PhotonTokens) {
   };
 }
 
-export async function startSession(identity: PhotonIdentity, tokens?: PhotonTokens): Promise<string> {
+export async function startSession(
+  identity: PhotonIdentity,
+  tokens?: PhotonTokens,
+): Promise<string> {
   const [user] = await db
     .insert(users)
     .values({
@@ -60,7 +68,7 @@ export async function startSession(identity: PhotonIdentity, tokens?: PhotonToke
     ...(tokens ? sealedTokens(tokens) : {}),
     expiresAt: new Date(Date.now() + SESSION_DAYS * 86400_000),
   });
-  const jar = await cookies();
+  const jar = cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -72,12 +80,17 @@ export async function startSession(identity: PhotonIdentity, tokens?: PhotonToke
 }
 
 export async function currentPhotonToken(): Promise<string | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const token = cookies().get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const id = hash(token);
-  const session = await db.query.sessions.findFirst({ where: and(eq(sessions.id, id), gt(sessions.expiresAt, new Date())) });
+  const session = await db.query.sessions.findFirst({
+    where: and(eq(sessions.id, id), gt(sessions.expiresAt, new Date())),
+  });
   if (!session?.photonAccessToken) return null;
-  if (session.photonTokenExpiresAt && session.photonTokenExpiresAt.getTime() > Date.now() + 60_000) {
+  if (
+    session.photonTokenExpiresAt &&
+    session.photonTokenExpiresAt.getTime() > Date.now() + 60_000
+  ) {
     return unseal(session.photonAccessToken);
   }
   const refreshToken = session.photonRefreshToken ? unseal(session.photonRefreshToken) : null;
@@ -96,7 +109,7 @@ export async function currentPhotonToken(): Promise<string | null> {
 }
 
 export async function endSession() {
-  const jar = await cookies();
+  const jar = cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (token) await db.delete(sessions).where(eq(sessions.id, hash(token)));
   jar.delete(SESSION_COOKIE);
@@ -120,7 +133,7 @@ export type Viewer = {
 };
 
 export const getViewer = cache(async (): Promise<Viewer | null> => {
-  const jar = await cookies();
+  const jar = cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const row = await db
@@ -137,9 +150,10 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   let player: Player | null = null;
   let isListedGamemaster = false;
   if (season) {
-    player = (await db.query.players.findFirst({
-      where: and(eq(players.seasonId, season.id), eq(players.userId, user.id)),
-    })) ?? null;
+    player =
+      (await db.query.players.findFirst({
+        where: and(eq(players.seasonId, season.id), eq(players.userId, user.id)),
+      })) ?? null;
     isListedGamemaster = !!(await db.query.staff.findFirst({
       where: and(eq(staff.seasonId, season.id), eq(staff.username, user.username)),
     }));
@@ -148,7 +162,11 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   let emergencyUntil: Date | null = null;
   if (session.isIndexLeader) {
     const active = await db.query.emergencyAccess.findFirst({
-      where: and(eq(emergencyAccess.userId, user.id), gt(emergencyAccess.expiresAt, new Date()), isNull(emergencyAccess.endedAt)),
+      where: and(
+        eq(emergencyAccess.userId, user.id),
+        gt(emergencyAccess.expiresAt, new Date()),
+        isNull(emergencyAccess.endedAt),
+      ),
       orderBy: desc(emergencyAccess.startedAt),
     });
     emergencyUntil = active?.expiresAt ?? null;

@@ -42,20 +42,30 @@ export function RevealButton({ reveal }: { reveal: () => Promise<Target | null> 
         className="reveal-frame flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/50"
       >
         {target ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={target.image} alt="" className="reveal-image h-full w-full object-cover" draggable={false} />
+          <img
+            src={target.image}
+            alt=""
+            className="reveal-image h-full w-full object-cover"
+            draggable={false}
+          />
         ) : (
           <Placeholder state={empty ? "empty" : pressed ? "loading" : "idle"} />
         )}
       </div>
       <div className="min-h-8 space-y-2">
-        <p className="h-8 text-2xl font-semibold tracking-tight text-white">{target && <span className="appear inline-block">{target.name}</span>}</p>
+        <p className="h-8 text-2xl font-semibold tracking-tight text-white">
+          {target && <span className="appear inline-block">{target.name}</span>}
+        </p>
         {target && (
           <p className="appear">
-            <Badge tone={target.checkedIn ? "green" : "zinc"}>{target.checkedIn ? "Sjekket inn nå" : "Ikke sjekket inn"}</Badge>
+            <Badge tone={target.checkedIn ? "green" : "zinc"}>
+              {target.checkedIn ? "Sjekket inn nå" : "Ikke sjekket inn"}
+            </Badge>
           </p>
         )}
-        {target?.bio && <p className="appear text-sm whitespace-pre-line text-zinc-300">{target.bio}</p>}
+        {target?.bio && (
+          <p className="appear text-sm whitespace-pre-line text-zinc-300">{target.bio}</p>
+        )}
       </div>
       <button
         type="button"
@@ -74,7 +84,10 @@ const PLACEHOLDER = { idle: "Skjult", loading: "Henter …", empty: "Du har ikke
 
 function Placeholder({ state }: { state: keyof typeof PLACEHOLDER }) {
   return (
-    <span key={state} className={`appear px-6 text-center text-sm text-zinc-500 ${state === "loading" ? "reveal-pulse" : ""}`}>
+    <span
+      key={state}
+      className={`appear px-6 text-center text-sm text-zinc-500 ${state === "loading" ? "reveal-pulse" : ""}`}
+    >
       {PLACEHOLDER[state]}
     </span>
   );

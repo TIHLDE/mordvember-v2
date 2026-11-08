@@ -1,5 +1,5 @@
-import "server-only";
-import type { NextRequest, NextResponse } from "next/server";
+import "@tanstack/react-start/server-only";
+import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
 
 // The login route stores this cookie and the callback route reads it back after Photon redirects.
 const OAUTH_COOKIE = "mv_oauth";
@@ -8,8 +8,8 @@ type OAuthState = { state: string; verifier: string; next: string };
 
 export const redirectUri = (origin: string) => `${origin}/api/auth/callback`;
 
-export function saveOAuthState(response: NextResponse, value: OAuthState) {
-  response.cookies.set(OAUTH_COOKIE, JSON.stringify(value), {
+export function saveOAuthState(value: OAuthState) {
+  setCookie(OAUTH_COOKIE, JSON.stringify(value), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -18,14 +18,21 @@ export function saveOAuthState(response: NextResponse, value: OAuthState) {
   });
 }
 
-export function readOAuthState(request: NextRequest): Partial<OAuthState> {
+export function readOAuthState(): Partial<OAuthState> {
   try {
-    return JSON.parse(request.cookies.get(OAUTH_COOKIE)?.value ?? "{}") as Partial<OAuthState>;
+    const value: unknown = JSON.parse(getCookie(OAUTH_COOKIE) ?? "{}");
+    if (!value || typeof value !== "object") return {};
+    return {
+      state: "state" in value && typeof value.state === "string" ? value.state : undefined,
+      verifier:
+        "verifier" in value && typeof value.verifier === "string" ? value.verifier : undefined,
+      next: "next" in value && typeof value.next === "string" ? value.next : undefined,
+    };
   } catch {
     return {};
   }
 }
 
-export function clearOAuthState(response: NextResponse) {
-  response.cookies.delete(OAUTH_COOKIE);
+export function clearOAuthState() {
+  deleteCookie(OAUTH_COOKIE, { path: "/" });
 }

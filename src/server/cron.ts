@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { and, eq, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { emailOutbox, kills, seasons } from "@/db/schema";
@@ -29,18 +29,38 @@ export async function runCron(now = new Date()) {
       const overdue = await tx
         .update(kills)
         .set({ status: "escalated", escalationReasons: ["Ikke bekreftet innen 12 timer"] })
-        .where(and(eq(kills.status, "pending"), lte(kills.reportedAt, new Date(now.getTime() - CONFIRM_TIMEOUT_MS))))
+        .where(
+          and(
+            eq(kills.status, "pending"),
+            lte(kills.reportedAt, new Date(now.getTime() - CONFIRM_TIMEOUT_MS)),
+          ),
+        )
         .returning();
       // One notice and one e-mail to each staff member per overdue case.
       // Grouped by hand: Map.groupBy needs Node 21, and Next 16 still runs on Node 20.
       const bySeason = new Map<string, typeof overdue>();
-      for (const kill of overdue) bySeason.set(kill.seasonId, [...(bySeason.get(kill.seasonId) ?? []), kill]);
+      for (const kill of overdue)
+        bySeason.set(kill.seasonId, [...(bySeason.get(kill.seasonId) ?? []), kill]);
       await Promise.all(
         [...bySeason].map(async ([seasonId, cases]) => {
           const staff = await staffEmails(tx, seasonId);
           const text = "En drapssak er ikke bekreftet innen 12 timer.";
-          await notify(tx, cases.flatMap(() => staff.map((s) => ({ userId: s.userId, seasonId, text, href: "/admin/drap" }))));
-          await Promise.all(cases.map(() => queueEmail(tx, "staff_case", staff.map((s) => s.email), { grunn: "Ikke bekreftet innen 12 timer" })));
+          await notify(
+            tx,
+            cases.flatMap(() =>
+              staff.map((s) => ({ userId: s.userId, seasonId, text, href: "/admin/drap" })),
+            ),
+          );
+          await Promise.all(
+            cases.map(() =>
+              queueEmail(
+                tx,
+                "staff_case",
+                staff.map((s) => s.email),
+                { grunn: "Ikke bekreftet innen 12 timer" },
+              ),
+            ),
+          );
         }),
       );
       return overdue.length;
@@ -57,9 +77,13 @@ export async function runCron(now = new Date()) {
       : { name: "ukevarsel", run: (season: Season) => sendWeeklyWarnings(season, weekStart, now) };
     const running = await db.select().from(seasons).where(eq(seasons.phase, "running"));
     if (p.isoWeekday === 7 && p.hour >= 16) {
-      await Promise.all(running.map((season) =>
-        step(`ukevarsel:${season.id}`, () => sendWeeklyWarnings(season, addDays(weekStart, 7), now)),
-      ));
+      await Promise.all(
+        running.map((season) =>
+          step(`ukevarsel:${season.id}`, () =>
+            sendWeeklyWarnings(season, addDays(weekStart, 7), now),
+          ),
+        ),
+      );
     }
     await Promise.all(
       running.map((season) =>
@@ -72,7 +96,14 @@ export async function runCron(now = new Date()) {
 
   await step("e-post", async () => {
     const notSent = await deliverPendingEmails();
-    await db.delete(emailOutbox).where(and(eq(emailOutbox.status, "sent"), lte(emailOutbox.sentAt, new Date(now.getTime() - 14 * 86400_000))));
+    await db
+      .delete(emailOutbox)
+      .where(
+        and(
+          eq(emailOutbox.status, "sent"),
+          lte(emailOutbox.sentAt, new Date(now.getTime() - 14 * 86400_000)),
+        ),
+      );
     if (notSent) throw new Error(`${notSent} e-poster ble ikke sendt`);
   });
   return { done, failed };

@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { kills, players, seasons, staff, users } from "@/db/schema";
@@ -39,7 +39,8 @@ export class GameError extends Error {
 const rng = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
 
 function assertGamemaster(viewer: Viewer): asserts viewer is Viewer & { season: Season } {
-  if (!viewer.season || !viewer.isGamemaster) throw new AccessError("Bare spillmestere kan gjøre dette");
+  if (!viewer.season || !viewer.isGamemaster)
+    throw new AccessError("Bare spillmestere kan gjøre dette");
 }
 
 // A stopped game has still started: circle changes are announced, so nobody keeps hunting an old target when it resumes.
@@ -53,7 +54,10 @@ async function lockSeason(tx: Tx, seasonId: string): Promise<Season> {
   return season;
 }
 
-export async function staffEmails(tx: Tx | typeof db, seasonId: string): Promise<{ userId: string; email: string | null }[]> {
+export async function staffEmails(
+  tx: Tx | typeof db,
+  seasonId: string,
+): Promise<{ userId: string; email: string | null }[]> {
   return tx
     .select({ userId: users.id, email: users.email })
     .from(staff)
@@ -61,10 +65,25 @@ export async function staffEmails(tx: Tx | typeof db, seasonId: string): Promise
     .where(eq(staff.seasonId, seasonId));
 }
 
-async function notifyStaff(tx: Tx, seasonId: string, text: string, href: string, email?: { reason: string }) {
+async function notifyStaff(
+  tx: Tx,
+  seasonId: string,
+  text: string,
+  href: string,
+  email?: { reason: string },
+) {
   const rows = await staffEmails(tx, seasonId);
-  await notify(tx, rows.map((r) => ({ userId: r.userId, seasonId, text, href })));
-  if (email) await queueEmail(tx, "staff_case", rows.map((r) => r.email), { grunn: email.reason });
+  await notify(
+    tx,
+    rows.map((r) => ({ userId: r.userId, seasonId, text, href })),
+  );
+  if (email)
+    await queueEmail(
+      tx,
+      "staff_case",
+      rows.map((r) => r.email),
+      { grunn: email.reason },
+    );
 }
 
 export async function generateCircle(viewer: Viewer) {
@@ -72,11 +91,24 @@ export async function generateCircle(viewer: Viewer) {
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
-    if (season.phase !== "closed") throw new GameError("Sirkelen kan bare trekkes når påmeldingen er stengt");
+    if (season.phase !== "closed")
+      throw new GameError("Sirkelen kan bare trekkes når påmeldingen er stengt");
     const before = await lockRing(tx, seasonId);
     const after = generateRing(await aliveIds(tx, seasonId), rng);
-    await commitRing(tx, { seasonId, before, after, type: "trukket", actorUserId: viewer.user.id, announce: false });
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sirkel.trukket", details: { deltakere: after.length } });
+    await commitRing(tx, {
+      seasonId,
+      before,
+      after,
+      type: "trukket",
+      actorUserId: viewer.user.id,
+      announce: false,
+    });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "sirkel.trukket",
+      details: { deltakere: after.length },
+    });
   });
 }
 
@@ -96,7 +128,12 @@ export async function moveInCircle(viewer: Viewer, playerId: string, afterId: st
       payload: { playerId, afterId },
       announce: hasStarted(season),
     });
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sirkel.flyttet", details: { playerId, afterId } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "sirkel.flyttet",
+      details: { playerId, afterId },
+    });
   });
 }
 
@@ -105,10 +142,14 @@ export async function startGame(viewer: Viewer) {
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
-    if (season.phase !== "closed") throw new GameError("Spillet kan bare startes fra «Påmelding stengt»");
+    if (season.phase !== "closed")
+      throw new GameError("Spillet kan bare startes fra «Påmelding stengt»");
     const ring = await lockRing(tx, seasonId);
     await assertRingMatchesPlayers(tx, seasonId, ring);
-    await tx.update(seasons).set({ phase: "running", startedAt: new Date() }).where(eq(seasons.id, seasonId));
+    await tx
+      .update(seasons)
+      .set({ phase: "running", startedAt: new Date() })
+      .where(eq(seasons.id, seasonId));
     await announceTargets(tx, seasonId, [...ring], "game_start");
     await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.startet" });
   });
@@ -125,14 +166,23 @@ export async function resumeGame(viewer: Viewer) {
     await assertRingMatchesPlayers(tx, seasonId, ring, 1);
     await tx.update(seasons).set({ phase: "running" }).where(eq(seasons.id, seasonId));
     await crownIfWinner(tx, seasonId, ring);
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "sesong.fase", details: { phase: "running" } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "sesong.fase",
+      details: { phase: "running" },
+    });
   });
 }
 
 // The circle must hold exactly the living players.
 async function assertRingMatchesPlayers(tx: Tx, seasonId: string, ring: Ring, minPlayers = 2) {
   const alive = new Set(await aliveIds(tx, seasonId));
-  if (ring.length < minPlayers || ring.length !== alive.size || !ring.every((id) => alive.has(id))) {
+  if (
+    ring.length < minPlayers ||
+    ring.length !== alive.size ||
+    !ring.every((id) => alive.has(id))
+  ) {
     throw new GameError("Sirkelen stemmer ikke med deltakerlista. Trekk sirkelen på nytt.");
   }
 }
@@ -188,7 +238,8 @@ export async function reportKill(viewer: Viewer, role: "killer" | "victim", kill
     const all = await seasonKills(tx, seasonId);
     const check = checkReport(ring, reporterId, role, all);
     if (!check.ok) throw new GameError(check.reason);
-    if (killedAt.getTime() > Date.now() + 5 * 60_000) throw new GameError("Tidspunktet kan ikke være i framtiden");
+    if (killedAt.getTime() > Date.now() + 5 * 60_000)
+      throw new GameError("Tidspunktet kan ikke være i framtiden");
     await tx.insert(kills).values({
       seasonId,
       killerId: check.killerId,
@@ -212,14 +263,22 @@ export async function reportKill(viewer: Viewer, role: "killer" | "victim", kill
   });
 }
 
-async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSelect, approverId: string | null, note?: string) {
+async function applyKillTx(
+  tx: Tx,
+  season: Season,
+  kill: typeof kills.$inferSelect,
+  approverId: string | null,
+  note?: string,
+) {
   const before = await lockRing(tx, season.id);
   let after: Ring;
   try {
     after = applyKill(before, kill.killerId, kill.victimId);
   } catch (error) {
     if (error instanceof RingError) {
-      throw new GameError("Offeret er ikke lenger morderens offer. Rett sirkelen før drapet godkjennes.");
+      throw new GameError(
+        "Offeret er ikke lenger morderens offer. Rett sirkelen før drapet godkjennes.",
+      );
     }
     throw error;
   }
@@ -252,7 +311,14 @@ async function applyKillTx(tx: Tx, season: Season, kill: typeof kills.$inferSele
     announce: true,
   });
   const victim = await userOfPlayer(tx, kill.victimId);
-  await notify(tx, [{ userId: victim.userId, seasonId: season.id, text: "Drapet på deg er bekreftet. Du er ute av spillet.", href: "/" }]);
+  await notify(tx, [
+    {
+      userId: victim.userId,
+      seasonId: season.id,
+      text: "Drapet på deg er bekreftet. Du er ute av spillet.",
+      href: "/",
+    },
+  ]);
   await queueEmail(tx, "eliminated", [victim.email]);
   await crownIfWinner(tx, season.id, after);
 }
@@ -291,9 +357,15 @@ export async function confirmKill(viewer: Viewer, killId: string) {
         .update(kills)
         .set({ status: "escalated", confirmedAt: new Date(), escalationReasons: decision.reasons })
         .where(eq(kills.id, kill.id));
-      await notifyStaff(tx, seasonId, "En drapssak er flagget og trenger en avgjørelse.", "/admin/drap", {
-        reason: decision.reasons.join(", "),
-      });
+      await notifyStaff(
+        tx,
+        seasonId,
+        "En drapssak er flagget og trenger en avgjørelse.",
+        "/admin/drap",
+        {
+          reason: decision.reasons.join(", "),
+        },
+      );
       return;
     }
     await applyKillTx(tx, season, { ...kill, confirmedAt: new Date() }, null);
@@ -306,13 +378,23 @@ export async function disputeKill(viewer: Viewer, killId: string) {
   const me = viewer.player.id;
   await db.transaction(async (tx) => {
     const kill = await loadOpenKill(tx, seasonId, killId);
-    if (kill.killerId !== me && kill.victimId !== me) throw new AccessError("Du er ikke part i denne saken");
-    const reason = kill.victimId === me ? "Offeret sier at drapet ikke stemmer" : "Morderen sier at drapet ikke stemmer";
+    if (kill.killerId !== me && kill.victimId !== me)
+      throw new AccessError("Du er ikke part i denne saken");
+    const reason =
+      kill.victimId === me
+        ? "Offeret sier at drapet ikke stemmer"
+        : "Morderen sier at drapet ikke stemmer";
     await tx
       .update(kills)
       .set({ status: "escalated", escalationReasons: [...kill.escalationReasons, reason] })
       .where(eq(kills.id, kill.id));
-    await notifyStaff(tx, seasonId, "En drapssak er bestridt og trenger en avgjørelse.", "/admin/drap", { reason });
+    await notifyStaff(
+      tx,
+      seasonId,
+      "En drapssak er bestridt og trenger en avgjørelse.",
+      "/admin/drap",
+      { reason },
+    );
   });
 }
 
@@ -324,7 +406,12 @@ export async function approveKill(viewer: Viewer, killId: string, note: string) 
     if (season.phase !== "running") throw new GameError("Spillet er ikke i gang");
     const kill = await loadOpenKill(tx, seasonId, killId);
     await applyKillTx(tx, season, kill, viewer.user.id, note || undefined);
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "drap.godkjent", details: { killId, note } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "drap.godkjent",
+      details: { killId, note },
+    });
   });
 }
 
@@ -335,14 +422,32 @@ export async function rejectKill(viewer: Viewer, killId: string, note: string) {
     const kill = await loadOpenKill(tx, seasonId, killId);
     await tx
       .update(kills)
-      .set({ status: "rejected", resolvedAt: new Date(), approvedBy: viewer.user.id, resolutionNote: note || null })
+      .set({
+        status: "rejected",
+        resolvedAt: new Date(),
+        approvedBy: viewer.user.id,
+        resolutionNote: note || null,
+      })
       .where(eq(kills.id, kill.id));
-    const parties = await Promise.all([userOfPlayer(tx, kill.killerId), userOfPlayer(tx, kill.victimId)]);
+    const parties = await Promise.all([
+      userOfPlayer(tx, kill.killerId),
+      userOfPlayer(tx, kill.victimId),
+    ]);
     await notify(
       tx,
-      parties.map((p) => ({ userId: p.userId, seasonId, text: "En drapssak du var part i ble avvist av spillmesterne.", href: "/drap" })),
+      parties.map((p) => ({
+        userId: p.userId,
+        seasonId,
+        text: "En drapssak du var part i ble avvist av spillmesterne.",
+        href: "/drap",
+      })),
     );
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "drap.avvist", details: { killId, note } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "drap.avvist",
+      details: { killId, note },
+    });
   });
 }
 
@@ -352,7 +457,8 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
     const kill = await lockKill(tx, seasonId, killId);
-    if (!kill || kill.status !== "applied") throw new GameError("Bare gjennomførte drap kan angres");
+    if (!kill || kill.status !== "applied")
+      throw new GameError("Bare gjennomførte drap kan angres");
     const before = await lockRing(tx, seasonId);
     let after: Ring;
     try {
@@ -369,8 +475,12 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
       .update(players)
       .set({ killCount: sql`greatest(${players.killCount} - 1, 0)` })
       .where(eq(players.id, kill.killerId));
-    await tx.update(kills).set({ status: "undone", resolvedAt: new Date() }).where(eq(kills.id, kill.id));
-    if (season.winnerPlayerId) await tx.update(seasons).set({ winnerPlayerId: null }).where(eq(seasons.id, seasonId));
+    await tx
+      .update(kills)
+      .set({ status: "undone", resolvedAt: new Date() })
+      .where(eq(kills.id, kill.id));
+    if (season.winnerPlayerId)
+      await tx.update(seasons).set({ winnerPlayerId: null }).where(eq(seasons.id, seasonId));
     await commitRing(tx, {
       seasonId,
       before,
@@ -381,8 +491,20 @@ export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
       announce: hasStarted(season),
     });
     const victim = await userOfPlayer(tx, kill.victimId);
-    await notify(tx, [{ userId: victim.userId, seasonId, text: "Et drap på deg er angret. Du er med i spillet igjen.", href: "/offer" }]);
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "drap.angret", details: { killId } });
+    await notify(tx, [
+      {
+        userId: victim.userId,
+        seasonId,
+        text: "Et drap på deg er angret. Du er med i spillet igjen.",
+        href: "/offer",
+      },
+    ]);
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "drap.angret",
+      details: { killId },
+    });
   });
 }
 
@@ -399,7 +521,9 @@ export async function grantMercy(viewer: Viewer, playerId: string, afterId: stri
     if (!player) throw new GameError("Deltakeren finnes ikke");
     const before = await lockRing(tx, seasonId);
     if (before.length < 2) throw new GameError("Spillet er avgjort");
-    const after = afterId ? insertAfter(before, playerId, afterId) : randomInsertAfter(before, playerId, rng);
+    const after = afterId
+      ? insertAfter(before, playerId, afterId)
+      : randomInsertAfter(before, playerId, rng);
     const nextWeek = addDays(weekStartOf(new Date()), 7);
     await tx
       .update(players)
@@ -414,7 +538,12 @@ export async function grantMercy(viewer: Viewer, playerId: string, afterId: stri
       payload: { playerId, afterId },
       announce: true,
     });
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "deltaker.nade", details: { playerId, valgtPlass: !!afterId } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "deltaker.nade",
+      details: { playerId, valgtPlass: !!afterId },
+    });
   });
 }
 
@@ -427,13 +556,20 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
     const targets = await tx
       .select({ id: players.id })
       .from(players)
-      .where(and(eq(players.seasonId, seasonId), eq(players.status, "alive"), inArray(players.id, playerIds)));
+      .where(
+        and(
+          eq(players.seasonId, seasonId),
+          eq(players.status, "alive"),
+          inArray(players.id, playerIds),
+        ),
+      );
     if (!playerIds.length || targets.length !== new Set(playerIds).size) {
       throw new GameError("Bare levende deltakere i denne sesongen kan diskvalifiseres");
     }
     const all = await seasonKills(tx, seasonId);
     for (const id of playerIds) {
-      if (!canBeDisqualified(id, all)) throw new GameError("En deltaker har en uavklart drapssak. Avgjør den først.");
+      if (!canBeDisqualified(id, all))
+        throw new GameError("En deltaker har en uavklart drapssak. Avgjør den først.");
     }
     const before = await lockRing(tx, seasonId);
     const ringIds = new Set(before);
@@ -457,9 +593,27 @@ export async function disqualify(viewer: Viewer, playerIds: string[], reason: st
       if (season.phase === "running") await crownIfWinner(tx, seasonId, after);
     }
     const disqualified = await playerRecipients(tx, playerIds);
-    await notify(tx, disqualified.map((p) => ({ userId: p.userId, seasonId, text: `Du er diskvalifisert. Begrunnelse: ${reason}`, href: "/" })));
-    await queueEmail(tx, "disqualified", disqualified.map((p) => p.email), { grunn: reason });
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "deltaker.diskvalifisert", details: { playerIds, reason } });
+    await notify(
+      tx,
+      disqualified.map((p) => ({
+        userId: p.userId,
+        seasonId,
+        text: `Du er diskvalifisert. Begrunnelse: ${reason}`,
+        href: "/",
+      })),
+    );
+    await queueEmail(
+      tx,
+      "disqualified",
+      disqualified.map((p) => p.email),
+      { grunn: reason },
+    );
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "deltaker.diskvalifisert",
+      details: { playerIds, reason },
+    });
   });
 }
 
@@ -470,7 +624,9 @@ export async function addPlayerAsGamemaster(viewer: Viewer, userId: string) {
     const season = await lockSeason(tx, seasonId);
     const [user] = await tx.select().from(users).where(eq(users.id, userId));
     if (!user) throw new GameError("Brukeren finnes ikke");
-    const isGamemaster = await tx.query.staff.findFirst({ where: and(eq(staff.seasonId, seasonId), eq(staff.username, user.username)) });
+    const isGamemaster = await tx.query.staff.findFirst({
+      where: and(eq(staff.seasonId, seasonId), eq(staff.username, user.username)),
+    });
     if (isGamemaster) throw new GameError("En spillmester kan ikke være deltaker");
     // Once the game has started, including while it is stopped, the circle is fixed and new players join as already out.
     const started = hasStarted(season);
@@ -489,7 +645,12 @@ export async function addPlayerAsGamemaster(viewer: Viewer, userId: string) {
       .onConflictDoNothing()
       .returning();
     if (!player) throw new GameError("Brukeren er allerede påmeldt");
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "deltaker.lagt_til", details: { playerId: player.id } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "deltaker.lagt_til",
+      details: { playerId: player.id },
+    });
   });
 }
 
@@ -500,14 +661,30 @@ export async function removePlayerAsGamemaster(viewer: Viewer, playerId: string)
     const season = await lockSeason(tx, seasonId);
     const before = await lockRing(tx, seasonId);
     if (before.includes(playerId)) {
-      if (season.phase === "running") throw new GameError("Deltakeren er i sirkelen. Diskvalifiser i stedet.");
+      if (season.phase === "running")
+        throw new GameError("Deltakeren er i sirkelen. Diskvalifiser i stedet.");
       const after = removePlayers(before, [playerId]);
-      await commitRing(tx, { seasonId, before, after, type: "fjernet", actorUserId: viewer.user.id, payload: { playerId }, announce: false });
+      await commitRing(tx, {
+        seasonId,
+        before,
+        after,
+        type: "fjernet",
+        actorUserId: viewer.user.id,
+        payload: { playerId },
+        announce: false,
+      });
     }
-    const hasKills = await tx.query.kills.findFirst({ where: or(eq(kills.killerId, playerId), eq(kills.victimId, playerId)) });
+    const hasKills = await tx.query.kills.findFirst({
+      where: or(eq(kills.killerId, playerId), eq(kills.victimId, playerId)),
+    });
     if (hasKills) throw new GameError("Deltakeren har drapssaker og kan ikke fjernes");
     await tx.delete(players).where(and(eq(players.id, playerId), eq(players.seasonId, seasonId)));
-    await audit(tx, { seasonId, actorUserId: viewer.user.id, action: "deltaker.fjernet", details: { playerId } });
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "deltaker.fjernet",
+      details: { playerId },
+    });
   });
 }
 

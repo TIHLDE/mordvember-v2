@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { desc, eq, inArray, sql as dsql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { circleEvents, circles, players, users } from "@/db/schema";
@@ -16,7 +16,10 @@ export async function lockRing(tx: Tx, seasonId: string): Promise<Ring> {
 }
 
 export async function hasRing(seasonId: string): Promise<boolean> {
-  const row = await db.query.circles.findFirst({ where: eq(circles.seasonId, seasonId), columns: { version: true } });
+  const row = await db.query.circles.findFirst({
+    where: eq(circles.seasonId, seasonId),
+    columns: { version: true },
+  });
   return !!row;
 }
 
@@ -55,7 +58,12 @@ async function announceNewTargets(tx: Tx, seasonId: string, before: Ring, after:
   await announceTargets(tx, seasonId, hunters, "new_target");
 }
 
-export async function announceTargets(tx: Tx, seasonId: string, playerIds: string[], template: "new_target" | "game_start") {
+export async function announceTargets(
+  tx: Tx,
+  seasonId: string,
+  playerIds: string[],
+  template: "new_target" | "game_start",
+) {
   if (!playerIds.length) return;
   const rows = await playerRecipients(tx, playerIds);
   await notify(
@@ -63,11 +71,18 @@ export async function announceTargets(tx: Tx, seasonId: string, playerIds: strin
     rows.map((r) => ({
       userId: r.userId,
       seasonId,
-      text: template === "game_start" ? "Spillet har startet. Ditt første offer er klart." : "Du har fått et nytt offer.",
+      text:
+        template === "game_start"
+          ? "Spillet har startet. Ditt første offer er klart."
+          : "Du har fått et nytt offer.",
       href: "/offer",
     })),
   );
-  await queueEmail(tx, template, rows.map((r) => r.email));
+  await queueEmail(
+    tx,
+    template,
+    rows.map((r) => r.email),
+  );
 }
 
 async function ringForServer(seasonId: string): Promise<Ring> {
@@ -75,7 +90,9 @@ async function ringForServer(seasonId: string): Promise<Ring> {
   return row?.ring ?? [];
 }
 
-export async function myTarget(viewer: Viewer): Promise<{ id: string; name: string; bio: string | null } | null> {
+export async function myTarget(
+  viewer: Viewer,
+): Promise<{ id: string; name: string; bio: string | null } | null> {
   if (!viewer.season || !viewer.player || viewer.player.status !== "alive") return null;
   if (viewer.season.phase !== "running") return null;
   const ring = await ringForServer(viewer.season.id);
@@ -91,7 +108,8 @@ export async function myTarget(viewer: Viewer): Promise<{ id: string; name: stri
 export type CircleEntry = { id: string; name: string; killCount: number; targetId: string | null };
 
 export async function circleForAdmin(viewer: Viewer, reason: string): Promise<CircleEntry[]> {
-  if (!viewer.season || !viewer.canSeeCircle) throw new AccessError("Bare spillmestere har tilgang til sirkelen");
+  if (!viewer.season || !viewer.canSeeCircle)
+    throw new AccessError("Bare spillmestere har tilgang til sirkelen");
   const ring = await ringForServer(viewer.season.id);
   await audit(db, {
     seasonId: viewer.season.id,
@@ -114,7 +132,8 @@ export async function circleForAdmin(viewer: Viewer, reason: string): Promise<Ci
 }
 
 export async function circleEventsForAdmin(viewer: Viewer) {
-  if (!viewer.season || !viewer.canSeeCircle) throw new AccessError("Bare spillmestere har tilgang til sirkelen");
+  if (!viewer.season || !viewer.canSeeCircle)
+    throw new AccessError("Bare spillmestere har tilgang til sirkelen");
   return db
     .select({
       id: circleEvents.id,

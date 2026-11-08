@@ -10,14 +10,26 @@ export function BioFields({ values }: { values: BioValues }) {
         return (
           <Field key={key} label={label}>
             {options ? (
-              <select name={`bio_${key}`} defaultValue={options.includes(values[key] ?? "") ? values[key] : ""} className={inputClass}>
+              <select
+                name={`bio_${key}`}
+                defaultValue={options.includes(values[key] ?? "") ? values[key] : ""}
+                className={inputClass}
+              >
                 <option value="">{placeholder}</option>
                 {options.map((option) => (
-                  <option key={option} value={option}>{option}</option>
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
               </select>
             ) : (
-              <input name={`bio_${key}`} defaultValue={values[key] ?? ""} placeholder={placeholder} maxLength={BIO_FIELD_MAX} className={inputClass} />
+              <input
+                name={`bio_${key}`}
+                defaultValue={values[key] ?? ""}
+                placeholder={placeholder}
+                maxLength={BIO_FIELD_MAX}
+                className={inputClass}
+              />
             )}
           </Field>
         );

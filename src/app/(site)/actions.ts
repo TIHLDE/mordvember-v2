@@ -1,134 +1,120 @@
-"use server";
+import * as serverActions from "./actions.server";
+import { createServerFn } from "@tanstack/react-start";
+import type { ActionState } from "@/lib/action";
+import { MAX_IMAGE_BYTES } from "@/lib/upload";
 
-import { and, eq, isNull } from "drizzle-orm";
-import { cookies } from "next/headers";
-import { db } from "@/db";
-import { notifications } from "@/db/schema";
-import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
-import { isCheckedIn, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
-import { requirePlayer, requireSeason, requireViewer } from "@/server/auth/session";
-import { myTarget } from "@/server/circle";
-import { confirmKill, disputeKill, GameError, reportKill } from "@/server/game";
-import {
-  deleteOwnImage,
-  setBio,
-  setImage,
-  signUp,
-  chooseDefaultImage,
-  withdraw,
-} from "@/server/players";
-import { askQuestion } from "@/server/questions";
-
-export async function signUpAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const viewer = await requireSeason();
-    const image = form.get("image");
-    await signUp(viewer, { consent: form.get("consent") === "on", image: image instanceof File ? image : null, bio: bioFrom(form) });
-    return "Du er påmeldt!";
-  });
+function validateForm(value: unknown): FormData {
+  if (!(value instanceof FormData)) throw new Error("Ugyldig skjema");
+  for (const item of value.values())
+    if (item instanceof File && item.size > MAX_IMAGE_BYTES) throw new Error("Bildet er for stort");
+  return value;
 }
-
-export async function withdrawAction(_: ActionState) {
-  return run(async () => {
-    await withdraw(await requirePlayer());
-    return "Du er meldt av";
-  });
+const signUpActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.signUpAction(null, data));
+export function signUpAction(_state: ActionState, form: FormData) {
+  return signUpActionRpc({ data: form });
 }
-
-export async function uploadImageAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const image = form.get("image");
-    if (!(image instanceof File) || image.size === 0) throw new GameError("Velg et bilde");
-    await setImage(await requirePlayer(), image);
-    return "Bildet er lastet opp";
-  });
+const withdrawActionRpc = createServerFn({ method: "POST" }).handler(async () =>
+  serverActions.withdrawAction(null),
+);
+export function withdrawAction(_state: ActionState) {
+  return withdrawActionRpc();
 }
-
-export async function defaultImageAction(_: ActionState) {
-  return run(async () => {
-    await chooseDefaultImage(await requirePlayer());
-    return "Du bruker profilbildet fra TIHLDE";
-  });
+const uploadImageActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.uploadImageAction(null, data));
+export function uploadImageAction(_state: ActionState, form: FormData) {
+  return uploadImageActionRpc({ data: form });
 }
-
-export async function deleteImageAction(_: ActionState) {
-  return run(async () => {
-    await deleteOwnImage(await requirePlayer());
-    return "Bildet er slettet";
-  });
+const defaultImageActionRpc = createServerFn({ method: "POST" }).handler(async () =>
+  serverActions.defaultImageAction(null),
+);
+export function defaultImageAction(_state: ActionState) {
+  return defaultImageActionRpc();
 }
-
-export async function bioAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await setBio(await requirePlayer(), bioFrom(form));
-    return "Beskrivelsen er lagret";
-  });
+const deleteImageActionRpc = createServerFn({ method: "POST" }).handler(async () =>
+  serverActions.deleteImageAction(null),
+);
+export function deleteImageAction(_state: ActionState) {
+  return deleteImageActionRpc();
 }
-
-export async function revealTargetAction(): Promise<{ name: string; image: string; bio: string | null; checkedIn: boolean } | null> {
-  const viewer = await requirePlayer();
-  const target = await myTarget(viewer);
-  if (!target) return null;
-  return { name: target.name, image: `/api/bilde/${target.id}`, bio: target.bio, checkedIn: await isCheckedIn(target.id) };
+const bioActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.bioAction(null, data));
+export function bioAction(_state: ActionState, form: FormData) {
+  return bioActionRpc({ data: form });
 }
-
-export async function reportKillAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const when = osloInput(text(form, "killedAt"));
-    await reportKill(await requirePlayer(), "killer", when);
-    return "Drapet er meldt. Offeret ditt må bekrefte.";
-  });
+const revealTargetActionRpc = createServerFn({ method: "POST" }).handler(async () =>
+  serverActions.revealTargetAction(),
+);
+export function revealTargetAction() {
+  return revealTargetActionRpc();
 }
-
-export async function confirmKillAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await confirmKill(await requirePlayer(), text(form, "killId"));
-    return "Bekreftet";
-  });
+const reportKillActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.reportKillAction(null, data));
+export function reportKillAction(_state: ActionState, form: FormData) {
+  return reportKillActionRpc({ data: form });
 }
-
-export async function disputeKillAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await disputeKill(await requirePlayer(), text(form, "killId"));
-    return "Saken er sendt til spillmesterne";
-  });
+const confirmKillActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.confirmKillAction(null, data));
+export function confirmKillAction(_state: ActionState, form: FormData) {
+  return confirmKillActionRpc({ data: form });
 }
-
-export async function completeScanAction(intent: "in" | "out", position: { lat: number; lng: number } | null): Promise<ActionState> {
-  return run(async () => {
-    const viewer = await requirePlayer();
-    const jar = await cookies();
-    if (!readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, viewer.season.id)) {
-      throw new GameError("QR-koden er utløpt. Skann på nytt.");
-    }
-    const valid =
-      position && Number.isFinite(position.lat) && Number.isFinite(position.lng) && Math.abs(position.lat) <= 90 && Math.abs(position.lng) <= 180
-        ? position
-        : null;
-    const result = await toggleCheckin(viewer, valid, intent === "out" ? "out" : "in");
-    jar.delete(PENDING_SCAN_COOKIE);
-    jar.set(SCAN_RESULT_COOKIE, result.kind, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/sjekkinn",
-      maxAge: 60,
-    });
-    return { in: "Du er sjekket inn", out: "Du er sjekket ut", forgotten: "Økta er lukket" }[result.kind];
-  });
+const disputeKillActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.disputeKillAction(null, data));
+export function disputeKillAction(_state: ActionState, form: FormData) {
+  return disputeKillActionRpc({ data: form });
 }
-
-export async function askAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await askQuestion(await requireSeason(), text(form, "question"));
-    return "Spørsmålet er sendt";
-  });
+const completeScanActionRpc = createServerFn({ method: "POST" })
+  .validator((value: unknown) => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      !("intent" in value) ||
+      (value.intent !== "in" && value.intent !== "out")
+    )
+      throw new Error("Ugyldig handling");
+    const position = "position" in value ? value.position : null;
+    if (
+      position !== null &&
+      (!position ||
+        typeof position !== "object" ||
+        !("lat" in position) ||
+        !("lng" in position) ||
+        typeof position.lat !== "number" ||
+        typeof position.lng !== "number" ||
+        !Number.isFinite(position.lat) ||
+        !Number.isFinite(position.lng) ||
+        Math.abs(position.lat) > 90 ||
+        Math.abs(position.lng) > 180)
+    )
+      throw new Error("Ugyldig posisjon");
+    const intent: "in" | "out" = value.intent;
+    return {
+      intent,
+      position: position === null ? null : { lat: Number(position.lat), lng: Number(position.lng) },
+    };
+  })
+  .handler(async ({ data }) => serverActions.completeScanAction(data.intent, data.position));
+export function completeScanAction(
+  intent: "in" | "out",
+  position: { lat: number; lng: number } | null,
+) {
+  return completeScanActionRpc({ data: { intent, position } });
 }
-
-export async function markNotificationsReadAction() {
-  const viewer = await requireViewer();
-  await db
-    .update(notifications)
-    .set({ readAt: new Date() })
-    .where(and(eq(notifications.userId, viewer.user.id), isNull(notifications.readAt)));
+const askActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.askAction(null, data));
+export function askAction(_state: ActionState, form: FormData) {
+  return askActionRpc({ data: form });
+}
+const markNotificationsReadActionRpc = createServerFn({ method: "POST" }).handler(async () =>
+  serverActions.markNotificationsReadAction(),
+);
+export function markNotificationsReadAction() {
+  return markNotificationsReadActionRpc();
 }

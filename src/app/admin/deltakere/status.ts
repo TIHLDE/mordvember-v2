@@ -1,6 +1,10 @@
 import { imageState } from "@/game/review";
 
-export const STATUS = { alive: ["Med", "green"], eliminated: ["Eliminert", "zinc"], disqualified: ["Diskvalifisert", "red"] } as const;
+export const STATUS = {
+  alive: ["Med", "green"],
+  eliminated: ["Eliminert", "zinc"],
+  disqualified: ["Diskvalifisert", "red"],
+} as const;
 
 const IMAGE = {
   rejected: { label: "Bilde avvist", tone: "red" },

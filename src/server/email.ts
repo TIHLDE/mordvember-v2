@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { and, eq, inArray, ne, sql as dsql } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { type EmailBlock, emailOutbox, emailTemplates } from "@/db/schema";
@@ -83,7 +83,11 @@ function render(text: string, vars: Record<string, string | number>): string {
 async function templateFor(tx: Tx | typeof db, key: TemplateKey) {
   const override = await tx.query.emailTemplates.findFirst({ where: eq(emailTemplates.key, key) });
   const base = DEFAULT_TEMPLATES[key];
-  return { subject: override?.subject ?? base.subject, body: override?.body ?? base.body, button: base.button };
+  return {
+    subject: override?.subject ?? base.subject,
+    body: override?.body ?? base.body,
+    button: base.button,
+  };
 }
 
 export async function queueEmail(
@@ -100,9 +104,18 @@ export async function queueEmail(
     .map((p) => p.trim())
     .filter(Boolean)
     .map((p) => ({ type: "text", content: p }));
-  if (template.button) content.push({ type: "button", text: "Åpne Mordvember", url: `${env.appUrl}${template.button}` });
+  if (template.button)
+    content.push({
+      type: "button",
+      text: "Åpne Mordvember",
+      url: `${env.appUrl}${template.button}`,
+    });
   await tx.insert(emailOutbox).values(
-    recipients.map((address) => ({ to: address, subject: render(template.subject, vars), content })),
+    recipients.map((address) => ({
+      to: address,
+      subject: render(template.subject, vars),
+      content,
+    })),
   );
 }
 
@@ -134,7 +147,15 @@ export async function deliverPendingEmails(limit = 50) {
     returning id`);
   if (!claimed.length) return 0;
   let failed = 0;
-  const mails = await db.select().from(emailOutbox).where(inArray(emailOutbox.id, claimed.map((c) => c.id)));
+  const mails = await db
+    .select()
+    .from(emailOutbox)
+    .where(
+      inArray(
+        emailOutbox.id,
+        claimed.map((c) => c.id),
+      ),
+    );
   for (const mail of mails) {
     try {
       // Nullstilling sletter også e-post som alt er hentet her, så raden sjekkes rett før hver sending. Uten treff er den borte.
@@ -152,7 +173,10 @@ export async function deliverPendingEmails(limit = 50) {
       } else {
         throw new Error("PHOTON_EMAIL_API_KEY mangler");
       }
-      await db.update(emailOutbox).set({ status: "sent", sentAt: new Date() }).where(eq(emailOutbox.id, mail.id));
+      await db
+        .update(emailOutbox)
+        .set({ status: "sent", sentAt: new Date() })
+        .where(eq(emailOutbox.id, mail.id));
     } catch (error) {
       failed++;
       await db

@@ -13,7 +13,10 @@ export function msUntilNextCode(at: number): number {
 }
 
 function signature(secret: string, seasonId: string, window: number): string {
-  return createHmac("sha256", secret).update(`qr:${seasonId}:${window}`).digest("base64url").slice(0, 22);
+  return createHmac("sha256", secret)
+    .update(`qr:${seasonId}:${window}`)
+    .digest("base64url")
+    .slice(0, 22);
 }
 
 export function qrCode(secret: string, seasonId: string, at: number): string {

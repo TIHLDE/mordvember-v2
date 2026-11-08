@@ -1,42 +1,88 @@
-import { cookies } from "next/headers";
+import { cookies } from "@/server/cookies";
+import {
+  myAttendance,
+  PENDING_SCAN_COOKIE,
+  readPendingScan,
+  SCAN_RESULT_COOKIE,
+} from "@/server/attendance";
+import { getViewer } from "@/server/auth/session";
+import { requireViewer } from "@/server/auth/session";
+import { createServerFn } from "@tanstack/react-start";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { Notice, PageTitle } from "@/components/ui";
 import { sessionCountsAt } from "@/game/attendance";
 import { formatOslo, osloDate } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
-import { myAttendance, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE } from "@/server/attendance";
-import { getViewer } from "@/server/auth/session";
+
 import { completeScanAction } from "../actions";
 import { CheckinButton } from "./CheckinButton";
 
-export const dynamic = "force-dynamic";
+const loadCheckin = createServerFn({ method: "GET" })
+  .validator((value: unknown) => (typeof value === "string" ? value : ""))
+  .handler(async ({ data: feil }) => {
+    const viewer = await getViewer();
+    const jar = cookies();
+    const season = viewer?.season;
+    const pending = season
+      ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id)
+      : !!jar.get(PENDING_SCAN_COOKIE);
+    const invalidCode = feil === "kode" && !pending;
+    if (!viewer && !invalidCode) {
+      await requireViewer();
+    }
+    const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
+    const now = new Date();
+    return {
+      invalidCode,
+      player: !!viewer?.player,
+      pending,
+      done,
+      now,
+      attendance: viewer?.player ? await myAttendance(viewer, now) : null,
+    };
+  });
 
-export default async function CheckinPage({ searchParams }: { searchParams: Promise<{ feil?: string }> }) {
+type Attendance = NonNullable<Awaited<ReturnType<typeof loadCheckin>>["attendance"]>;
+
+export const Route = createFileRoute("/(site)/sjekkinn/")({
+  validateSearch: (search: Record<string, unknown>): { feil?: string; next?: string } => ({
+    feil: typeof search.feil === "string" ? search.feil : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ feil: search.feil }),
+  loader: ({ deps }) => loadCheckin({ data: deps.feil ?? "" }),
+  component: CheckinPage,
+});
+
+function CheckinPage() {
   return (
     <div className="mx-auto max-w-md py-8 text-center">
       <PageTitle center>Oppmøte</PageTitle>
-      <CheckinState searchParams={searchParams} />
+      <CheckinState />
     </div>
   );
 }
 
-async function CheckinState({ searchParams }: { searchParams: Promise<{ feil?: string }> }) {
-  const [{ feil }, viewer, jar] = await Promise.all([searchParams, getViewer(), cookies()]);
-  const season = viewer?.season;
-  const pending = season ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id) : !!jar.get(PENDING_SCAN_COOKIE);
-
-  if (feil === "kode" && !pending) return <p className="text-red-400">QR-koden er utløpt eller ugyldig. Skann på nytt.</p>;
-  // A scanned code stays pending for ten minutes, so the check-in can be finished after logging in.
-  if (!viewer) return redirectToLogin();
-  if (!viewer.player) return <p className="text-zinc-400">Du er ikke påmeldt.</p>;
-  const done = pending ? null : jar.get(SCAN_RESULT_COOKIE)?.value;
-  if (!pending && !done) return <p className="text-zinc-400">Skann QR-koden på statusskjermen for å sjekke inn eller ut.</p>;
-  if (done === "out") return <p className="success-pop font-display text-4xl text-emerald-400">Du er sjekket ut</p>;
-  if (done === "forgotten") {
-    return <Notice tone="amber">Du glemte å sjekke ut, så økta er lukket uten å telle som oppmøte. Var du der, kan spillmesterne godkjenne den.</Notice>;
-  }
-  const now = new Date();
-  const attendance = await myAttendance(viewer, now);
+function CheckinState() {
+  const { invalidCode, player, pending, done, now, attendance } = Route.useLoaderData();
   const open = attendance?.open;
+  if (invalidCode)
+    return <p className="text-red-400">QR-koden er utløpt eller ugyldig. Skann på nytt.</p>;
+  // A scanned code stays pending for ten minutes, so the check-in can be finished after logging in.
+  if (!player) return <p className="text-zinc-400">Du er ikke påmeldt.</p>;
+  if (!pending && !done)
+    return (
+      <p className="text-zinc-400">Skann QR-koden på statusskjermen for å sjekke inn eller ut.</p>
+    );
+  if (done === "out")
+    return <p className="success-pop font-display text-4xl text-emerald-400">Du er sjekket ut</p>;
+  if (done === "forgotten") {
+    return (
+      <Notice tone="amber">
+        Du glemte å sjekke ut, så økta er lukket uten å telle som oppmøte. Var du der, kan
+        spillmesterne godkjenne den.
+      </Notice>
+    );
+  }
   if (done === "in") {
     return (
       <div className="space-y-4">
@@ -50,8 +96,9 @@ async function CheckinState({ searchParams }: { searchParams: Promise<{ feil?: s
       <div className="space-y-4">
         {attendance?.stale && (
           <Notice tone="amber">
-            Du sjekket inn {formatOslo(attendance.stale.checkInAt)} og glemte å sjekke ut. Den økta lukkes uten å telle som oppmøte, enten du sjekker inn på nytt eller
-            bare sjekker ut. Var du der, kan spillmesterne godkjenne den.
+            Du sjekket inn {formatOslo(attendance.stale.checkInAt)} og glemte å sjekke ut. Den økta
+            lukkes uten å telle som oppmøte, enten du sjekker inn på nytt eller bare sjekker ut. Var
+            du der, kan spillmesterne godkjenne den.
           </Notice>
         )}
         <p className="text-zinc-300">Du er ikke sjekket inn.</p>
@@ -67,9 +114,17 @@ async function CheckinState({ searchParams }: { searchParams: Promise<{ feil?: s
   );
 }
 
-type Attendance = NonNullable<Awaited<ReturnType<typeof myAttendance>>>;
-
-function SessionStatus({ attendance, open, now, checkout = false }: { attendance: Attendance; open: NonNullable<Attendance["open"]>; now: Date; checkout?: boolean }) {
+function SessionStatus({
+  attendance,
+  open,
+  now,
+  checkout = false,
+}: {
+  attendance: Attendance;
+  open: NonNullable<Attendance["open"]>;
+  now: Date;
+  checkout?: boolean;
+}) {
   const { rules } = attendance;
   const today = attendance.days.find((d) => d.date === osloDate(open.checkInAt));
   const alreadyCounts = !!today?.counts;
@@ -78,7 +133,10 @@ function SessionStatus({ attendance, open, now, checkout = false }: { attendance
   const canCount = !!today && !open.rejected && countsAt.reachable;
   const hours = `${rules.hours} time${rules.hours === 1 ? "" : "r"}`;
   // Rounded up, so the shown minute is never before the day actually counts.
-  const countsAtLabel = formatOslo(new Date(Math.ceil(countsAt.at.getTime() / 60000) * 60000), false);
+  const countsAtLabel = formatOslo(
+    new Date(Math.ceil(countsAt.at.getTime() / 60000) * 60000),
+    false,
+  );
   return (
     <>
       <div className="space-y-1">

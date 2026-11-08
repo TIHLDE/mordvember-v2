@@ -19,7 +19,8 @@ function shuffle<T>(items: readonly T[], rng: Rng): T[] {
 }
 
 export function generateRing(playerIds: readonly string[], rng: Rng): Ring {
-  if (new Set(playerIds).size !== playerIds.length) throw new RingError("Samme deltaker står flere ganger");
+  if (new Set(playerIds).size !== playerIds.length)
+    throw new RingError("Samme deltaker står flere ganger");
   if (playerIds.length < 2) throw new RingError("Det trengs minst to deltakere");
   return shuffle(playerIds, rng);
 }
@@ -52,14 +53,16 @@ export function hunterOf(ring: Ring, playerId: string): string | null {
 
 export function applyKill(ring: Ring, killerId: string, victimId: string): Ring {
   if (killerId === victimId) throw new RingError("En deltaker kan ikke drepe seg selv");
-  if (targetOf(ring, killerId) !== victimId) throw new RingError("Offeret er ikke morderens nåværende offer");
+  if (targetOf(ring, killerId) !== victimId)
+    throw new RingError("Offeret er ikke morderens nåværende offer");
   return ring.filter((id) => id !== victimId);
 }
 
 export function removePlayers(ring: Ring, playerIds: readonly string[]): Ring {
   const remove = new Set(playerIds);
   const inRing = new Set(ring);
-  for (const id of remove) if (!inRing.has(id)) throw new RingError("Deltakeren er ikke i sirkelen");
+  for (const id of remove)
+    if (!inRing.has(id)) throw new RingError("Deltakeren er ikke i sirkelen");
   return ring.filter((id) => !remove.has(id));
 }
 
@@ -89,7 +92,9 @@ export function movePlayer(ring: Ring, playerId: string, afterId: string): Ring 
 export function undoKill(ring: Ring, killerId: string, victimId: string): Ring {
   if (ring.includes(victimId)) throw new RingError("Offeret er allerede i sirkelen");
   if (!ring.includes(killerId)) {
-    throw new RingError("Morderen er ikke lenger i sirkelen. Gi offeret nåde med valgt plass i stedet.");
+    throw new RingError(
+      "Morderen er ikke lenger i sirkelen. Gi offeret nåde med valgt plass i stedet.",
+    );
   }
   return insertAfter(ring, victimId, killerId);
 }

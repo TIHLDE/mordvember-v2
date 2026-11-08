@@ -1,10 +1,28 @@
 allowBuilds:
   esbuild: true
   unrs-resolver: true
-# Same list for older pnpm versions (e.g. on Vercel) that don't read allowBuilds.
-onlyBuiltDependencies:
-  - esbuild
-  - unrs-resolver
 overrides:
-  '@esbuild-kit/core-utils>esbuild': ^0.25.0
-  '@vercel/cli-config>zod': 4.6.7
+  vite@*: "catalog:"
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@1.5.0
+  vite-plus: 1.5.0
+peerDependencyRules:
+  allowAny:
+    - vite
+  allowedVersions:
+    vite: "*"
+minimumReleaseAgeExclude:
+  - "@tanstack/react-start-client@1.168.45"
+  - "@tanstack/react-start-rsc@0.1.66"
+  - "@tanstack/react-start@1.169.5"
+  - "@tanstack/router-generator@1.168.0"
+  - "@tanstack/router-plugin@1.169.0"
+  - "@tanstack/router-utils@1.163.0"
+  - "@tanstack/start-plugin-core@1.171.56"
+permissions:
+  "@tanstack/react-router":
+    skills: true
+  "@tanstack/react-start":
+    skills: true
+  fallow:
+    skills: true

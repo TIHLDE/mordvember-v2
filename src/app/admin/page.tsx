@@ -1,26 +1,77 @@
 import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
-import Link from "next/link";
+import { db } from "@/db";
+import { checkins, kills, players, questions } from "@/db/schema";
+import { phaseLabel } from "@/server/season";
+import { pendingReviewCount } from "@/server/weekly";
+import { requireViewer } from "@/server/auth/session";
+import { createServerFn } from "@tanstack/react-start";
+import { notFound } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { Link } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Button, Card, Field, Notice, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { checkins, kills, players, questions } from "@/db/schema";
+
 import { CONFIRM_TIMEOUT_MS } from "@/game/kills";
 import { formatOslo } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
+
 import { msAgo } from "@/lib/time";
-import { getViewer } from "@/server/auth/session";
-import { phaseLabel } from "@/server/season";
-import { pendingReviewCount } from "@/server/weekly";
+
 import { createSeasonAction } from "./actions";
 
-export const dynamic = "force-dynamic";
-
-export default async function AdminHome() {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
+  const viewer = await requireViewer();
+  if (!viewer.isGamemaster && !viewer.canManageRoles) throw notFound();
   const season = viewer.season;
-  if (!season) {
+  if (!season) return { viewer, summary: null };
+  const [total, alive] = await Promise.all([
+    db.$count(players, eq(players.seasonId, season.id)),
+    db.$count(players, and(eq(players.seasonId, season.id), eq(players.status, "alive"))),
+  ]);
+  const [openCases, overdue, reviews, unanswered, flagged] = viewer.isGamemaster
+    ? await Promise.all([
+        db.$count(kills, and(eq(kills.seasonId, season.id), eq(kills.status, "escalated"))),
+        db.$count(
+          kills,
+          and(
+            eq(kills.seasonId, season.id),
+            eq(kills.status, "pending"),
+            lte(kills.reportedAt, msAgo(CONFIRM_TIMEOUT_MS)),
+          ),
+        ),
+        pendingReviewCount(season.id),
+        db.$count(questions, and(eq(questions.seasonId, season.id), isNull(questions.answer))),
+        db.$count(
+          checkins,
+          and(
+            eq(checkins.seasonId, season.id),
+            eq(checkins.flagsReviewed, false),
+            eq(checkins.rejected, false),
+            or(eq(checkins.autoClosed, true), sql`${checkins.flags} <> '[]'::jsonb`),
+          ),
+        ),
+      ])
+    : [0, 0, 0, 0, 0];
+  const items = viewer.isGamemaster
+    ? [
+        { label: "Drapssaker til avgjørelse", value: openCases + overdue, href: "/admin/drap" },
+        { label: "Fredagslista, ikke avgjort", value: reviews, href: "/admin/fredag" },
+        { label: "Ubesvarte spørsmål", value: unanswered, href: "/admin/sporsmal" },
+        { label: "Merkede innsjekker", value: flagged, href: "/admin/oppmote" },
+      ]
+    : [];
+  return { viewer, summary: { season, total, alive, items, phase: phaseLabel(season.phase) } };
+});
+
+export const Route = createFileRoute("/admin/")({
+  loader: () => loadAdminHome(),
+  component: AdminHome,
+});
+
+function AdminHome() {
+  const { viewer, summary } = Route.useLoaderData();
+  if (!summary) {
     return (
       <div className="space-y-6">
         <PageTitle>Admin</PageTitle>
@@ -35,26 +86,10 @@ export default async function AdminHome() {
       </div>
     );
   }
-  const [total, alive, openCases, overdue, reviews, unanswered, flagged] = await Promise.all([
-    db.$count(players, eq(players.seasonId, season.id)),
-    db.$count(players, and(eq(players.seasonId, season.id), eq(players.status, "alive"))),
-    db.$count(kills, and(eq(kills.seasonId, season.id), eq(kills.status, "escalated"))),
-    db.$count(kills, and(eq(kills.seasonId, season.id), eq(kills.status, "pending"), lte(kills.reportedAt, msAgo(CONFIRM_TIMEOUT_MS)))),
-    pendingReviewCount(season.id),
-    db.$count(questions, and(eq(questions.seasonId, season.id), isNull(questions.answer))),
-    db.$count(checkins, and(eq(checkins.seasonId, season.id), eq(checkins.flagsReviewed, false), eq(checkins.rejected, false), or(eq(checkins.autoClosed, true), sql`${checkins.flags} <> '[]'::jsonb`))),
-  ]);
-
-  const items = [
-    { label: "Drapssaker til avgjørelse", value: openCases + overdue, href: "/admin/drap" },
-    { label: "Fredagslista, ikke avgjort", value: reviews, href: "/admin/fredag" },
-    { label: "Ubesvarte spørsmål", value: unanswered, href: "/admin/sporsmal" },
-    { label: "Merkede innsjekker", value: flagged, href: "/admin/oppmote" },
-  ];
-
+  const { season, total, alive, items, phase } = summary;
   return (
     <div className="space-y-6">
-      <PageTitle sub={`${season.name} · ${phaseLabel(season.phase)}`}>Admin</PageTitle>
+      <PageTitle sub={`${season.name} · ${phase}`}>Admin</PageTitle>
       {viewer.emergencyUntil && (
         <Notice tone="red">Nødtilgang er aktiv til {formatOslo(viewer.emergencyUntil)}.</Notice>
       )}
@@ -66,15 +101,23 @@ export default async function AdminHome() {
         </Card>
         {viewer.isGamemaster &&
           items.map((i) => (
-            <Link key={i.href} href={i.href} className="group rounded-2xl">
+            <Link key={i.href} to={i.href} className="group rounded-2xl">
               <Card className="h-full transition-colors duration-150 group-hover:border-white/25 group-hover:bg-white/[0.05]">
                 <p className="text-sm text-zinc-400">{i.label}</p>
-                <p className={`mt-2 text-3xl font-semibold tabular-nums ${i.value ? "text-blood-light" : "text-white"}`}>{i.value}</p>
+                <p
+                  className={`mt-2 text-3xl font-semibold tabular-nums ${i.value ? "text-blood-light" : "text-white"}`}
+                >
+                  {i.value}
+                </p>
               </Card>
             </Link>
           ))}
       </div>
-      {!viewer.isGamemaster && <p className="text-sm text-zinc-400">Du kan legge til og fjerne spillmestere under Spillmestere.</p>}
+      {!viewer.isGamemaster && (
+        <p className="text-sm text-zinc-400">
+          Du kan legge til og fjerne spillmestere under Spillmestere.
+        </p>
+      )}
     </div>
   );
 }

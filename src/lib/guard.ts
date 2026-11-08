@@ -1,20 +1,11 @@
-import "server-only";
-import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
-import { PATH_HEADER, safeNext } from "@/lib/redirect";
-import { getViewer, type Season, type Viewer } from "@/server/auth/session";
-
-/** Sends a logged-out visitor to login, and back to the page they asked for afterwards. */
-export async function redirectToLogin(): Promise<never> {
-  const path = safeNext((await headers()).get(PATH_HEADER));
-  redirect(`/login?next=${encodeURIComponent(path)}`);
-}
+import "@tanstack/react-start/server-only";
+import { notFound, redirect } from "@tanstack/react-router";
+import { requireViewer, type Season, type Viewer } from "@/server/auth/session";
 
 type Need = "gamemaster" | "circle" | "roles" | "index";
 
 export async function guard(need: Need): Promise<Viewer & { season: Season }> {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
+  const viewer = await requireViewer();
   const ok =
     need === "gamemaster"
       ? viewer.isGamemaster
@@ -23,7 +14,7 @@ export async function guard(need: Need): Promise<Viewer & { season: Season }> {
         : need === "roles"
           ? viewer.canManageRoles
           : viewer.isIndexLeader;
-  if (!ok) notFound();
-  if (!viewer.season) redirect("/admin");
+  if (!ok) throw notFound();
+  if (!viewer.season) throw redirect({ to: "/admin" });
   return viewer as Viewer & { season: Season };
 }

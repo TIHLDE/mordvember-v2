@@ -5,7 +5,7 @@ import { useState } from "react";
 export function Portrait({ className = "", ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
   const [loaded, setLoaded] = useState(false);
   return (
-    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    // oxlint-disable-next-line jsx-a11y/alt-text
     <img
       {...props}
       ref={(img) => {

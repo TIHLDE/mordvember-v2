@@ -21,9 +21,19 @@ const createdAt = () => ts("created_at").notNull().defaultNow();
 
 export const phaseEnum = pgEnum("phase", ["setup", "signup", "closed", "running", "ended"]);
 export const playerStatusEnum = pgEnum("player_status", ["alive", "eliminated", "disqualified"]);
-export const killStatusEnum = pgEnum("kill_status", ["pending", "escalated", "applied", "rejected", "undone"]);
+export const killStatusEnum = pgEnum("kill_status", [
+  "pending",
+  "escalated",
+  "applied",
+  "rejected",
+  "undone",
+]);
 export const reporterEnum = pgEnum("reporter", ["killer", "victim"]);
-export const reviewDecisionEnum = pgEnum("review_decision", ["pending", "disqualified", "exception"]);
+export const reviewDecisionEnum = pgEnum("review_decision", [
+  "pending",
+  "disqualified",
+  "exception",
+]);
 export const emailStatusEnum = pgEnum("email_status", ["pending", "sent", "failed"]);
 
 export type SeasonSettings = {
@@ -110,7 +120,10 @@ export const players = pgTable(
     consentAt: ts("consent_at").notNull(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("players_season_user").on(t.seasonId, t.userId), index("players_season").on(t.seasonId)],
+  (t) => [
+    uniqueIndex("players_season_user").on(t.seasonId, t.userId),
+    index("players_season").on(t.seasonId),
+  ],
 );
 
 export const circles = pgTable("circles", {
@@ -156,7 +169,10 @@ export const kills = pgTable(
     reportedBy: reporterEnum("reported_by").notNull(),
     reportedAt: ts("reported_at").notNull().defaultNow(),
     status: killStatusEnum("status").notNull().default("pending"),
-    escalationReasons: jsonb("escalation_reasons").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    escalationReasons: jsonb("escalation_reasons")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     confirmedAt: ts("confirmed_at"),
     resolvedAt: ts("resolved_at"),
     approvedBy: uuid("approved_by").references(() => users.id, { onDelete: "set null" }),
@@ -180,13 +196,19 @@ export const checkins = pgTable(
     autoClosed: boolean("auto_closed").notNull().default(false),
     approved: boolean("approved").notNull().default(false),
     rejected: boolean("rejected").notNull().default(false),
-    flags: jsonb("flags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    flags: jsonb("flags")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     distanceMeters: doublePrecision("distance_meters"),
     flagsReviewed: boolean("flags_reviewed").notNull().default(false),
     editedBy: uuid("edited_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
-  (t) => [index("checkins_player").on(t.playerId, t.checkInAt), index("checkins_season").on(t.seasonId, t.checkInAt)],
+  (t) => [
+    index("checkins_player").on(t.playerId, t.checkInAt),
+    index("checkins_season").on(t.seasonId, t.checkInAt),
+  ],
 );
 
 export const weekRules = pgTable(
@@ -286,7 +308,10 @@ export const auditLog = pgTable(
     seasonId: uuid("season_id").references(() => seasons.id, { onDelete: "set null" }),
     actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
     action: text("action").notNull(),
-    details: jsonb("details").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    details: jsonb("details")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: createdAt(),
   },
   (t) => [index("audit_log_created").on(t.createdAt)],

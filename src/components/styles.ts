@@ -6,7 +6,8 @@ export function cx(...classes: (string | false | null | undefined)[]) {
 
 const variants = {
   primary: "bg-blood text-white hover:bg-blood-light",
-  ghost: "border border-white/15 bg-white/[0.02] text-zinc-100 hover:border-white/25 hover:bg-white/[0.07]",
+  ghost:
+    "border border-white/15 bg-white/[0.02] text-zinc-100 hover:border-white/25 hover:bg-white/[0.07]",
   danger: "bg-red-900 text-white hover:bg-red-800",
   "danger-ghost": "border border-red-900/70 text-red-300 hover:border-red-800 hover:bg-red-950/60",
 };

@@ -1,19 +1,11 @@
-import Link from "next/link";
-import { and, eq, isNull } from "drizzle-orm";
-import { db } from "@/db";
-import { notifications } from "@/db/schema";
-import { getViewer } from "@/server/auth/session";
+import { Link } from "@tanstack/react-router";
+import type { getNavigation } from "@/server/navigation";
 import { UserAvatar } from "./Avatar";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { PendingKillBanner } from "./PendingKillBanner";
 import { buttonClass } from "./styles";
 
-export async function SiteHeader() {
-  const viewer = await getViewer();
-  let unread = 0;
-  if (viewer) {
-    unread = await db.$count(notifications, and(eq(notifications.userId, viewer.user.id), isNull(notifications.readAt)));
-  }
+export function SiteHeader({ viewer, unread, waiting }: Awaited<ReturnType<typeof getNavigation>>) {
   const playing = viewer?.player && viewer.season && viewer.season.phase === "running";
   const links: NavLink[] = viewer
     ? [
@@ -27,7 +19,9 @@ export async function SiteHeader() {
           : []),
         { href: "/sporsmal", label: "Spørsmål" },
         { href: "/varsler", label: "Varsler", count: unread },
-        ...(viewer.isGamemaster || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
+        ...(viewer.isGamemaster || viewer.canManageRoles
+          ? [{ href: "/admin", label: "Admin" }]
+          : []),
       ]
     : [];
   const container = "mx-auto max-w-5xl px-4";
@@ -37,7 +31,7 @@ export async function SiteHeader() {
       <header className="material sticky top-0 z-40 border-b border-white/10 bg-ink/75 backdrop-blur-xl backdrop-saturate-150">
         <div className={container}>
           <div className="flex h-14 items-center gap-6">
-            <Link href="/" className="font-display text-2xl text-blood">
+            <Link to="/" className="font-display text-2xl text-blood">
               Mordvember
             </Link>
             {links.length > 0 && <NavLinks links={links} className="hidden flex-1 lg:flex" />}
@@ -45,12 +39,20 @@ export async function SiteHeader() {
               {viewer ? (
                 <>
                   <form action="/api/auth/logout" method="post">
-                    <button type="submit" className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+                    <button
+                      type="submit"
+                      className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+                    >
                       Logg ut
                     </button>
                   </form>
                   {viewer.player ? (
-                    <Link href="/profil" aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+                    <Link
+                      to="/profil"
+                      search={{}}
+                      aria-label="Gå til profil"
+                      className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60"
+                    >
                       <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
                     </Link>
                   ) : (
@@ -58,7 +60,11 @@ export async function SiteHeader() {
                   )}
                 </>
               ) : (
-                <Link href="/login" className={buttonClass({ variant: "ghost", size: "sm" })}>
+                <Link
+                  to="/login"
+                  search={{}}
+                  className={buttonClass({ variant: "ghost", size: "sm" })}
+                >
                   Logg inn
                 </Link>
               )}
@@ -67,7 +73,7 @@ export async function SiteHeader() {
           {links.length > 0 && <NavLinks links={links} className="-mx-1 pb-3 lg:hidden" />}
         </div>
       </header>
-      <PendingKillBanner className={container} />
+      <PendingKillBanner waiting={waiting} className={container} />
     </>
   );
 }

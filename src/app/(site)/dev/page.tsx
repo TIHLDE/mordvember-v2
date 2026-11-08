@@ -1,44 +1,88 @@
-import { asc, like } from "drizzle-orm";
-import { notFound, redirect } from "next/navigation";
-import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
 import { db } from "@/db";
-import { users } from "@/db/schema";
-import { safeNext } from "@/lib/redirect";
 import { onLogin } from "@/server/auth/login";
+import { asc, like } from "drizzle-orm";
+import { users } from "@/db/schema";
+import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+
+import { notFound, redirect } from "@tanstack/react-router";
+import { Button, Card, Checkbox, PageTitle } from "@/components/ui";
+
+import { safeNext } from "@/lib/redirect";
 
 const TEST_PREFIX = "test-";
 
-async function devLogin(form: FormData) {
-  "use server";
-  if (process.env.NODE_ENV !== "development") notFound();
-  const username = String(form.get("username") ?? "");
-  if (!username.startsWith(TEST_PREFIX)) notFound();
-  const user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.username, username) });
-  if (!user) notFound();
-  await onLogin({
-    username: user.username,
-    name: user.name,
-    email: user.email,
-    image: user.photonImage,
-    studyProgram: user.studyProgram,
-    studyStartYear: user.studyStartYear,
-    classYear: user.classYear,
-    isKokLeader: form.get("kok") === "on",
-    isIndexLeader: form.get("index") === "on",
+const devLoginRpc = createServerFn({ method: "POST" })
+  .validator((value: unknown) => {
+    if (!(value instanceof FormData)) throw new Error("Ugyldig skjema");
+    return value;
+  })
+  .handler(async ({ data: form }) => {
+    if (process.env.NODE_ENV !== "development") throw notFound();
+    const username = form.get("username");
+    if (typeof username !== "string") throw notFound();
+    if (!username.startsWith(TEST_PREFIX)) throw notFound();
+    const user = await db.query.users.findFirst({ where: (u, { eq }) => eq(u.username, username) });
+    if (!user) throw notFound();
+    await onLogin({
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      image: user.photonImage,
+      studyProgram: user.studyProgram,
+      studyStartYear: user.studyStartYear,
+      classYear: user.classYear,
+      isKokLeader: form.get("kok") === "on",
+      isIndexLeader: form.get("index") === "on",
+    });
+    const target = form.get("next");
+    throw redirect({ href: safeNext(typeof target === "string" ? target : "/") });
   });
-  redirect(safeNext(String(form.get("next") ?? "/")));
-}
 
-export default async function DevLoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  if (process.env.NODE_ENV !== "development") notFound();
-  const [{ next }, testUsers] = await Promise.all([
-    searchParams,
-    db.select().from(users).where(like(users.username, `${TEST_PREFIX}%`)).orderBy(asc(users.username)),
-  ]);
+const loadDevLoginPage = createServerFn({ method: "GET" })
+  .validator((value: unknown) => {
+    if (typeof value !== "string") throw new Error("Ugyldig parameter");
+    return value;
+  })
+  .handler(async ({ data }) => {
+    if (process.env.NODE_ENV !== "development") throw notFound();
+    const next = data;
+    const testUsers = await db
+      .select()
+      .from(users)
+      .where(like(users.username, `${TEST_PREFIX}%`))
+      .orderBy(asc(users.username));
+    return { next, testUsers };
+  });
+
+export const Route = createFileRoute("/(site)/dev/")({
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw notFound();
+  },
+  validateSearch: (search: Record<string, unknown>): { next?: string } => ({
+    next: typeof search.next === "string" ? search.next : undefined,
+  }),
+  loaderDeps: ({ search }) => ({ next: search.next }),
+  loader: ({ deps }) => loadDevLoginPage({ data: deps.next ?? "" }),
+  component: DevLoginPage,
+});
+
+function DevLoginPage() {
+  const { next, testUsers } = Route.useLoaderData();
+  const router = useRouter();
+  const login = useServerFn(devLoginRpc);
+  const devLogin = async (form: FormData) => {
+    await login({ data: form });
+    await router.invalidate();
+  };
   return (
     <div className="mx-auto max-w-2xl">
-      <PageTitle sub="Bare tilgjengelig i lokal utvikling. Finnes ikke i produksjonsbygget.">Testbrukere</PageTitle>
-      {!testUsers.length && <p className="text-zinc-400">Ingen testbrukere. Kjør pnpm db:seed.</p>}
+      <PageTitle sub="Bare tilgjengelig i lokal utvikling. Finnes ikke i produksjonsbygget.">
+        Testbrukere
+      </PageTitle>
+      {!testUsers.length && (
+        <p className="text-zinc-400">Ingen testbrukere. Kjør vp run db:seed.</p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         {testUsers.map((u) => (
           <Card key={u.id}>
@@ -49,8 +93,12 @@ export default async function DevLoginPage({ searchParams }: { searchParams: Pro
                 <p className="font-medium text-white">{u.name}</p>
                 <p className="text-xs text-zinc-500">{u.username}</p>
               </div>
-              <Checkbox name="kok" defaultChecked={u.username === "test-kokleder"}>Leder i KoK</Checkbox>
-              <Checkbox name="index" defaultChecked={u.username === "test-indexleder"}>Leder i Index</Checkbox>
+              <Checkbox name="kok" defaultChecked={u.username === "test-kokleder"}>
+                Leder i KoK
+              </Checkbox>
+              <Checkbox name="index" defaultChecked={u.username === "test-indexleder"}>
+                Leder i Index
+              </Checkbox>
               <Button type="submit">Logg inn som {u.name.split(" ")[0]}</Button>
             </form>
           </Card>

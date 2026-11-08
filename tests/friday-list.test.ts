@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vite-plus/test";
 import { osloTime } from "@/game/time";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -29,41 +29,70 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
   let ids: Record<"passes" | "fails" | "gone" | "exempt", string>;
 
   const notices = () => db.$count(schema.notifications);
-  const list = (week = week1) => db.select().from(schema.weeklyReviews).where(eq(schema.weeklyReviews.weekStart, week));
+  const list = (week = week1) =>
+    db.select().from(schema.weeklyReviews).where(eq(schema.weeklyReviews.weekStart, week));
 
   beforeAll(async () => {
     await migrate(drizzle(sql), { migrationsFolder: "drizzle" });
     await sql`truncate table users, seasons, job_runs restart identity cascade`;
     const users = await db
       .insert(schema.users)
-      .values(["gm", "passes", "fails", "gone", "exempt"].map((u) => ({ username: `fredag-${u}`, name: u, email: `${u}@example.test` })))
+      .values(
+        ["gm", "passes", "fails", "gone", "exempt"].map((u) => ({
+          username: `fredag-${u}`,
+          name: u,
+          email: `${u}@example.test`,
+        })),
+      )
       .returning();
     const settings = { ...defaultSettings(), defaultRules: rules };
-    [season] = await db.insert(schema.seasons).values({ name: "Fredagstest", phase: "running", startedAt, settings }).returning() as [typeof season];
+    [season] = (await db
+      .insert(schema.seasons)
+      .values({ name: "Fredagstest", phase: "running", startedAt, settings })
+      .returning()) as [typeof season];
     await db.insert(schema.staff).values({ seasonId: season.id, username: users[0]!.username });
     const players = await db
       .insert(schema.players)
-      .values(users.slice(1).map((u) => ({
-        seasonId: season.id,
-        userId: u.id,
-        name: u.name,
-        consentAt: startedAt,
-        status: u.name === "gone" ? ("eliminated" as const) : ("alive" as const),
-        requirementsFromWeek: u.name === "exempt" ? week2 : null,
-      })))
+      .values(
+        users.slice(1).map((u) => ({
+          seasonId: season.id,
+          userId: u.id,
+          name: u.name,
+          consentAt: startedAt,
+          status: u.name === "gone" ? ("eliminated" as const) : ("alive" as const),
+          requirementsFromWeek: u.name === "exempt" ? week2 : null,
+        })),
+      )
       .returning();
     ids = Object.fromEntries(players.map((p) => [p.name, p.id])) as typeof ids;
     await db.insert(schema.checkins).values([
-      { seasonId: season.id, playerId: ids.passes, checkInAt: osloTime(week1, "09:00"), checkOutAt: osloTime(week1, "12:00") },
-      { seasonId: season.id, playerId: ids.fails, checkInAt: osloTime(week1, "09:00"), checkOutAt: osloTime(week1, "12:00") },
+      {
+        seasonId: season.id,
+        playerId: ids.passes,
+        checkInAt: osloTime(week1, "09:00"),
+        checkOutAt: osloTime(week1, "12:00"),
+      },
+      {
+        seasonId: season.id,
+        playerId: ids.fails,
+        checkInAt: osloTime(week1, "09:00"),
+        checkOutAt: osloTime(week1, "12:00"),
+      },
     ]);
-    const kill = { seasonId: season.id, victimId: ids.gone, reportedBy: "killer" as const, status: "applied" as const };
+    const kill = {
+      seasonId: season.id,
+      victimId: ids.gone,
+      reportedBy: "killer" as const,
+      status: "applied" as const,
+    };
     await db.insert(schema.kills).values([
       { ...kill, killerId: ids.passes, killedAt: osloTime("2026-11-03", "12:00") },
       { ...kill, killerId: ids.fails, killedAt: osloTime(week2, "09:00") },
     ]);
     // Stricter rules from week two must not reach back to week one.
-    await db.insert(schema.weekRules).values({ seasonId: season.id, weekStart: week2, rules: { ...rules, days: 5 } });
+    await db
+      .insert(schema.weekRules)
+      .values({ seasonId: season.id, weekStart: week2, rules: { ...rules, days: 5 } });
     viewer = {
       user: users[0]!,
       isKokLeader: false,
@@ -96,8 +125,14 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
     await db.update(schema.weekRules).set({ rules: { ...rules, days: 0 } });
     try {
       const results = await weekly.evaluateSeasonWeek(season, week2, monday);
-      expect(results.find((r) => r.player.id === ids.passes)?.evaluation).toMatchObject({ kills: 1, ok: true });
-      expect(results.find((r) => r.player.id === ids.exempt)?.evaluation).toMatchObject({ kills: 0, ok: false });
+      expect(results.find((r) => r.player.id === ids.passes)?.evaluation).toMatchObject({
+        kills: 1,
+        ok: true,
+      });
+      expect(results.find((r) => r.player.id === ids.exempt)?.evaluation).toMatchObject({
+        kills: 0,
+        ok: false,
+      });
     } finally {
       await db.update(schema.weekRules).set({ rules: { ...rules, days: 5 } });
     }
@@ -107,14 +142,24 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
     const saturday = async () => {
       const [kill] = await db
         .insert(schema.kills)
-        .values({ seasonId: season.id, killerId: ids.fails, victimId: ids.gone, reportedBy: "killer", status: "applied", killedAt: osloTime("2026-11-07", "12:00") })
+        .values({
+          seasonId: season.id,
+          killerId: ids.fails,
+          victimId: ids.gone,
+          reportedBy: "killer",
+          status: "applied",
+          killedAt: osloTime("2026-11-07", "12:00"),
+        })
         .returning();
       return kill!;
     };
 
     it("teller på en liste som lages etter helga", async () => {
       const kill = await saturday();
-      expect(await weekly.buildFridayListManually(viewer, week1, monday)).toMatchObject({ claimed: true, added: 0 });
+      expect(await weekly.buildFridayListManually(viewer, week1, monday)).toMatchObject({
+        claimed: true,
+        added: 0,
+      });
       expect(await list()).toEqual([]);
       await db.delete(schema.kills).where(eq(schema.kills.id, kill.id));
     });
@@ -122,7 +167,12 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
     it("fjerner ikke en sak som allerede står på lista", async () => {
       await weekly.buildFridayListOnce(season, week1, fridayEvening);
       const kill = await saturday();
-      expect(await weekly.buildFridayListManually(viewer, week1, monday)).toEqual({ claimed: false, existed: true, added: 0, pending: 1 });
+      expect(await weekly.buildFridayListManually(viewer, week1, monday)).toEqual({
+        claimed: false,
+        existed: true,
+        added: 0,
+        pending: 1,
+      });
       const [review] = await list();
       expect(review?.playerId).toBe(ids.fails);
       expect(review?.reasons).toEqual(["Mangler 1 drap (har 0 av 1)"]);
@@ -131,18 +181,35 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
   });
 
   it("avviser uker utenfor spillet og ikke-spillmestere", async () => {
-    await expect(weekly.buildFridayListManually(viewer, "2026-11-16", monday)).rejects.toThrow("ikke startet ennå");
-    await expect(weekly.buildFridayListManually(viewer, "2026-10-26", monday)).rejects.toThrow("hadde ikke startet");
-    await expect(weekly.buildFridayListManually(viewer, "tull", monday)).rejects.toThrow("Ugyldig uke");
-    await expect(weekly.buildFridayListManually({ ...viewer, isGamemaster: false }, week1, monday)).rejects.toThrow();
-    await expect(weekly.buildFridayListManually({ ...viewer, season: { ...season, phase: "ended" } }, week1, monday)).rejects.toThrow("mens spillet pågår");
+    await expect(weekly.buildFridayListManually(viewer, "2026-11-16", monday)).rejects.toThrow(
+      "ikke startet ennå",
+    );
+    await expect(weekly.buildFridayListManually(viewer, "2026-10-26", monday)).rejects.toThrow(
+      "hadde ikke startet",
+    );
+    await expect(weekly.buildFridayListManually(viewer, "tull", monday)).rejects.toThrow(
+      "Ugyldig uke",
+    );
+    await expect(
+      weekly.buildFridayListManually({ ...viewer, isGamemaster: false }, week1, monday),
+    ).rejects.toThrow();
+    await expect(
+      weekly.buildFridayListManually(
+        { ...viewer, season: { ...season, phase: "ended" } },
+        week1,
+        monday,
+      ),
+    ).rejects.toThrow("mens spillet pågår");
     expect(await list()).toEqual([]);
   });
 
   it("en ny kjøring dupliserer ikke og rører ikke avgjorte saker", async () => {
     await weekly.buildFridayListManually(viewer, week1, monday);
     const [review] = await list();
-    await db.update(schema.weeklyReviews).set({ decision: "exception", decisionReason: "Syk" }).where(eq(schema.weeklyReviews.id, review!.id));
+    await db
+      .update(schema.weeklyReviews)
+      .set({ decision: "exception", decisionReason: "Syk" })
+      .where(eq(schema.weeklyReviews.id, review!.id));
     const again = await weekly.buildFridayListManually(viewer, week1, monday);
     expect(again).toEqual({ claimed: false, existed: true, added: 0, pending: 0 });
     const rows = await list();
@@ -175,7 +242,10 @@ describe.skipIf(!url)("fredagslista mot database", async () => {
 
   it("en liste laget før fristen stopper ikke cron, og bare cron varsler", async () => {
     const wednesday = osloTime("2026-11-04", "12:00");
-    expect(await weekly.buildFridayListManually(viewer, week1, wednesday)).toMatchObject({ claimed: false, existed: false });
+    expect(await weekly.buildFridayListManually(viewer, week1, wednesday)).toMatchObject({
+      claimed: false,
+      existed: false,
+    });
     expect(await notices()).toBe(0);
     expect(await weekly.missingFridayLists(season.id, [week1])).toEqual([week1]);
     expect(await weekly.buildFridayListOnce(season, week1, fridayEvening)).toBe(true);

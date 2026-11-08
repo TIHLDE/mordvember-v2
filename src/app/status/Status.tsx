@@ -42,7 +42,9 @@ export function Status() {
           <div className="flex-1">
             <Label>Spillere igjen</Label>
             <p className="mt-6 font-display text-[16rem] leading-none text-white tabular-nums">
-              <span key={data.alive} className="count-change">{data.alive}</span>
+              <span key={data.alive} className="count-change">
+                {data.alive}
+              </span>
             </p>
             <p className="mt-2 text-3xl text-zinc-400">av {data.players.length} påmeldte</p>
           </div>
@@ -64,19 +66,30 @@ function useDailyReload() {
     const id = setTimeout(() => setDue(true), RELOAD_MS);
     return () => clearTimeout(id);
   }, []);
-  const { data: serverUp } = useSWR(due ? "status-reload" : null, serverAnswers, { ...boardPolling(REFRESH_MS), refreshInterval: REFRESH_MS });
+  const { data: serverUp } = useSWR(due ? "status-reload" : null, serverAnswers, {
+    ...boardPolling(REFRESH_MS),
+    refreshInterval: REFRESH_MS,
+  });
   useEffect(() => {
     if (serverUp) location.reload();
   }, [serverUp]);
 }
 
 async function serverAnswers(): Promise<boolean> {
-  return (await fetch(location.href, { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(REFRESH_MS / 2) })).ok;
+  return (
+    await fetch(location.href, {
+      method: "HEAD",
+      cache: "no-store",
+      signal: AbortSignal.timeout(REFRESH_MS / 2),
+    })
+  ).ok;
 }
 
 // red-400 rather than the brand red: plain text on the dark panel needs it for WCAG AA contrast.
 function Label({ children }: { children: React.ReactNode }) {
-  return <p className="text-xl font-semibold uppercase tracking-[0.15em] text-red-400">{children}</p>;
+  return (
+    <p className="text-xl font-semibold uppercase tracking-[0.15em] text-red-400">{children}</p>
+  );
 }
 
 function Feature({ data, qrSvg, now }: { data: BoardData; qrSvg: string | null; now: number }) {
@@ -97,8 +110,11 @@ function CheckinQr({ svg }: { svg: string }) {
       <div className="appear mt-6 flex min-h-0 flex-1 flex-col items-center">
         <div className="aspect-square min-h-0 flex-1 rounded-2xl bg-white p-4 shadow-2xl">
           {/* As an image, so the SVG markup is never parsed into the page. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`} alt="QR-kode for oppmøte" className="h-full w-full" />
+          <img
+            src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`}
+            alt="QR-kode for oppmøte"
+            className="h-full w-full"
+          />
         </div>
         <p className="mt-5 text-center text-2xl text-zinc-400">Skann for å sjekke inn eller ut</p>
       </div>
@@ -114,10 +130,16 @@ function LastOut({ data, now }: { data: BoardData; now: number }) {
       {last ? (
         <div key={last.id} className="appear mt-6 flex min-h-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10">
-            <Portrait src={boardImage(API, last.id)} alt="" className="dead drain h-full w-full object-cover" />
+            <Portrait
+              src={boardImage(API, last.id)}
+              alt=""
+              className="dead drain h-full w-full object-cover"
+            />
             <BloodCross />
           </div>
-          <p className="mt-5 truncate pb-1 text-5xl leading-tight font-semibold text-white">{last.name}</p>
+          <p className="mt-5 truncate pb-1 text-5xl leading-tight font-semibold text-white">
+            {last.name}
+          </p>
           <p className="mt-2 text-2xl text-zinc-400">for {since(last.at, now)} siden</p>
         </div>
       ) : (
@@ -135,7 +157,8 @@ function PlayerStrip({ players }: { players: BoardData["players"] }) {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
-      const widthRem = el.clientWidth / parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const widthRem =
+        el.clientWidth / parseFloat(getComputedStyle(document.documentElement).fontSize);
       setPerPage(Math.max(1, Math.floor(widthRem / CARD_REM)));
     };
     measure();
@@ -160,10 +183,18 @@ function PlayerStrip({ players }: { players: BoardData["players"] }) {
           <li key={p.id} className="w-56 shrink-0 px-3">
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
               <div className="relative">
-                <Portrait src={boardImage(API, p.id)} alt="" className={`aspect-[4/3] w-full object-cover ${p.out ? "dead" : ""}`} />
+                <Portrait
+                  src={boardImage(API, p.id)}
+                  alt=""
+                  className={`aspect-[4/3] w-full object-cover ${p.out ? "dead" : ""}`}
+                />
                 {p.out && <BloodCross still />}
               </div>
-              <p className={`truncate px-4 py-3 text-xl font-medium ${p.out ? "text-zinc-600" : "text-white"}`}>{p.name}</p>
+              <p
+                className={`truncate px-4 py-3 text-xl font-medium ${p.out ? "text-zinc-600" : "text-white"}`}
+              >
+                {p.name}
+              </p>
             </div>
           </li>
         ))}

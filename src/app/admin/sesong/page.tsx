@@ -1,4 +1,9 @@
-import Link from "next/link";
+import { guard } from "@/lib/guard";
+import { hasRing } from "@/server/game";
+import { phaseLabel, rulesForWeek } from "@/server/season";
+import { createServerFn } from "@tanstack/react-start";
+import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { TimeField } from "@/components/DateTimePicker";
 import { NumberStepper } from "@/components/NumberStepper";
@@ -7,10 +12,9 @@ import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Field, PageTitle } from "@/components/ui";
 import { GLOSHAUGEN, type WeekRules } from "@/game/attendance";
 import { weekStartOf } from "@/game/time";
-import { guard } from "@/lib/guard";
+
 import type { Season } from "@/server/auth/session";
-import { hasRing } from "@/server/game";
-import { phaseLabel, rulesForWeek } from "@/server/season";
+
 import { ResetGameFields } from "./ResetGameFields";
 import {
   officeAction,
@@ -22,7 +26,29 @@ import {
   updateBasicsAction,
 } from "../actions";
 
-export const dynamic = "force-dynamic";
+type Phase = Season["phase"];
+
+const GAME_STATE: Record<Phase, string> = {
+  setup: "Ikke startet",
+  signup: "Ikke startet",
+  closed: "Ikke startet",
+  running: "Pågår",
+  ended: "Stoppet",
+};
+
+const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
+  const viewer = await guard("gamemaster");
+  const season = viewer.season;
+  const settings = season.settings;
+  const rules = await rulesForWeek(season, weekStartOf(new Date()));
+  const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
+  return { season, settings, rules, ringDrawn, phase: phaseLabel(season.phase) };
+});
+
+export const Route = createFileRoute("/admin/sesong/")({
+  loader: () => loadSeasonAdmin(),
+  component: SeasonAdmin,
+});
 
 function RuleFields({ rules }: { rules: WeekRules }) {
   // The fields keep their own state, so remount them when the saved rules change.
@@ -50,16 +76,11 @@ function RuleFields({ rules }: { rules: WeekRules }) {
   );
 }
 
-export default async function SeasonAdmin() {
-  const viewer = await guard("gamemaster");
-  const season = viewer.season;
-  const settings = season.settings;
-  const rules = await rulesForWeek(season, weekStartOf(new Date()));
-  const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
-
+function SeasonAdmin() {
+  const { season, settings, rules, ringDrawn, phase } = Route.useLoaderData();
   return (
     <div className="space-y-6">
-      <PageTitle sub={`Fase: ${phaseLabel(season.phase)}`}>{season.name}</PageTitle>
+      <PageTitle sub={`Fase: ${phase}`}>{season.name}</PageTitle>
 
       <Card title="Styring">
         <div className="divide-y divide-white/5">
@@ -106,11 +127,11 @@ export default async function SeasonAdmin() {
               uke
             </p>
             <p>
-              <strong className="text-zinc-200">Drap:</strong> Hvor mange bekreftede drap spillerne må ha totalt i
-              spillet. Drap fra tidligere uker teller også når kravet økes. Dette kommer i tillegg
-              til å være på skolen. Velger du 0, trenger de ikke å gjøre noen drap. Den automatiske
-              fredagslista lages fredag kl. 16.00, så drap etter det teller bare på lister som lages
-              senere. Saker som allerede står på lista, endres ikke.
+              <strong className="text-zinc-200">Drap:</strong> Hvor mange bekreftede drap spillerne
+              må ha totalt i spillet. Drap fra tidligere uker teller også når kravet økes. Dette
+              kommer i tillegg til å være på skolen. Velger du 0, trenger de ikke å gjøre noen drap.
+              Den automatiske fredagslista lages fredag kl. 16.00, så drap etter det teller bare på
+              lister som lages senere. Saker som allerede står på lista, endres ikke.
             </p>
             <p>
               <strong className="text-zinc-200">Fra og Til:</strong> Bare tiden mellom disse
@@ -163,8 +184,6 @@ export default async function SeasonAdmin() {
   );
 }
 
-type Phase = Season["phase"];
-
 function SignupControl({ phase }: { phase: Phase }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
@@ -181,14 +200,6 @@ function SignupControl({ phase }: { phase: Phase }) {
     </div>
   );
 }
-
-const GAME_STATE: Record<Phase, string> = {
-  setup: "Ikke startet",
-  signup: "Ikke startet",
-  closed: "Ikke startet",
-  running: "Pågår",
-  ended: "Stoppet",
-};
 
 function GameControl({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) {
   return (
@@ -219,7 +230,7 @@ function GameAction({ phase, ringDrawn }: { phase: Phase; ringDrawn: boolean }) 
       ) : (
         <p className="text-sm text-zinc-400">
           Trekk sirkelen under{" "}
-          <Link href="/admin/sirkel" className="underline">
+          <Link to="/admin/sirkel" className="underline">
             Sirkel
           </Link>{" "}
           før du starter.

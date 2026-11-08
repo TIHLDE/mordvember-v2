@@ -3,8 +3,18 @@ export const BIO_FIELDS = [
   { key: "eyes", label: "Øyenfarge", placeholder: "Blå" },
   { key: "height", label: "Høyde", placeholder: "180 cm" },
   { key: "hair", label: "Hårfarge", placeholder: "Brun, kort" },
-  { key: "study", label: "Studie", placeholder: "Velg studie", options: ["Data", "DigFor", "DigSec", "DigTrans"] },
-  { key: "year", label: "Klassetrinn", placeholder: "Velg klassetrinn", options: ["1. klasse", "2. klasse", "3. klasse", "4. klasse", "5. klasse"] },
+  {
+    key: "study",
+    label: "Studie",
+    placeholder: "Velg studie",
+    options: ["Data", "DigFor", "DigSec", "DigTrans"],
+  },
+  {
+    key: "year",
+    label: "Klassetrinn",
+    placeholder: "Velg klassetrinn",
+    options: ["1. klasse", "2. klasse", "3. klasse", "4. klasse", "5. klasse"],
+  },
 ] as const;
 
 // Felt med faste valg godtar bare disse verdiene, så et forfalsket skjema ikke kan lagre fritekst.
@@ -39,14 +49,17 @@ export function parseBio(bio: string | null | undefined): BioValues {
 
 // Studieprogrammene slik Photon skriver dem. Gamle studier (Drift, Informasjonsbehandling) har ikke noe valg og fylles ikke inn.
 const PHOTON_STUDIES: Record<string, string> = {
-  "dataingeniør": "Data",
+  dataingeniør: "Data",
   "digital forretningsutvikling": "DigFor",
   "digital infrastruktur og cybersikkerhet": "DigSec",
   "digital transformasjon": "DigTrans",
 };
 
 // Forhåndsutfyller skjemaet ved påmelding med studie og klassetrinn fra Photon.
-export function bioFromPhoton(user: { studyProgram: string | null; classYear: number | null }): BioValues {
+export function bioFromPhoton(user: {
+  studyProgram: string | null;
+  classYear: number | null;
+}): BioValues {
   const study = PHOTON_STUDIES[(user.studyProgram ?? "").replace(/\s+/g, " ").trim().toLowerCase()];
   return { study, year: user.classYear ? `${user.classYear}. klasse` : undefined };
 }

@@ -1,13 +1,17 @@
-import { redirect } from "next/navigation";
+import { requireLogin } from "@/lib/route-auth";
+import { getNavigation } from "@/server/navigation";
+import { requireViewer } from "@/server/auth/session";
+import { createServerFn } from "@tanstack/react-start";
+
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { redirect } from "@tanstack/react-router";
 import { AdminShell, type AdminNavGroup } from "@/components/AdminShell";
 import { PendingKillBanner } from "@/components/PendingKillBanner";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const viewer = await getViewer();
-  if (!viewer) return redirectToLogin();
-  if (!viewer.isGamemaster && !viewer.canManageRoles) redirect("/");
+const loadAdminLayout = createServerFn({ method: "GET" }).handler(async () => {
+  const viewer = await requireViewer();
+  const { waiting } = await getNavigation();
+  if (!viewer.isGamemaster && !viewer.canManageRoles) throw redirect({ to: "/" });
   const groups: AdminNavGroup[] = [
     { links: [{ href: "/admin", label: "Oversikt", show: true, exact: true }] },
     {
@@ -34,14 +38,29 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ]
     .map((g) => ({ ...g, links: g.links.filter((l) => l.show).map(({ show: _, ...l }) => l) }))
     .filter((g) => g.links.length > 0);
+  return { viewer, waiting, groups };
+});
 
+export const Route = createFileRoute("/admin")({
+  beforeLoad: requireLogin,
+  loader: () => loadAdminLayout(),
+  component: AdminLayout,
+});
+
+function AdminLayout() {
+  const path = useLocation({ select: (location) => location.pathname });
+  const { viewer, waiting, groups } = Route.useLoaderData();
   return (
     <AdminShell
       groups={groups}
-      banner={<PendingKillBanner className="mx-auto w-full max-w-7xl px-4 md:px-8" />}
+      banner={
+        <PendingKillBanner waiting={waiting} className="mx-auto w-full max-w-7xl px-4 md:px-8" />
+      }
       user={{ name: viewer.user.name, image: viewer.user.photonImage, hasProfile: !!viewer.player }}
     >
-      {children}
+      <div key={path} className="page-enter">
+        <Outlet />
+      </div>
     </AdminShell>
   );
 }

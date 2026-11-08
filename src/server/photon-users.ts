@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { PhotonForbiddenError, type PhotonUser, searchUsers } from "./auth/photon";
 import { AccessError, currentPhotonToken, type Viewer } from "./auth/session";
 import { GameError } from "./game";
@@ -13,7 +13,8 @@ export async function searchPhotonUsers(viewer: Viewer, query: string): Promise<
   try {
     return await searchUsers(token, q, groupSlug);
   } catch (error) {
-    if (error instanceof PhotonForbiddenError) throw new GameError("Photon lar deg ikke søke etter brukere. Skriv inn brukernavnet.");
+    if (error instanceof PhotonForbiddenError)
+      throw new GameError("Photon lar deg ikke søke etter brukere. Skriv inn brukernavnet.");
     throw error;
   }
 }

@@ -1,10 +1,16 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { and, asc, desc, eq, gte, isNull, lt, lte } from "drizzle-orm";
 import { db, type Tx } from "@/db";
 import { checkins, players, seasons } from "@/db/schema";
-import { type AttendanceSession, closeTimeFor, dayResults, distanceMeters, GLOSHAUGEN } from "@/game/attendance";
+import {
+  type AttendanceSession,
+  closeTimeFor,
+  dayResults,
+  distanceMeters,
+  GLOSHAUGEN,
+} from "@/game/attendance";
 import { qrCode, verifyQrCode } from "@/game/qr";
 import { addDays, osloDate, osloTime, weekStartOf } from "@/game/time";
 import { audit } from "./audit";
@@ -23,7 +29,12 @@ function boardQr(seasonId: string, now = Date.now()) {
 }
 
 export function boardQrSvg(seasonId: string, now = Date.now()) {
-  return QRCode.toString(boardQr(seasonId, now).url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } });
+  return QRCode.toString(boardQr(seasonId, now).url, {
+    type: "svg",
+    margin: 1,
+    errorCorrectionLevel: "M",
+    color: { dark: "#000000", light: "#ffffff" },
+  });
 }
 
 export function verifyScan(seasonId: string, code: string, now = Date.now()) {
@@ -39,7 +50,11 @@ export function pendingScanValue(seasonId: string, now = Date.now()) {
   return `${value}.${sign(value)}`;
 }
 
-export function readPendingScan(cookie: string | undefined, seasonId: string, now = Date.now()): boolean {
+export function readPendingScan(
+  cookie: string | undefined,
+  seasonId: string,
+  now = Date.now(),
+): boolean {
   if (!cookie) return false;
   const parts = cookie.split(".");
   if (parts.length !== 3) return false;
@@ -60,7 +75,11 @@ const toSession = (c: typeof checkins.$inferSelect): AttendanceSession => ({
 
 // A forgotten session ends when its day's window did and is flagged, so it gives no credit unless a gamemaster approves it.
 // Only an open session is closed, so a check-out that got in first keeps its time.
-async function closeForgotten(tx: Tx | typeof db, checkin: { id: string; checkInAt: Date }, close: Date) {
+async function closeForgotten(
+  tx: Tx | typeof db,
+  checkin: { id: string; checkInAt: Date },
+  close: Date,
+) {
   await tx
     .update(checkins)
     .set({ checkOutAt: close < checkin.checkInAt ? checkin.checkInAt : close, autoClosed: true })
@@ -74,8 +93,10 @@ export async function toggleCheckin(
   now = new Date(),
 ): Promise<{ kind: "in" | "out" | "forgotten"; at: Date }> {
   if (!viewer.season || !viewer.player) throw new AccessError("Du er ikke påmeldt");
-  if (viewer.season.phase !== "running") throw new GameError("Oppmøte registreres bare mens spillet pågår");
-  if (viewer.player.status !== "alive") throw new GameError("Du er ute av spillet og trenger ikke sjekke inn");
+  if (viewer.season.phase !== "running")
+    throw new GameError("Oppmøte registreres bare mens spillet pågår");
+  if (viewer.player.status !== "alive")
+    throw new GameError("Du er ute av spillet og trenger ikke sjekke inn");
   const today = osloDate(now);
   const season = viewer.season;
   const seasonId = season.id;
@@ -87,7 +108,13 @@ export async function toggleCheckin(
     const [open] = await tx
       .select()
       .from(checkins)
-      .where(and(eq(checkins.playerId, playerId), isNull(checkins.checkOutAt), eq(checkins.autoClosed, false)))
+      .where(
+        and(
+          eq(checkins.playerId, playerId),
+          isNull(checkins.checkOutAt),
+          eq(checkins.autoClosed, false),
+        ),
+      )
       .orderBy(desc(checkins.checkInAt))
       .limit(1);
     if (open && osloDate(open.checkInAt) === today) {
@@ -96,16 +123,27 @@ export async function toggleCheckin(
       return { kind: "out" as const, at: now };
     }
     // Left open from an earlier day because cron hasn't reached it yet.
-    if (open) await closeForgotten(tx, open, closeTimeFor(open.checkInAt, await rulesForWeek(season, weekStartOf(open.checkInAt), tx)));
+    if (open)
+      await closeForgotten(
+        tx,
+        open,
+        closeTimeFor(open.checkInAt, await rulesForWeek(season, weekStartOf(open.checkInAt), tx)),
+      );
     if (intent === "out") {
       if (open) return { kind: "forgotten" as const, at: now };
       throw new GameError("Du er ikke sjekket inn");
     }
     // The QR code is public on the status screen, so the position is what proves the player is there.
-    if (!position) throw new GameError("Fant ikke posisjonen din. Tillat posisjon i nettleseren og last inn siden på nytt.");
+    if (!position)
+      throw new GameError(
+        "Fant ikke posisjonen din. Tillat posisjon i nettleseren og last inn siden på nytt.",
+      );
     const distance = Math.round(distanceMeters(position, office));
-    if (distance > office.radiusMeters) throw new GameError(`Du må være på Gløshaugen for å sjekke inn. Du er ${distance} m unna.`);
-    await tx.insert(checkins).values({ seasonId, playerId, checkInAt: now, flags: [], distanceMeters: distance });
+    if (distance > office.radiusMeters)
+      throw new GameError(`Du må være på Gløshaugen for å sjekke inn. Du er ${distance} m unna.`);
+    await tx
+      .insert(checkins)
+      .values({ seasonId, playerId, checkInAt: now, flags: [], distanceMeters: distance });
     return { kind: "in" as const, at: now };
   });
 }
@@ -145,7 +183,16 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
   const days = dayResults(rows.map(toSession), weekStart, rules, now);
   const todays = rows.filter((r) => osloDate(r.checkInAt) === today);
   const open = todays.find((r) => !r.checkOutAt && !r.autoClosed) ?? null;
-  return { weekStart, rules, days, todays, open, stale, required: rules.days, counted: days.filter((d) => d.counts).length };
+  return {
+    weekStart,
+    rules,
+    days,
+    todays,
+    open,
+    stale,
+    required: rules.days,
+    counted: days.filter((d) => d.counts).length,
+  };
 }
 
 // A session forgotten on an earlier day stays open until cron reaches it, but says nothing about today.
@@ -192,7 +239,10 @@ export async function closeForgottenSessions(now = new Date()) {
   };
   await Promise.all(
     open.map(async ({ checkin, season }) => {
-      const close = closeTimeFor(checkin.checkInAt, await rulesFor(season, weekStartOf(checkin.checkInAt)));
+      const close = closeTimeFor(
+        checkin.checkInAt,
+        await rulesFor(season, weekStartOf(checkin.checkInAt)),
+      );
       if (close > now) return;
       await closeForgotten(db, checkin, close);
     }),
@@ -235,19 +285,40 @@ type Edit =
 export async function editCheckin(viewer: Viewer, checkinId: string, edit: Edit) {
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   const set: Partial<typeof checkins.$inferInsert> = { editedBy: viewer.user.id };
-  if (edit.kind === "approve") Object.assign(set, { approved: true, rejected: false, flagsReviewed: true });
-  if (edit.kind === "reject") Object.assign(set, { rejected: true, approved: false, flagsReviewed: true });
+  if (edit.kind === "approve")
+    Object.assign(set, { approved: true, rejected: false, flagsReviewed: true });
+  if (edit.kind === "reject")
+    Object.assign(set, { rejected: true, approved: false, flagsReviewed: true });
   if (edit.kind === "restore") Object.assign(set, { rejected: false, approved: false });
   if (edit.kind === "reviewed") Object.assign(set, { flagsReviewed: true });
   if (edit.kind === "times") {
-    if (edit.checkOutAt && edit.checkOutAt <= edit.checkInAt) throw new GameError("Utsjekk må være etter innsjekk");
-    Object.assign(set, { checkInAt: edit.checkInAt, checkOutAt: edit.checkOutAt, approved: true, autoClosed: false });
+    if (edit.checkOutAt && edit.checkOutAt <= edit.checkInAt)
+      throw new GameError("Utsjekk må være etter innsjekk");
+    Object.assign(set, {
+      checkInAt: edit.checkInAt,
+      checkOutAt: edit.checkOutAt,
+      approved: true,
+      autoClosed: false,
+    });
   }
-  await db.update(checkins).set(set).where(and(eq(checkins.id, checkinId), eq(checkins.seasonId, viewer.season.id)));
-  await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: `oppmote.${edit.kind}`, details: { checkinId } });
+  await db
+    .update(checkins)
+    .set(set)
+    .where(and(eq(checkins.id, checkinId), eq(checkins.seasonId, viewer.season.id)));
+  await audit(db, {
+    seasonId: viewer.season.id,
+    actorUserId: viewer.user.id,
+    action: `oppmote.${edit.kind}`,
+    details: { checkinId },
+  });
 }
 
-export async function addManualCheckin(viewer: Viewer, playerId: string, checkInAt: Date, checkOutAt: Date) {
+export async function addManualCheckin(
+  viewer: Viewer,
+  playerId: string,
+  checkInAt: Date,
+  checkOutAt: Date,
+) {
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (checkOutAt <= checkInAt) throw new GameError("Utsjekk må være etter innsjekk");
   const player = await db.query.players.findFirst({
@@ -264,5 +335,10 @@ export async function addManualCheckin(viewer: Viewer, playerId: string, checkIn
     flagsReviewed: true,
     editedBy: viewer.user.id,
   });
-  await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: "oppmote.manuell", details: { playerId } });
+  await audit(db, {
+    seasonId: viewer.season.id,
+    actorUserId: viewer.user.id,
+    action: "oppmote.manuell",
+    details: { playerId },
+  });
 }

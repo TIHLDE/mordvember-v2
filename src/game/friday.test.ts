@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { type AttendanceSession, evaluateWeek, type WeekRules } from "./attendance";
 import { earlierGameWeeks, fridayListDueAt, listWeekError } from "./friday";
 import { osloTime } from "./time";
 
-const RULES: WeekRules = { days: 1, hours: 2, windowStart: "08:00", windowEnd: "16:00", killsRequired: 1 };
+const RULES: WeekRules = {
+  days: 1,
+  hours: 2,
+  windowStart: "08:00",
+  windowEnd: "16:00",
+  killsRequired: 1,
+};
 const start = osloTime("2026-11-02", "09:00");
 const week1 = "2026-11-02";
 const week2 = "2026-11-09";
@@ -31,11 +37,21 @@ describe("uka som velges", () => {
   });
 
   it("avviser uker før spillet startet", () => {
-    expect(listWeekError("2026-10-26", start, tuesdayWeek2)).toBe("Spillet hadde ikke startet den uka");
+    expect(listWeekError("2026-10-26", start, tuesdayWeek2)).toBe(
+      "Spillet hadde ikke startet den uka",
+    );
   });
 
   it("avviser alt som ikke er en mandag", () => {
-    for (const week of ["", "forrige", "2026-11-03", "2026-02-30", "2026-13-02", "2026-11-02T00:00", "2026-11-02' or 1=1"]) {
+    for (const week of [
+      "",
+      "forrige",
+      "2026-11-03",
+      "2026-02-30",
+      "2026-13-02",
+      "2026-11-02T00:00",
+      "2026-11-02' or 1=1",
+    ]) {
       expect(listWeekError(week, start, tuesdayWeek2)).toBe("Ugyldig uke");
     }
   });
@@ -63,7 +79,14 @@ describe("vurdering av en tidligere uke", () => {
     ...over,
   });
   const evaluate = (sessions: AttendanceSession[], now: Date) =>
-    evaluateWeek({ weekStart: week1, requirementsFromWeek: null, sessions, killTimes: [osloTime("2026-11-04", "12:00")], rules: RULES, now });
+    evaluateWeek({
+      weekStart: week1,
+      requirementsFromWeek: null,
+      sessions,
+      killTimes: [osloTime("2026-11-04", "12:00")],
+      rules: RULES,
+      now,
+    });
 
   it("gir samme svar uansett når lista lages", () => {
     const sessions = [session({})];

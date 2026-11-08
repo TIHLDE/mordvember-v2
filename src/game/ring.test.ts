@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   applyKill,
   changedTargets,
@@ -231,7 +231,10 @@ describe("helt spill med blandede hendelser", () => {
         } else if (roll < 0.75 && ring.length > 3) {
           const run = 1 + Math.floor(rng() * Math.min(3, ring.length - 2));
           const from = Math.floor(rng() * ring.length);
-          const out = Array.from({ length: run }, (_, i) => ring[(from + i) % ring.length] as string);
+          const out = Array.from(
+            { length: run },
+            (_, i) => ring[(from + i) % ring.length] as string,
+          );
           ring = removePlayers(ring, out);
           out.forEach((id) => alive.delete(id));
         } else if (roll < 0.85) {

@@ -5,7 +5,8 @@ import * as schema from "../src/db/schema";
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL mangler");
-if (process.env.NODE_ENV === "production" || process.env.VERCEL) throw new Error("Testdata skal aldri inn i produksjon");
+if (process.env.NODE_ENV === "production" || process.env.VERCEL)
+  throw new Error("Testdata skal aldri inn i produksjon");
 // Seed tømmer hele databasen, så den nektes mot alt annet enn en lokal maskin.
 const host = new URL(url).hostname;
 if (!["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
@@ -16,10 +17,38 @@ const client = postgres(url, { max: 1, onnotice: () => undefined });
 const db = drizzle(client, { schema });
 
 const CODENAMES = [
-  "Alfa", "Bravo", "Charlie", "Delta", "Ekko", "Foxtrot", "Golf", "Hotell", "India", "Juliett", "Kilo", "Lima",
-  "Mike", "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "Xray",
+  "Alfa",
+  "Bravo",
+  "Charlie",
+  "Delta",
+  "Ekko",
+  "Foxtrot",
+  "Golf",
+  "Hotell",
+  "India",
+  "Juliett",
+  "Kilo",
+  "Lima",
+  "Mike",
+  "November",
+  "Oscar",
+  "Papa",
+  "Quebec",
+  "Romeo",
+  "Sierra",
+  "Tango",
+  "Uniform",
+  "Victor",
+  "Whiskey",
+  "Xray",
 ];
-const STUDIES = ["Dataingeniør", "Digital forretningsutvikling", "Digital infrastruktur og cybersikkerhet", "Digital transformasjon", "Informasjonsbehandling"];
+const STUDIES = [
+  "Dataingeniør",
+  "Digital forretningsutvikling",
+  "Digital infrastruktur og cybersikkerhet",
+  "Digital transformasjon",
+  "Informasjonsbehandling",
+];
 
 const count = Number(process.env.SEED_PLAYERS ?? 24);
 
@@ -44,7 +73,13 @@ const portrait = (i: number) => `https://i.pravatar.cc/400?img=${(i % PORTRAITS)
 
 const users = await db
   .insert(schema.users)
-  .values([...staffUsers, ...playerUsers].map((u, i) => ({ ...u, email: `${u.username}@example.test`, photonImage: portrait(i) })))
+  .values(
+    [...staffUsers, ...playerUsers].map((u, i) => ({
+      ...u,
+      email: `${u.username}@example.test`,
+      photonImage: portrait(i),
+    })),
+  )
   .returning();
 
 const [season] = await db
@@ -58,7 +93,9 @@ await db.insert(schema.staff).values([
   { seasonId: season.id, username: "test-spillmester" },
 ]);
 
-const signed = users.filter((u) => u.username !== "test-medlem" && !staffUsers.some((s) => s.username === u.username)).slice(0, Math.max(0, count - 1));
+const signed = users
+  .filter((u) => u.username !== "test-medlem" && !staffUsers.some((s) => s.username === u.username))
+  .slice(0, Math.max(0, count - 1));
 await db.insert(schema.players).values(
   signed.map((u) => ({
     seasonId: season.id,
@@ -70,5 +107,7 @@ await db.insert(schema.players).values(
   })),
 );
 
-console.log(`Testdata: ${users.length} brukere, ${signed.length} påmeldte. Én testdeltaker (${playerUsers.at(-1)?.username}) er ikke påmeldt ennå.`);
+console.log(
+  `Testdata: ${users.length} brukere, ${signed.length} påmeldte. Én testdeltaker (${playerUsers.at(-1)?.username}) er ikke påmeldt ennå.`,
+);
 await client.end();

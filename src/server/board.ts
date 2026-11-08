@@ -1,4 +1,4 @@
-import "server-only";
+import "@tanstack/react-start/server-only";
 import { and, desc, eq, isNotNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { players } from "@/db/schema";
@@ -11,7 +11,13 @@ export async function boardData(season: Season) {
     db
       .select({ id: players.id, name: players.name, at: players.eliminatedAt })
       .from(players)
-      .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.eliminatedAt)))
+      .where(
+        and(
+          eq(players.seasonId, season.id),
+          ne(players.status, "alive"),
+          isNotNull(players.eliminatedAt),
+        ),
+      )
       .orderBy(desc(players.eliminatedAt))
       .limit(1),
   ]);

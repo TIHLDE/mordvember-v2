@@ -1,20 +1,38 @@
-import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
-import { ActionForm } from "@/components/ActionForm";
-import { inputClass } from "@/components/styles";
-import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { db } from "@/db";
 import { players } from "@/db/schema";
-import { BIO_FIELDS, parseBio } from "@/game/bio";
 import { guard } from "@/lib/guard";
 import { usersWithoutPlayer } from "@/server/admin";
 import { checkedInPlayers } from "@/server/attendance";
+import { createServerFn } from "@tanstack/react-start";
+import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+
+import { ActionForm } from "@/components/ActionForm";
+import { inputClass } from "@/components/styles";
+import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
+
+import { BIO_FIELDS, parseBio } from "@/game/bio";
+
 import { addPlayerAction } from "../actions";
 import { imageStatus, STATUS } from "./status";
 
-export const dynamic = "force-dynamic";
+type PlayerRow = {
+  id: string;
+  name: string;
+  status: keyof typeof STATUS;
+  killCount: number;
+  studyProgram: string | null;
+  studyStartYear: number | null;
+  imageKey: string | null;
+  imageApprovedAt: Date | null;
+  imageRejectedReason: string | null;
+  imageDeleted: boolean;
+  bio: string | null;
+  checkedIn: boolean | null;
+};
 
-export default async function PlayersAdmin() {
+const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
   const viewer = await guard("gamemaster");
   const running = viewer.season.phase === "running";
   const [list, present] = await Promise.all([
@@ -37,16 +55,30 @@ export default async function PlayersAdmin() {
       .orderBy(asc(players.name)),
     running ? checkedInPlayers(viewer.season.id) : new Set<string>(),
   ]);
-  // Only players still in a running game have anywhere to check in.
-  const rows = list.map((p) => ({ ...p, checkedIn: running && p.status === "alive" ? present.has(p.id) : null }));
+  const rows = list.map((p) => ({
+    ...p,
+    checkedIn: running && p.status === "alive" ? present.has(p.id) : null,
+  }));
   const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
   const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
   const waiting = pending.length;
   const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
   const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
+  return { viewer, rows, pending, rest, waiting, noBio, candidates };
+});
+
+export const Route = createFileRoute("/admin/deltakere/")({
+  loader: () => loadPlayersAdmin(),
+  component: PlayersAdmin,
+});
+
+function PlayersAdmin() {
+  const { viewer, rows, pending, rest, waiting, noBio, candidates } = Route.useLoaderData();
   return (
     <div className="space-y-6">
-      <PageTitle sub={`${rows.length} påmeldt${waiting ? ` · ${waiting} bilder venter på godkjenning` : ""}${noBio ? ` · ${noBio} mangler utseende` : ""}. Trykk på en deltaker for å se bildet og gjøre endringer.`}>
+      <PageTitle
+        sub={`${rows.length} påmeldt${waiting ? ` · ${waiting} bilder venter på godkjenning` : ""}${noBio ? ` · ${noBio} mangler utseende` : ""}. Trykk på en deltaker for å se bildet og gjøre endringer.`}
+      >
         Deltakere
       </PageTitle>
       {pending.length > 0 && (
@@ -61,10 +93,16 @@ export default async function PlayersAdmin() {
       {viewer.isGamemaster && (
         <Card title="Legg til deltaker">
           <p className="mb-4 text-sm text-zinc-400">
-            Brukeren må ha logget inn i appen én gang. Under spillet legges nye deltakere til som ute, og du setter dem inn i sirkelen med nåde.
+            Brukeren må ha logget inn i appen én gang. Under spillet legges nye deltakere til som
+            ute, og du setter dem inn i sirkelen med nåde.
           </p>
           <ActionForm action={addPlayerAction} className="flex flex-wrap gap-2">
-            <select name="userId" required aria-label="Bruker" className={`${inputClass} min-w-0 flex-1`}>
+            <select
+              name="userId"
+              required
+              aria-label="Bruker"
+              className={`${inputClass} min-w-0 flex-1`}
+            >
               {candidates.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name} ({u.username})
@@ -79,21 +117,6 @@ export default async function PlayersAdmin() {
   );
 }
 
-type PlayerRow = {
-  id: string;
-  name: string;
-  status: keyof typeof STATUS;
-  killCount: number;
-  studyProgram: string | null;
-  studyStartYear: number | null;
-  imageKey: string | null;
-  imageApprovedAt: Date | null;
-  imageRejectedReason: string | null;
-  imageDeleted: boolean;
-  bio: string | null;
-  checkedIn: boolean | null;
-};
-
 function bioFilled(bio: string | null) {
   return Object.values(parseBio(bio)).filter(Boolean).length;
 }
@@ -107,12 +130,12 @@ function PlayerList({ rows }: { rows: PlayerRow[] }) {
         return (
           <li key={p.id}>
             <Link
-              href={`/admin/deltakere/${p.id}`}
+              to="/admin/deltakere/$id"
+              params={{ id: p.id }}
               className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-white/[0.04]"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`/api/bilde/${p.id}?v=${p.imageKey ?? "standard"}`}
+                src={`/api/bilde/${p.id}?v=${p.imageDeleted || p.imageRejectedReason ? "hidden" : (p.imageKey ?? "standard")}`}
                 alt=""
                 loading="lazy"
                 className="size-10 shrink-0 rounded-full object-cover ring-1 ring-white/10"
@@ -121,20 +144,31 @@ function PlayerList({ rows }: { rows: PlayerRow[] }) {
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-white">{p.name}</span>
                   <Badge tone={STATUS[p.status][1]}>{STATUS[p.status][0]}</Badge>
-                  {p.checkedIn !== null && <Badge tone={p.checkedIn ? "green" : "zinc"}>{p.checkedIn ? "Sjekket inn" : "Ikke sjekket inn"}</Badge>}
-                  {image && image.tone !== "green" && <Badge tone={image.tone}>{image.label}</Badge>}
+                  {p.checkedIn !== null && (
+                    <Badge tone={p.checkedIn ? "green" : "zinc"}>
+                      {p.checkedIn ? "Sjekket inn" : "Ikke sjekket inn"}
+                    </Badge>
+                  )}
+                  {image && image.tone !== "green" && (
+                    <Badge tone={image.tone}>{image.label}</Badge>
+                  )}
                   {filled === 0 ? (
                     <Badge tone="amber">Utseende mangler</Badge>
                   ) : filled < BIO_FIELDS.length ? (
-                    <Badge>Utseende {filled}/{BIO_FIELDS.length}</Badge>
+                    <Badge>
+                      Utseende {filled}/{BIO_FIELDS.length}
+                    </Badge>
                   ) : null}
                 </p>
                 <p className="mt-0.5 truncate text-zinc-500">
                   {p.studyProgram ?? "Studie mangler"}
-                  {p.studyStartYear ? ` · ${p.studyStartYear}` : ""} · <span className="tabular-nums">{p.killCount}</span> drap
+                  {p.studyStartYear ? ` · ${p.studyStartYear}` : ""} ·{" "}
+                  <span className="tabular-nums">{p.killCount}</span> drap
                 </p>
               </div>
-              <span aria-hidden className="text-zinc-600">›</span>
+              <span aria-hidden className="text-zinc-600">
+                ›
+              </span>
             </Link>
           </li>
         );
