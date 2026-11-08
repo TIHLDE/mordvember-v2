@@ -16,7 +16,7 @@ Application migration stages 0–10 are implemented. Next packages/configuration
 
 No active `next/*` imports, `use server` directives, async route components, or ignored Next route exports remain in `src`. There were no dynamic metadata, static params, robots/sitemap, next/font, next/image, next/script, next/dynamic or TanStack Query integrations to replace. SWR remains in place. Private environment names are unchanged.
 
-Server actions preserve authorization/domain validation, validate FormData and file sizes, and validate check-in intent/coordinates. Successful ActionForm submissions invalidate router data. Email delivery is awaited because Next's `after()` no longer runs. Server imports use Start's import-protection marker. Audit/event JSON is serialized explicitly; Start handles dates in loader results. Target identity is fetched only on explicit reveal, not in loader data.
+Server actions preserve authorization/domain validation, validate FormData and file sizes, and validate check-in intent/coordinates. Successful ActionForm submissions invalidate router data. Email delivery uses Nitro's request `waitUntil` to run after the mutation response; cron drains the durable outbox when the runtime lacks background-work support. Server imports use Start's import-protection marker. Audit/event JSON is serialized explicitly; Start handles dates in loader results. Target identity is fetched only on explicit reveal, not in loader data.
 
 Security headers cover application responses and Nitro static assets. Application responses default to `no-store`; endpoints with explicit cache headers retain them. Action requests retain the 6 MB body limit, including chunked bodies. Tailwind uses `@tailwindcss/vite`; the PostCSS configuration and direct PostCSS dependencies have been removed.
 
@@ -57,7 +57,7 @@ Started Docker and migrated/seeded a disposable Postgres container on port 55439
 - Fixed two browser-discovered issues: server-function redirects thrown from React form actions crashed the route, and switching development users left shared navigation data stale. Form actions now use Start's `useServerFn`; development login also invalidates router data.
 - `vp check` and `vp build` passed after the fixes. With a separate disposable `TEST_DATABASE_URL`, all 157 tests passed across 16 files, including the 34 previously skipped database tests.
 
-This covers the listed flows, not every mutation or failure branch. Real Photon OAuth, external email delivery, Vercel scheduling, Blob uploads, and physical-device QR/geolocation remain unverified. The earlier unavailable-database note describes the initial migration checks; a disposable database was available for this browser pass. Production unknown routes currently show the default English `Not Found` page. Start also logs a warning that its CSRF middleware has not been configured; this pass did not change request-security policy.
+This covers the listed flows, not every mutation or failure branch. Real Photon OAuth, external email delivery, Vercel scheduling, Blob uploads, and physical-device QR/geolocation remain unverified. The earlier unavailable-database note describes the initial migration checks; a disposable database was available for this browser pass. Production unknown routes currently show the default English `Not Found` page. The subsequent cross-review added Start CSRF middleware for server functions.
 
 ## Local upload verification (2026-11-08)
 
@@ -72,3 +72,16 @@ Used the T3 Code browser with a fresh disposable Postgres database and the devel
 - For the deletion check, set the disposable test participant to eliminated directly in the fixture database, then deleted the image through the browser. The file was removed, `image_key` cleared, `image_deleted` set, and the placeholder displayed.
 
 `vp check` passed; `vp test` passed 123 tests with the 34 database tests skipped in this run. This verifies local filesystem storage; it does not verify the remote Vercel Blob service.
+
+## Cross-review fixes
+
+Verified and fixed the four findings from the first Astra round:
+
+- Server functions use Start's CSRF middleware, including rejection of cross-origin URL-encoded forms. HTTP auth/QR routes retain their existing behavior.
+- The dashboard RPC independently rejects ordinary members and queries/returns moderation counts only for gamemasters. Role managers retain participant totals.
+- Successful check-in/out invalidates router data; the short-lived result cookie now uses `/` so client RPC loader requests can read it and render the full result/session screen.
+- Successful mutations register email delivery with the request's `waitUntil` instead of awaiting the shared backlog. Runtimes without that capability leave the durable outbox for scheduled delivery. The local Nitro runtime delivered queued emails in the background during the walkthrough.
+
+Regression coverage checks dashboard RPC access, nonblocking email delivery, cross-origin rejection, request-size limits, and the session details appearing after check-in. All validation uses local services and disposable databases.
+
+Validation after the first review fixes: `vp check`, local build/smoke, Fallow, and all 161 tests (including database tests) passed. The extended local Playwright walkthrough passed attendance/session refresh, game start, disputes, undo, mercy, disqualification, weekly review, questions, image rejection, and 19 further kills through the winner screens. It then timed out because the reset confirmation button remained disabled; reset and the final cron step were not validated by that run. The next review round includes this unresolved failure.

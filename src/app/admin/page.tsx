@@ -5,6 +5,7 @@ import { phaseLabel } from "@/server/season";
 import { pendingReviewCount } from "@/server/weekly";
 import { requireViewer } from "@/server/auth/session";
 import { createServerFn } from "@tanstack/react-start";
+import { notFound } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Link } from "@tanstack/react-router";
@@ -21,38 +22,45 @@ import { createSeasonAction } from "./actions";
 
 const loadAdminHome = createServerFn({ method: "GET" }).handler(async () => {
   const viewer = await requireViewer();
+  if (!viewer.isGamemaster && !viewer.canManageRoles) throw notFound();
   const season = viewer.season;
   if (!season) return { viewer, summary: null };
-  const [total, alive, openCases, overdue, reviews, unanswered, flagged] = await Promise.all([
+  const [total, alive] = await Promise.all([
     db.$count(players, eq(players.seasonId, season.id)),
     db.$count(players, and(eq(players.seasonId, season.id), eq(players.status, "alive"))),
-    db.$count(kills, and(eq(kills.seasonId, season.id), eq(kills.status, "escalated"))),
-    db.$count(
-      kills,
-      and(
-        eq(kills.seasonId, season.id),
-        eq(kills.status, "pending"),
-        lte(kills.reportedAt, msAgo(CONFIRM_TIMEOUT_MS)),
-      ),
-    ),
-    pendingReviewCount(season.id),
-    db.$count(questions, and(eq(questions.seasonId, season.id), isNull(questions.answer))),
-    db.$count(
-      checkins,
-      and(
-        eq(checkins.seasonId, season.id),
-        eq(checkins.flagsReviewed, false),
-        eq(checkins.rejected, false),
-        or(eq(checkins.autoClosed, true), sql`${checkins.flags} <> '[]'::jsonb`),
-      ),
-    ),
   ]);
-  const items = [
-    { label: "Drapssaker til avgjørelse", value: openCases + overdue, href: "/admin/drap" },
-    { label: "Fredagslista, ikke avgjort", value: reviews, href: "/admin/fredag" },
-    { label: "Ubesvarte spørsmål", value: unanswered, href: "/admin/sporsmal" },
-    { label: "Merkede innsjekker", value: flagged, href: "/admin/oppmote" },
-  ];
+  const [openCases, overdue, reviews, unanswered, flagged] = viewer.isGamemaster
+    ? await Promise.all([
+        db.$count(kills, and(eq(kills.seasonId, season.id), eq(kills.status, "escalated"))),
+        db.$count(
+          kills,
+          and(
+            eq(kills.seasonId, season.id),
+            eq(kills.status, "pending"),
+            lte(kills.reportedAt, msAgo(CONFIRM_TIMEOUT_MS)),
+          ),
+        ),
+        pendingReviewCount(season.id),
+        db.$count(questions, and(eq(questions.seasonId, season.id), isNull(questions.answer))),
+        db.$count(
+          checkins,
+          and(
+            eq(checkins.seasonId, season.id),
+            eq(checkins.flagsReviewed, false),
+            eq(checkins.rejected, false),
+            or(eq(checkins.autoClosed, true), sql`${checkins.flags} <> '[]'::jsonb`),
+          ),
+        ),
+      ])
+    : [0, 0, 0, 0, 0];
+  const items = viewer.isGamemaster
+    ? [
+        { label: "Drapssaker til avgjørelse", value: openCases + overdue, href: "/admin/drap" },
+        { label: "Fredagslista, ikke avgjort", value: reviews, href: "/admin/fredag" },
+        { label: "Ubesvarte spørsmål", value: unanswered, href: "/admin/sporsmal" },
+        { label: "Merkede innsjekker", value: flagged, href: "/admin/oppmote" },
+      ]
+    : [];
   return { viewer, summary: { season, total, alive, items, phase: phaseLabel(season.phase) } };
 });
 

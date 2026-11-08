@@ -242,6 +242,11 @@ async function main() {
   await scanPage.waitForURL(`${BASE}/sjekkinn`);
   await scanPage.getByRole("button", { name: "Sjekk inn" }).click();
   await scanPage.locator("text=Du er sjekket inn").waitFor({ timeout: 20000 });
+  await scanPage.getByText("Du sjekket inn kl.", { exact: false }).waitFor();
+  assert(
+    !(await scanPage.getByText("Du er ikke sjekket inn.", { exact: true }).count()),
+    "innsjekk oppdaterer hele siden",
+  );
   log("QR-lenke åpnet uten innlogging, innsjekk fullført etter innlogging");
   await scanCtx.close();
   const w2 = Math.floor(Date.now() / 3_600_000);

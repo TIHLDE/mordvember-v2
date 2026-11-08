@@ -1,4 +1,5 @@
 import "@tanstack/react-start/server-only";
+import { getRequest } from "@tanstack/react-start/server";
 import { BIO_FIELDS, composeBio } from "@/game/bio";
 import { RingError } from "@/game/ring";
 import { osloTime } from "@/game/time";
@@ -14,7 +15,13 @@ export async function run(
 ): Promise<ActionState> {
   try {
     const result = await fn();
-    await deliverPendingEmails().catch((e) => console.error("E-postutsending feilet", e));
+    const request = getRequest();
+    // Nitro keeps supported runtimes alive after the response. Cron retries the outbox otherwise.
+    if ("waitUntil" in request && typeof request.waitUntil === "function") {
+      request.waitUntil(
+        deliverPendingEmails().catch((e) => console.error("E-postutsending feilet", e)),
+      );
+    }
     return { ok: result ?? okMessage, nonce: crypto.randomUUID() };
   } catch (error) {
     if (error instanceof GameError || error instanceof AccessError || error instanceof RingError) {

@@ -1,5 +1,5 @@
 import { setResponseHeader } from "@tanstack/react-start/server";
-import { createMiddleware, createStart } from "@tanstack/react-start";
+import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
 
 const MAX_ACTION_BYTES = 6 * 1024 * 1024;
 
@@ -38,5 +38,9 @@ const responsePolicy = createMiddleware().server(async ({ next }) => {
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [responsePolicy, actionBodyLimit],
+  requestMiddleware: [
+    responsePolicy,
+    createCsrfMiddleware({ filter: ({ handlerType }) => handlerType === "serverFn" }),
+    actionBodyLimit,
+  ],
 }));

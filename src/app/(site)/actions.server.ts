@@ -140,7 +140,7 @@ export async function completeScanAction(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/sjekkinn",
+      path: "/",
       maxAge: 60,
     });
     return { in: "Du er sjekket inn", out: "Du er sjekket ut", forgotten: "Økta er lukket" }[

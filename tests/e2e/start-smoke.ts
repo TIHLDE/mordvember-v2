@@ -37,6 +37,18 @@ const code = files
 const match = code.match(/id: "([a-f0-9]+)",\s+name: "signUpActionRpc"/);
 assert.ok(match, "Build the application before running the smoke check");
 const id = match[1];
+for (const origin of [
+  "https://attacker.example",
+  new URL(base).origin.replace("localhost", "evil.localhost"),
+]) {
+  const response = await fetch(base + "/_serverFn/" + id, {
+    method: "POST",
+    headers: { origin, "content-type": "application/x-www-form-urlencoded" },
+    body: "consent=on",
+  });
+  assert.equal(response.status, 403, "Cross-origin form mutations must be rejected");
+}
+console.log("cross-origin server-function requests rejected");
 for (const chunked of [false, true]) {
   const payload = "x".repeat(6 * 1024 * 1024 + 1);
   const body = chunked
@@ -51,7 +63,7 @@ for (const chunked of [false, true]) {
     method: "POST",
     body,
     duplex: "half",
-    headers: { "content-type": "text/plain", "x-tsr-serverFn": "true" },
+    headers: { "content-type": "text/plain", "x-tsr-serverFn": "true", origin: base },
   };
   const response = await fetch(base + "/_serverFn/" + id, options);
   assert.equal(response.status, 413, await response.text());

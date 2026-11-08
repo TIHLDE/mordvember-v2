@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button, Notice } from "@/components/ui";
 import type { ActionState } from "@/lib/action";
@@ -27,6 +28,7 @@ export function CheckinButton({
   // Only set when staying longer would still make the day count.
   countsAt?: { remainingMs: number; label: string; hours: string };
 }) {
+  const router = useRouter();
   const [state, setState] = useState<ActionState>(null);
   const [busy, setBusy] = useState(false);
   const [warned, setWarned] = useState(false);
@@ -42,7 +44,9 @@ export function CheckinButton({
     try {
       // Only checking in needs the position.
       const pos = intent === "in" ? await currentPosition() : null;
-      setState(await complete(intent, pos));
+      const result = await complete(intent, pos);
+      setState(result);
+      if (result?.ok) await router.invalidate();
     } catch {
       setState({ error: "Fikk ikke kontakt med serveren. Prøv igjen." });
     } finally {
