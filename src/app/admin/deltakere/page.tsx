@@ -1,49 +1,22 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import { asc, eq } from "drizzle-orm";
+
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { players } from "@/db/schema";
+
+
 import { BIO_FIELDS, parseBio } from "@/game/bio";
-import { guard } from "@/lib/guard";
-import { usersWithoutPlayer } from "@/server/admin";
-import { checkedInPlayers } from "@/server/attendance";
+
+
+
 import { addPlayerAction } from "../actions";
 import { imageStatus, STATUS } from "./status";
 export const dynamic = "force-dynamic";
-async function PlayersAdmin() {
-    const viewer = await guard("gamemaster");
-    const running = viewer.season.phase === "running";
-    const [list, present] = await Promise.all([
-        db
-            .select({
-            id: players.id,
-            name: players.name,
-            status: players.status,
-            killCount: players.killCount,
-            studyProgram: players.studyProgram,
-            studyStartYear: players.studyStartYear,
-            imageKey: players.imageKey,
-            imageApprovedAt: players.imageApprovedAt,
-            imageRejectedReason: players.imageRejectedReason,
-            imageDeleted: players.imageDeleted,
-            bio: players.bio,
-        })
-            .from(players)
-            .where(eq(players.seasonId, viewer.season.id))
-            .orderBy(asc(players.name)),
-        running ? checkedInPlayers(viewer.season.id) : new Set<string>(),
-    ]);
-    // Only players still in a running game have anywhere to check in.
-    const rows = list.map((p) => ({ ...p, checkedIn: running && p.status === "alive" ? present.has(p.id) : null }));
-    const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
-    const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
-    const waiting = pending.length;
-    const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
-    const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
-    return (<div className="space-y-6">
+function PlayersAdmin() {
+ const { viewer, running, list, present, rows, pending, rest, waiting, noBio, candidates } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub={`${rows.length} påmeldt${waiting ? ` · ${waiting} bilder venter på godkjenning` : ""}${noBio ? ` · ${noBio} mangler utseende` : ""}. Trykk på en deltaker for å se bildet og gjøre endringer.`}>
         Deltakere
       </PageTitle>
@@ -117,4 +90,42 @@ function PlayerList({ rows }: {
     </ul>);
 }
 
-export const Route = createFileRoute("/admin/deltakere/")({ component: PlayersAdmin });
+export const Route = createFileRoute("/admin/deltakere/")({ loader: () => loadPlayersAdmin(), component: PlayersAdmin });
+
+const loadPlayersAdmin = createServerFn({ method: "GET" }).handler(async () => {
+const { asc, eq } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { players } = await import("@/db/schema");
+const { guard } = await import("@/lib/guard");
+const { usersWithoutPlayer } = await import("@/server/admin");
+const { checkedInPlayers } = await import("@/server/attendance");
+const viewer = await guard("gamemaster");
+const running = viewer.season.phase === "running";
+const [list, present] = await Promise.all([
+        db
+            .select({
+            id: players.id,
+            name: players.name,
+            status: players.status,
+            killCount: players.killCount,
+            studyProgram: players.studyProgram,
+            studyStartYear: players.studyStartYear,
+            imageKey: players.imageKey,
+            imageApprovedAt: players.imageApprovedAt,
+            imageRejectedReason: players.imageRejectedReason,
+            imageDeleted: players.imageDeleted,
+            bio: players.bio,
+        })
+            .from(players)
+            .where(eq(players.seasonId, viewer.season.id))
+            .orderBy(asc(players.name)),
+        running ? checkedInPlayers(viewer.season.id) : new Set<string>(),
+    ]);
+const rows = list.map((p) => ({ ...p, checkedIn: running && p.status === "alive" ? present.has(p.id) : null }));
+const pending = rows.filter((p) => imageStatus(p)?.tone === "amber");
+const rest = rows.filter((p) => imageStatus(p)?.tone !== "amber");
+const waiting = pending.length;
+const noBio = rows.filter((p) => bioFilled(p.bio) === 0).length;
+const candidates = viewer.isGamemaster ? await usersWithoutPlayer(viewer.season.id) : [];
+return { viewer, running, list, present, rows, pending, rest, waiting, noBio, candidates };
+});

@@ -1,39 +1,22 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+
 import { alias } from "drizzle-orm/pg-core";
-import { redirect } from "next/navigation";
+import { redirect } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { Badge, Button, Card, Empty, Field, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { kills, players } from "@/db/schema";
+
+
 import { formatOslo } from "@/game/time";
 import { osloInputValue } from "@/lib/action";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+
+
 import { confirmKillAction, disputeKillAction, reportKillAction } from "../actions";
 export const dynamic = "force-dynamic";
-const killer = alias(players, "killer");
-const victim = alias(players, "victim");
-async function KillsPage() {
-    const viewer = await getViewer();
-    if (!viewer)
-        return redirectToLogin();
-    if (!viewer.player || !viewer.season)
-        redirect("/");
-    const me = viewer.player.id;
-    const mine = await db
-        .select({ kill: kills, killerName: killer.name, victimName: victim.name })
-        .from(kills)
-        .innerJoin(killer, eq(killer.id, kills.killerId))
-        .innerJoin(victim, eq(victim.id, kills.victimId))
-        .where(and(eq(kills.seasonId, viewer.season.id), or(eq(kills.killerId, me), eq(kills.victimId, me)), inArray(kills.status, ["pending", "escalated", "applied", "rejected"])))
-        .orderBy(desc(kills.reportedAt));
-    const open = mine.filter((m) => m.kill.status === "pending" || m.kill.status === "escalated");
-    const history = mine.filter((m) => m.kill.status === "applied" || m.kill.status === "rejected");
-    const running = viewer.season.phase === "running" && viewer.player.status === "alive";
-    const now = osloInputValue(new Date());
-    return (<div className="space-y-6">
+function KillsPage() {
+ const { viewer, me, mine, open, history, running, now } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub="Ingenting endres før drapet er bekreftet av begge eller godkjent av spillmesterne.">Drap</PageTitle>
 
       {open.length > 0 && (<Card title="Åpne saker">
@@ -85,9 +68,38 @@ async function KillsPage() {
                 {kill.status === "rejected" && <Badge>Avvist</Badge>}
               </li>))}
           </ul>)}
-        <p className="mt-4 border-t border-white/5 pt-4 text-sm text-zinc-400">Drap totalt: <span className="text-white tabular-nums">{viewer.player.killCount}</span></p>
+        <p className="mt-4 border-t border-white/5 pt-4 text-sm text-zinc-400">Drap totalt: <span className="text-white tabular-nums">{viewer.player!.killCount}</span></p>
       </Card>
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/drap/")({ component: KillsPage });
+export const Route = createFileRoute("/(site)/drap/")({ loader: () => loadKillsPage(), component: KillsPage });
+
+const loadKillsPage = createServerFn({ method: "GET" }).handler(async () => {
+const { and, desc, eq, inArray, or } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { kills, players } = await import("@/db/schema");
+const killer = alias(players, "killer");
+const victim = alias(players, "victim");
+
+const { redirectToLogin } = await import("@/lib/guard");
+const { getViewer } = await import("@/server/auth/session");
+const viewer = await getViewer();
+if (!viewer)
+        return redirectToLogin();
+if (!viewer.player || !viewer.season)
+        throw redirect({ to: "/" });
+const me = viewer.player!.id;
+const mine = await db
+        .select({ kill: kills, killerName: killer.name, victimName: victim.name })
+        .from(kills)
+        .innerJoin(killer, eq(killer.id, kills.killerId))
+        .innerJoin(victim, eq(victim.id, kills.victimId))
+        .where(and(eq(kills.seasonId, viewer.season.id), or(eq(kills.killerId, me), eq(kills.victimId, me)), inArray(kills.status, ["pending", "escalated", "applied", "rejected"])))
+        .orderBy(desc(kills.reportedAt));
+const open = mine.filter((m) => m.kill.status === "pending" || m.kill.status === "escalated");
+const history = mine.filter((m) => m.kill.status === "applied" || m.kill.status === "rejected");
+const running = viewer.season.phase === "running" && viewer.player!.status === "alive";
+const now = osloInputValue(new Date());
+return { viewer, me, mine, open, history, running, now };
+});

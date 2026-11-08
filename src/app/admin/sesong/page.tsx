@@ -1,3 +1,4 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
@@ -8,10 +9,10 @@ import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Field, PageTitle } from "@/components/ui";
 import { GLOSHAUGEN, type WeekRules } from "@/game/attendance";
 import { weekStartOf } from "@/game/time";
-import { guard } from "@/lib/guard";
+
 import type { Season } from "@/server/auth/session";
-import { hasRing } from "@/server/game";
-import { phaseLabel, rulesForWeek } from "@/server/season";
+
+
 import { ResetGameFields } from "./ResetGameFields";
 import { officeAction, resetGameAction, rulesAction, resumeGameAction, setPhaseAction, startGameAction, updateBasicsAction, } from "../actions";
 export const dynamic = "force-dynamic";
@@ -37,14 +38,10 @@ function RuleFields({ rules }: {
       </Field>
     </div>);
 }
-async function SeasonAdmin() {
-    const viewer = await guard("gamemaster");
-    const season = viewer.season;
-    const settings = season.settings;
-    const rules = await rulesForWeek(season, weekStartOf(new Date()));
-    const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
-    return (<div className="space-y-6">
-      <PageTitle sub={`Fase: ${phaseLabel(season.phase)}`}>{season.name}</PageTitle>
+function SeasonAdmin() {
+ const { viewer, season, settings, rules, ringDrawn, phase } = Route.useLoaderData();
+return (<div className="space-y-6">
+      <PageTitle sub={`Fase: ${phase}`}>{season.name}</PageTitle>
 
       <Card title="Styring">
         <div className="divide-y divide-white/5">
@@ -208,4 +205,16 @@ function PhaseButton({ phase, label }: {
     </ActionForm>);
 }
 
-export const Route = createFileRoute("/admin/sesong/")({ component: SeasonAdmin });
+export const Route = createFileRoute("/admin/sesong/")({ loader: () => loadSeasonAdmin(), component: SeasonAdmin });
+
+const loadSeasonAdmin = createServerFn({ method: "GET" }).handler(async () => {
+const { guard } = await import("@/lib/guard");
+const { hasRing } = await import("@/server/game");
+const { phaseLabel, rulesForWeek } = await import("@/server/season");
+const viewer = await guard("gamemaster");
+const season = viewer.season;
+const settings = season.settings;
+const rules = await rulesForWeek(season, weekStartOf(new Date()));
+const ringDrawn = season.phase === "closed" && (await hasRing(season.id));
+return { viewer, season, settings, rules, ringDrawn, phase: phaseLabel(season.phase) };
+});

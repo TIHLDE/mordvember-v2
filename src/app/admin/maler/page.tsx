@@ -1,15 +1,15 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
-import { guard } from "@/lib/guard";
-import { templates } from "@/server/admin";
+
+
 import { saveTemplateAction } from "../actions";
 export const dynamic = "force-dynamic";
-async function TemplatesPage() {
-    await guard("gamemaster");
-    const rows = await templates();
-    return (<div className="space-y-6">
+function TemplatesPage() {
+ const { rows } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub="Felter i doble klammer, for eksempel {{grunn}}, fylles inn automatisk. Tom linje gir nytt avsnitt.">E-postmaler</PageTitle>
       {rows.map((t) => (<Card key={t.key} title={t.label}>
           {t.custom && <p className="-mt-2 mb-4"><Badge tone="amber">Endret</Badge></p>}
@@ -26,4 +26,12 @@ async function TemplatesPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/maler/")({ component: TemplatesPage });
+export const Route = createFileRoute("/admin/maler/")({ loader: () => loadTemplatesPage(), component: TemplatesPage });
+
+const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => {
+const { guard } = await import("@/lib/guard");
+const { templates } = await import("@/server/admin");
+await guard("gamemaster");
+const rows = await templates();
+return { rows };
+});

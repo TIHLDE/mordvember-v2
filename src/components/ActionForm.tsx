@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "@tanstack/react-router";
 import { useActionState, useState } from "react";
 import type { ActionState } from "@/lib/action";
 import { IMAGE_TOO_LARGE, MAX_IMAGE_BYTES } from "@/lib/upload";
@@ -17,9 +18,11 @@ export function ActionForm({
   confirm?: string;
   resetOnSuccess?: boolean;
 }) {
+  const router = useRouter();
   const [tooLarge, setTooLarge] = useState(false);
   const [state, formAction, pending] = useActionState(async (prev: ActionState, form: FormData) => {
     const result = await action(prev, form);
+    if (result?.ok) await router.invalidate();
     return result;
   }, null);
   return (

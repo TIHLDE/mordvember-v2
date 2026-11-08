@@ -1,26 +1,17 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputBase, inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, Notice, PageTitle } from "@/components/ui";
 import { earlierGameWeeks } from "@/game/friday";
 import { formatOsloDate, weekStartOf } from "@/game/time";
-import { guard } from "@/lib/guard";
-import { evaluateSeasonWeek, missingFridayLists, reviews } from "@/server/weekly";
+
+
 import { buildFridayListAction, decideReviewAction, disqualifyAction } from "../actions";
 export const dynamic = "force-dynamic";
-async function FridayList() {
-    const viewer = await guard("gamemaster");
-    const all = await reviews(viewer.season.id);
-    const pending = all.filter((r) => r.review.decision === "pending");
-    const decided = all.filter((r) => r.review.decision !== "pending");
-    const running = viewer.season.phase === "running";
-    const now = new Date();
-    const thisWeek = weekStartOf(now);
-    const current = running ? await evaluateSeasonWeek(viewer.season, thisWeek, now) : [];
-    const atRisk = current.filter((c) => !c.evaluation.ok);
-    const earlier = running && viewer.season.startedAt ? earlierGameWeeks(viewer.season.startedAt, now) : [];
-    const missing = await missingFridayLists(viewer.season.id, earlier);
-    return (<div className="space-y-6">
+function FridayList() {
+ const { viewer, all, pending, decided, running, now, thisWeek, current, atRisk, earlier, missing } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub="Lista lages automatisk fredag kl. 16.00. Ingen ryker automatisk.">Fredagslista</PageTitle>
       <Card title="Til gjennomgang">
         {pending.length === 0 ? (<Empty>Ingen saker.</Empty>) : (<ul className="divide-y divide-white/5">
@@ -87,4 +78,21 @@ async function FridayList() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/fredag/")({ component: FridayList });
+export const Route = createFileRoute("/admin/fredag/")({ loader: () => loadFridayList(), component: FridayList });
+
+const loadFridayList = createServerFn({ method: "GET" }).handler(async () => {
+const { guard } = await import("@/lib/guard");
+const { evaluateSeasonWeek, missingFridayLists, reviews } = await import("@/server/weekly");
+const viewer = await guard("gamemaster");
+const all = await reviews(viewer.season.id);
+const pending = all.filter((r) => r.review.decision === "pending");
+const decided = all.filter((r) => r.review.decision !== "pending");
+const running = viewer.season.phase === "running";
+const now = new Date();
+const thisWeek = weekStartOf(now);
+const current = running ? await evaluateSeasonWeek(viewer.season, thisWeek, now) : [];
+const atRisk = current.filter((c) => !c.evaluation.ok);
+const earlier = running && viewer.season.startedAt ? earlierGameWeeks(viewer.season.startedAt, now) : [];
+const missing = await missingFridayLists(viewer.season.id, earlier);
+return { viewer, all, pending, decided, running, now, thisWeek, current, atRisk, earlier, missing };
+});

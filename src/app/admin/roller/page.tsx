@@ -1,15 +1,15 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { Button, Card, Empty, PageTitle } from "@/components/ui";
 import { UserSearch } from "@/components/UserSearch";
-import { guard } from "@/lib/guard";
-import { listStaff } from "@/server/admin";
+
+
 import { addStaffAction, removeStaffAction } from "../actions";
 export const dynamic = "force-dynamic";
-async function RolesAdmin() {
-    const viewer = await guard("roles");
-    const rows = await listStaff(viewer.season.id);
-    return (<div className="space-y-6">
+function RolesAdmin() {
+ const { viewer, rows } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub="Spillmestere styrer spillet og ser sirkelen.">Spillmestere</PageTitle>
       <Card title="Legg til">
         <p className="mb-4 text-sm text-zinc-400">Søk blant brukerne i Photon. Personen trenger ikke å ha logget inn i Mordvember først.</p>
@@ -34,4 +34,12 @@ async function RolesAdmin() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/roller/")({ component: RolesAdmin });
+export const Route = createFileRoute("/admin/roller/")({ loader: () => loadRolesAdmin(), component: RolesAdmin });
+
+const loadRolesAdmin = createServerFn({ method: "GET" }).handler(async () => {
+const { guard } = await import("@/lib/guard");
+const { listStaff } = await import("@/server/admin");
+const viewer = await guard("roles");
+const rows = await listStaff(viewer.season.id);
+return { viewer, rows };
+});

@@ -1,235 +1,73 @@
-"use server";
+import { createServerFn } from "@tanstack/react-start";
+import type { ActionState } from "@/lib/action";
+import { MAX_IMAGE_BYTES } from "@/lib/upload";
 
-import { redirect } from "next/navigation";
-import type { WeekRules } from "@/game/attendance";
-import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
-import {
-  addStaff,
-  createSeason,
-  endEmergencyAccess,
-  removeStaff,
-  resetGame,
-  resetTemplate,
-  saveTemplate,
-  setPhase,
-  setRules,
-  startEmergencyAccess,
-  updateSeasonBasics,
-  updateSettings,
-} from "@/server/admin";
-import { addManualCheckin, editCheckin } from "@/server/attendance";
-import { requireGamemaster, requireSeason, requireViewer } from "@/server/auth/session";
-import { DEFAULT_TEMPLATES, type TemplateKey } from "@/server/email";
-import {
-  addPlayerAsGamemaster,
-  approveKill,
-  disqualify,
-  GameError,
-  generateCircle,
-  grantMercy,
-  moveInCircle,
-  rejectKill,
-  removePlayerAsGamemaster,
-  resumeGame,
-  startGame,
-  undoKillAsGamemaster,
-} from "@/server/game";
-import { approveImage, rejectImage, setBioAsGamemaster, setImageAsGamemaster } from "@/server/players";
-import { answerQuestion, deleteQuestion } from "@/server/questions";
-import type { Phase } from "@/server/season";
-import { buildFridayListManually, decideReview } from "@/server/weekly";
-
-const num = (form: FormData, key: string, min: number, max: number) => {
-  const value = Number(text(form, key));
-  if (!Number.isFinite(value) || value < min || value > max) throw new GameError(`Ugyldig verdi for ${key}`);
+function validateForm(value: unknown): FormData {
+  if (!(value instanceof FormData)) throw new Error("Ugyldig skjema");
+  for (const item of value.values()) if (item instanceof File && item.size > MAX_IMAGE_BYTES) throw new Error("Bildet er for stort");
   return value;
-};
-
-const time = (form: FormData, key: string) => {
-  const value = text(form, key);
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new GameError("Tid må skrives som TT:MM");
-  return value;
-};
-
-function rulesFrom(form: FormData): WeekRules {
-  const rules = {
-    days: num(form, "days", 0, 5),
-    hours: num(form, "hours", 0, 8),
-    windowStart: time(form, "windowStart"),
-    windowEnd: time(form, "windowEnd"),
-    killsRequired: num(form, "killsRequired", 0, 20),
-  };
-  if (rules.windowStart >= rules.windowEnd) throw new GameError("Tidsvinduet må starte før det slutter");
-  return rules;
 }
-
-export async function approveKillAction(_: ActionState, form: FormData) {
-  return run(async () => approveKill(await requireGamemaster(), text(form, "killId"), text(form, "note")), "Drapet er godkjent");
-}
-
-export async function rejectKillAction(_: ActionState, form: FormData) {
-  return run(async () => rejectKill(await requireGamemaster(), text(form, "killId"), text(form, "note")), "Drapet er avvist");
-}
-
-export async function undoKillAction(_: ActionState, form: FormData) {
-  return run(async () => undoKillAsGamemaster(await requireGamemaster(), text(form, "killId")), "Drapet er angret");
-}
-
-export async function decideReviewAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const decision = text(form, "decision") === "disqualified" ? "disqualified" : "exception";
-    await decideReview(await requireGamemaster(), text(form, "reviewId"), decision, text(form, "reason"));
-  }, "Avgjort");
-}
-
-export async function buildFridayListAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const { existed, added, pending } = await buildFridayListManually(await requireGamemaster(), text(form, "week"));
-    return existed ? `Lista fantes allerede: ${added} nye til gjennomgang. Eksisterende saker er ikke endret.` : `Lista er laget: ${pending} til gjennomgang`;
-  });
-}
-
-export async function disqualifyAction(_: ActionState, form: FormData) {
-  return run(async () => disqualify(await requireGamemaster(), [text(form, "playerId")], text(form, "reason")), "Deltakeren er diskvalifisert");
-}
-
-export async function editCheckinAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const viewer = await requireGamemaster();
-    const kind = text(form, "kind");
-    if (kind === "times") {
-      const out = text(form, "checkOutAt");
-      await editCheckin(viewer, text(form, "checkinId"), {
-        kind: "times",
-        checkInAt: osloInput(text(form, "checkInAt")),
-        checkOutAt: out ? osloInput(out) : null,
-      });
-    } else if (kind === "approve" || kind === "reject" || kind === "restore" || kind === "reviewed") {
-      await editCheckin(viewer, text(form, "checkinId"), { kind });
-    } else throw new GameError("Ukjent handling");
-  });
-}
-
-export async function addCheckinAction(_: ActionState, form: FormData) {
-  return run(async () =>
-    addManualCheckin(await requireGamemaster(), text(form, "playerId"), osloInput(text(form, "checkInAt")), osloInput(text(form, "checkOutAt"))),
-  );
-}
-
-export async function rejectImageAction(_: ActionState, form: FormData) {
-  return run(async () => rejectImage(await requireGamemaster(), text(form, "playerId"), text(form, "message")), "Bildet er avvist");
-}
-
-export async function approveImageAction(_: ActionState, form: FormData) {
-  return run(async () => approveImage(await requireGamemaster(), text(form, "playerId")), "Godkjent");
-}
-
-export async function playerImageAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const image = form.get("image");
-    if (!(image instanceof File) || image.size === 0) throw new GameError("Velg et bilde");
-    await setImageAsGamemaster(await requireGamemaster(), text(form, "playerId"), image);
-    return "Bildet er lastet opp og godkjent";
-  });
-}
-
-export async function playerBioAction(_: ActionState, form: FormData) {
-  return run(async () => setBioAsGamemaster(await requireGamemaster(), text(form, "playerId"), bioFrom(form)), "Utseendet er lagret");
-}
-
-export async function answerAction(_: ActionState, form: FormData) {
-  return run(async () => answerQuestion(await requireGamemaster(), text(form, "id"), text(form, "answer")), "Svaret er sendt");
-}
-
-export async function deleteQuestionAction(_: ActionState, form: FormData) {
-  return run(async () => deleteQuestion(await requireGamemaster(), text(form, "id")), "Spørsmålet er slettet");
-}
-
-export async function generateCircleAction(_: ActionState) {
-  return run(async () => generateCircle(await requireGamemaster()), "Sirkelen er trukket");
-}
-
-export async function startGameAction(_: ActionState) {
-  return run(async () => startGame(await requireGamemaster()), "Spillet er i gang. E-post om første offer er sendt.");
-}
-
-export async function resumeGameAction(_: ActionState) {
-  return run(async () => resumeGame(await requireGamemaster()), "Spillet er i gang igjen");
-}
-
-export async function moveAction(_: ActionState, form: FormData) {
-  return run(async () => moveInCircle(await requireGamemaster(), text(form, "playerId"), text(form, "afterId")), "Flyttet");
-}
-
-export async function mercyAction(_: ActionState, form: FormData) {
-  return run(async () => grantMercy(await requireGamemaster(), text(form, "playerId"), text(form, "afterId") || null), "Nåde gitt");
-}
-
-export async function addPlayerAction(_: ActionState, form: FormData) {
-  return run(async () => addPlayerAsGamemaster(await requireGamemaster(), text(form, "userId")), "Deltakeren er lagt til");
-}
-
-export async function removePlayerAction(_: ActionState, form: FormData) {
-  const result = await run(async () => removePlayerAsGamemaster(await requireGamemaster(), text(form, "playerId")), "Deltakeren er fjernet");
-  if (result?.ok) redirect("/admin/deltakere");
-  return result;
-}
-
-export async function createSeasonAction(_: ActionState, form: FormData) {
-  return run(async () => createSeason(await requireViewer(), text(form, "name")), "Spillet er opprettet");
-}
-
-export async function setPhaseAction(_: ActionState, form: FormData) {
-  return run(async () => setPhase(await requireGamemaster(), text(form, "phase") as Phase), "Fasen er endret");
-}
-
-export async function updateBasicsAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await updateSeasonBasics(await requireGamemaster(), { name: text(form, "name"), rulesText: text(form, "rulesText") });
-  });
-}
-
-export async function rulesAction(_: ActionState, form: FormData) {
-  return run(async () => setRules(await requireGamemaster(), rulesFrom(form)), "Reglene er lagret");
-}
-
-export async function officeAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const viewer = await requireGamemaster();
-    if (!text(form, "lat") && !text(form, "lng")) return updateSettings(viewer, { office: null });
-    await updateSettings(viewer, {
-      office: { lat: num(form, "lat", -90, 90), lng: num(form, "lng", -180, 180), radiusMeters: num(form, "radius", 20, 5000) },
-    });
-  });
-}
-
-export async function resetGameAction(_: ActionState, form: FormData) {
-  return run(async () => resetGame(await requireGamemaster(), text(form, "confirm")), "Spillet er nullstilt");
-}
-
-export async function addStaffAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    await addStaff(await requireSeason(), text(form, "username"));
-  }, "Lagt til");
-}
-
-export async function removeStaffAction(_: ActionState, form: FormData) {
-  return run(async () => removeStaff(await requireSeason(), text(form, "staffId")), "Fjernet");
-}
-
-export async function emergencyStartAction(_: ActionState, form: FormData) {
-  return run(async () => startEmergencyAccess(await requireSeason(), text(form, "reason")), "Nødtilgang er på i én time");
-}
-
-export async function emergencyEndAction(_: ActionState) {
-  return run(async () => endEmergencyAccess(await requireViewer()), "Nødtilgang er slått av");
-}
-
-export async function saveTemplateAction(_: ActionState, form: FormData) {
-  return run(async () => {
-    const key = text(form, "key");
-    if (!(key in DEFAULT_TEMPLATES)) throw new GameError("Ukjent mal");
-    if (form.get("restoreDefault") === "on") return resetTemplate(await requireGamemaster(), key as TemplateKey);
-    await saveTemplate(await requireGamemaster(), key as TemplateKey, text(form, "subject"), text(form, "body"));
-  });
-}
+const approveKillActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).approveKillAction(null, data));
+export function approveKillAction(_state: ActionState, form: FormData) { return approveKillActionRpc({ data: form }); }
+const rejectKillActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).rejectKillAction(null, data));
+export function rejectKillAction(_state: ActionState, form: FormData) { return rejectKillActionRpc({ data: form }); }
+const undoKillActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).undoKillAction(null, data));
+export function undoKillAction(_state: ActionState, form: FormData) { return undoKillActionRpc({ data: form }); }
+const decideReviewActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).decideReviewAction(null, data));
+export function decideReviewAction(_state: ActionState, form: FormData) { return decideReviewActionRpc({ data: form }); }
+const buildFridayListActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).buildFridayListAction(null, data));
+export function buildFridayListAction(_state: ActionState, form: FormData) { return buildFridayListActionRpc({ data: form }); }
+const disqualifyActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).disqualifyAction(null, data));
+export function disqualifyAction(_state: ActionState, form: FormData) { return disqualifyActionRpc({ data: form }); }
+const editCheckinActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).editCheckinAction(null, data));
+export function editCheckinAction(_state: ActionState, form: FormData) { return editCheckinActionRpc({ data: form }); }
+const addCheckinActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).addCheckinAction(null, data));
+export function addCheckinAction(_state: ActionState, form: FormData) { return addCheckinActionRpc({ data: form }); }
+const rejectImageActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).rejectImageAction(null, data));
+export function rejectImageAction(_state: ActionState, form: FormData) { return rejectImageActionRpc({ data: form }); }
+const approveImageActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).approveImageAction(null, data));
+export function approveImageAction(_state: ActionState, form: FormData) { return approveImageActionRpc({ data: form }); }
+const playerImageActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).playerImageAction(null, data));
+export function playerImageAction(_state: ActionState, form: FormData) { return playerImageActionRpc({ data: form }); }
+const playerBioActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).playerBioAction(null, data));
+export function playerBioAction(_state: ActionState, form: FormData) { return playerBioActionRpc({ data: form }); }
+const answerActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).answerAction(null, data));
+export function answerAction(_state: ActionState, form: FormData) { return answerActionRpc({ data: form }); }
+const deleteQuestionActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).deleteQuestionAction(null, data));
+export function deleteQuestionAction(_state: ActionState, form: FormData) { return deleteQuestionActionRpc({ data: form }); }
+const generateCircleActionRpc = createServerFn({ method: "POST" }).handler(async () => (await import("./actions.server")).generateCircleAction(null));
+export function generateCircleAction(_state: ActionState) { return generateCircleActionRpc(); }
+const startGameActionRpc = createServerFn({ method: "POST" }).handler(async () => (await import("./actions.server")).startGameAction(null));
+export function startGameAction(_state: ActionState) { return startGameActionRpc(); }
+const resumeGameActionRpc = createServerFn({ method: "POST" }).handler(async () => (await import("./actions.server")).resumeGameAction(null));
+export function resumeGameAction(_state: ActionState) { return resumeGameActionRpc(); }
+const moveActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).moveAction(null, data));
+export function moveAction(_state: ActionState, form: FormData) { return moveActionRpc({ data: form }); }
+const mercyActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).mercyAction(null, data));
+export function mercyAction(_state: ActionState, form: FormData) { return mercyActionRpc({ data: form }); }
+const addPlayerActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).addPlayerAction(null, data));
+export function addPlayerAction(_state: ActionState, form: FormData) { return addPlayerActionRpc({ data: form }); }
+const removePlayerActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).removePlayerAction(null, data));
+export function removePlayerAction(_state: ActionState, form: FormData) { return removePlayerActionRpc({ data: form }); }
+const createSeasonActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).createSeasonAction(null, data));
+export function createSeasonAction(_state: ActionState, form: FormData) { return createSeasonActionRpc({ data: form }); }
+const setPhaseActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).setPhaseAction(null, data));
+export function setPhaseAction(_state: ActionState, form: FormData) { return setPhaseActionRpc({ data: form }); }
+const updateBasicsActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).updateBasicsAction(null, data));
+export function updateBasicsAction(_state: ActionState, form: FormData) { return updateBasicsActionRpc({ data: form }); }
+const rulesActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).rulesAction(null, data));
+export function rulesAction(_state: ActionState, form: FormData) { return rulesActionRpc({ data: form }); }
+const officeActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).officeAction(null, data));
+export function officeAction(_state: ActionState, form: FormData) { return officeActionRpc({ data: form }); }
+const resetGameActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).resetGameAction(null, data));
+export function resetGameAction(_state: ActionState, form: FormData) { return resetGameActionRpc({ data: form }); }
+const addStaffActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).addStaffAction(null, data));
+export function addStaffAction(_state: ActionState, form: FormData) { return addStaffActionRpc({ data: form }); }
+const removeStaffActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).removeStaffAction(null, data));
+export function removeStaffAction(_state: ActionState, form: FormData) { return removeStaffActionRpc({ data: form }); }
+const emergencyStartActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).emergencyStartAction(null, data));
+export function emergencyStartAction(_state: ActionState, form: FormData) { return emergencyStartActionRpc({ data: form }); }
+const emergencyEndActionRpc = createServerFn({ method: "POST" }).handler(async () => (await import("./actions.server")).emergencyEndAction(null));
+export function emergencyEndAction(_state: ActionState) { return emergencyEndActionRpc(); }
+const saveTemplateActionRpc = createServerFn({ method: "POST" }).validator(validateForm).handler(async ({ data }) => (await import("./actions.server")).saveTemplateAction(null, data));
+export function saveTemplateAction(_state: ActionState, form: FormData) { return saveTemplateActionRpc({ data: form }); }

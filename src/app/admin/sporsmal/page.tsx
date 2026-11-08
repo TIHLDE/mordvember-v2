@@ -1,16 +1,16 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
-import { guard } from "@/lib/guard";
-import { inbox } from "@/server/questions";
+
+
 import { answerAction, deleteQuestionAction } from "../actions";
 export const dynamic = "force-dynamic";
-async function QuestionsAdmin() {
-    const viewer = await guard("gamemaster");
-    const rows = await inbox(viewer);
-    return (<div className="space-y-6">
+function QuestionsAdmin() {
+ const { viewer, rows } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub="Spørsmål og svar vises uten navn for alle innloggede på spørsmålssiden.">Spørsmål</PageTitle>
       {rows.length === 0 && <Empty>Ingen spørsmål.</Empty>}
       {rows.map(({ q, asker }) => (<Card key={q.id}>
@@ -31,4 +31,12 @@ async function QuestionsAdmin() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/sporsmal/")({ component: QuestionsAdmin });
+export const Route = createFileRoute("/admin/sporsmal/")({ loader: () => loadQuestionsAdmin(), component: QuestionsAdmin });
+
+const loadQuestionsAdmin = createServerFn({ method: "GET" }).handler(async () => {
+const { guard } = await import("@/lib/guard");
+const { inbox } = await import("@/server/questions");
+const viewer = await guard("gamemaster");
+const rows = await inbox(viewer);
+return { viewer, rows };
+});

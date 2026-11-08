@@ -1,13 +1,14 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { and, asc, eq, ne } from "drizzle-orm";
+
 import { ActionForm } from "@/components/ActionForm";
 import { inputBase } from "@/components/styles";
 import { Button, Card, Empty, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { players } from "@/db/schema";
+
+
 import { formatOslo } from "@/game/time";
-import { guard } from "@/lib/guard";
-import { circleEventsForAdmin, circleForAdmin } from "@/server/circle";
+
+
 import { generateCircleAction, mercyAction, moveAction, startGameAction } from "../actions";
 export const dynamic = "force-dynamic";
 const EVENT_LABEL: Record<string, string> = {
@@ -19,23 +20,9 @@ const EVENT_LABEL: Record<string, string> = {
     diskvalifisert: "Diskvalifisering",
     fjernet: "Deltaker fjernet",
 };
-async function CirclePage() {
-    const viewer = await guard("circle");
-    const season = viewer.season;
-    const [circle, events, out] = await Promise.all([
-        circleForAdmin(viewer, "sirkelside"),
-        circleEventsForAdmin(viewer),
-        viewer.isGamemaster
-            ? db
-                .select({ id: players.id, name: players.name })
-                .from(players)
-                .where(and(eq(players.seasonId, season.id), ne(players.status, "alive")))
-                .orderBy(asc(players.name))
-            : [],
-    ]);
-    const names = new Map(circle.map((c) => [c.id, c.name]));
-    const gm = viewer.isGamemaster;
-    return (<div className="space-y-6">
+function CirclePage() {
+ const { viewer, season, circle, events, out, names, gm } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub={gm ? "All visning av denne siden logges." : "Du ser sirkelen med nødtilgang. Visningen er logget og spillmesterne er varslet."}>
         Sirkel
       </PageTitle>
@@ -96,4 +83,28 @@ async function CirclePage() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/sirkel/")({ component: CirclePage });
+export const Route = createFileRoute("/admin/sirkel/")({ loader: () => loadCirclePage(), component: CirclePage });
+
+const loadCirclePage = createServerFn({ method: "GET" }).handler(async () => {
+const { and, asc, eq, ne } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { players } = await import("@/db/schema");
+const { guard } = await import("@/lib/guard");
+const { circleEventsForAdmin, circleForAdmin } = await import("@/server/circle");
+const viewer = await guard("circle");
+const season = viewer.season;
+const [circle, events, out] = await Promise.all([
+        circleForAdmin(viewer, "sirkelside"),
+        circleEventsForAdmin(viewer),
+        viewer.isGamemaster
+            ? db
+                .select({ id: players.id, name: players.name })
+                .from(players)
+                .where(and(eq(players.seasonId, season.id), ne(players.status, "alive")))
+                .orderBy(asc(players.name))
+            : [],
+    ]);
+const names = new Map(circle.map((c) => [c.id, c.name]));
+const gm = viewer.isGamemaster;
+return { viewer, season, circle, events: events.map(event => ({ ...event, payload: JSON.stringify(event.payload) })), out, names, gm };
+});

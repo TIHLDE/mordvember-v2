@@ -1,6 +1,4 @@
 import "server-only";
-import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { BIO_FIELDS, composeBio } from "@/game/bio";
 import { RingError } from "@/game/ring";
 import { osloParts, osloTime } from "@/game/time";
@@ -13,8 +11,7 @@ export type ActionState = { ok?: string; error?: string; nonce?: string } | null
 export async function run(fn: () => Promise<string | void>, okMessage = "Lagret"): Promise<ActionState> {
   try {
     const result = await fn();
-    revalidatePath("/", "layout");
-    after(() => deliverPendingEmails().catch((e) => console.error("E-postutsending feilet", e)));
+    await deliverPendingEmails().catch((e) => console.error("E-postutsending feilet", e));
     return { ok: result ?? okMessage, nonce: crypto.randomUUID() };
   } catch (error) {
     if (error instanceof GameError || error instanceof AccessError || error instanceof RingError) {

@@ -1,25 +1,18 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { desc, eq } from "drizzle-orm";
+
 import { Link } from "@tanstack/react-router";
 import { Card, Empty, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { notifications } from "@/db/schema";
+
+
 import { formatOslo } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
+
+
 import { MarkRead } from "./MarkRead";
 export const dynamic = "force-dynamic";
-async function NotificationsPage() {
-    const viewer = await getViewer();
-    if (!viewer)
-        return redirectToLogin();
-    const rows = await db
-        .select()
-        .from(notifications)
-        .where(eq(notifications.userId, viewer.user.id))
-        .orderBy(desc(notifications.createdAt))
-        .limit(100);
-    return (<div className="mx-auto max-w-2xl">
+function NotificationsPage() {
+ const { viewer, rows } = Route.useLoaderData();
+return (<div className="mx-auto max-w-2xl">
       <PageTitle>Varsler</PageTitle>
       <MarkRead hasUnread={rows.some((r) => !r.readAt)}/>
       <Card>
@@ -35,4 +28,22 @@ async function NotificationsPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/varsler/")({ component: NotificationsPage });
+export const Route = createFileRoute("/(site)/varsler/")({ loader: () => loadNotificationsPage(), component: NotificationsPage });
+
+const loadNotificationsPage = createServerFn({ method: "GET" }).handler(async () => {
+const { desc, eq } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { notifications } = await import("@/db/schema");
+const { redirectToLogin } = await import("@/lib/guard");
+const { getViewer } = await import("@/server/auth/session");
+const viewer = await getViewer();
+if (!viewer)
+        return redirectToLogin();
+const rows = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, viewer.user.id))
+        .orderBy(desc(notifications.createdAt))
+        .limit(100);
+return { viewer, rows };
+});

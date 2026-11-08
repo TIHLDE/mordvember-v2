@@ -1,14 +1,15 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Button, Card, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
-import { guard } from "@/lib/guard";
+
 import { emergencyEndAction, emergencyStartAction } from "../actions";
 export const dynamic = "force-dynamic";
-async function EmergencyPage() {
-    const viewer = await guard("index");
-    return (<div className="max-w-xl space-y-6">
+function EmergencyPage() {
+ const { viewer } = Route.useLoaderData();
+return (<div className="max-w-xl space-y-6">
       <PageTitle sub="Gir innsyn i sirkelen i én time. Krever begrunnelse, logges, og spillmesterne varsles på e-post.">Nødtilgang</PageTitle>
       <Card>
         {viewer.emergencyUntil ? (<div className="space-y-4">
@@ -24,4 +25,10 @@ async function EmergencyPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/nodtilgang/")({ component: EmergencyPage });
+export const Route = createFileRoute("/admin/nodtilgang/")({ loader: () => loadEmergencyPage(), component: EmergencyPage });
+
+const loadEmergencyPage = createServerFn({ method: "GET" }).handler(async () => {
+const { guard } = await import("@/lib/guard");
+const viewer = await guard("index");
+return { viewer };
+});

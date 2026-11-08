@@ -1,32 +1,20 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
-import { and, desc, eq, inArray } from "drizzle-orm";
+
 import { alias } from "drizzle-orm/pg-core";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
-import { db } from "@/db";
-import { kills, players } from "@/db/schema";
+
+
 import { isOverdue } from "@/game/kills";
 import { formatOslo } from "@/game/time";
-import { guard } from "@/lib/guard";
+
 import { approveKillAction, rejectKillAction, undoKillAction } from "../actions";
 export const dynamic = "force-dynamic";
-const killer = alias(players, "killer");
-const victim = alias(players, "victim");
-async function KillCases() {
-    const viewer = await guard("gamemaster");
-    const rows = await db
-        .select({ kill: kills, killer: killer.name, victim: victim.name })
-        .from(kills)
-        .innerJoin(killer, eq(killer.id, kills.killerId))
-        .innerJoin(victim, eq(victim.id, kills.victimId))
-        .where(and(eq(kills.seasonId, viewer.season.id), inArray(kills.status, ["pending", "escalated", "applied"])))
-        .orderBy(desc(kills.reportedAt));
-    const now = new Date();
-    const open = rows.filter((r) => r.kill.status === "escalated" || isOverdue(r.kill, now));
-    const waiting = rows.filter((r) => r.kill.status === "pending" && !isOverdue(r.kill, now));
-    const applied = viewer.isGamemaster ? rows.filter((r) => r.kill.status === "applied") : [];
-    return (<div className="space-y-6">
+function KillCases() {
+ const { viewer, rows, now, open, waiting, applied } = Route.useLoaderData();
+return (<div className="space-y-6">
       <PageTitle sub="Saker som er bestridt, flagget som kollisjon eller ikke bekreftet innen 12 timer.">Drapssaker</PageTitle>
       <Card title="Til avgjørelse">
         {open.length === 0 ? (<Empty>Ingen saker.</Empty>) : (<ul className="divide-y divide-white/5">
@@ -77,4 +65,27 @@ async function KillCases() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/drap/")({ component: KillCases });
+export const Route = createFileRoute("/admin/drap/")({ loader: () => loadKillCases(), component: KillCases });
+
+const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
+const { and, desc, eq, inArray } = await import("drizzle-orm");
+const { db } = await import("@/db");
+const { kills, players } = await import("@/db/schema");
+const killer = alias(players, "killer");
+const victim = alias(players, "victim");
+
+const { guard } = await import("@/lib/guard");
+const viewer = await guard("gamemaster");
+const rows = await db
+        .select({ kill: kills, killer: killer.name, victim: victim.name })
+        .from(kills)
+        .innerJoin(killer, eq(killer.id, kills.killerId))
+        .innerJoin(victim, eq(victim.id, kills.victimId))
+        .where(and(eq(kills.seasonId, viewer.season.id), inArray(kills.status, ["pending", "escalated", "applied"])))
+        .orderBy(desc(kills.reportedAt));
+const now = new Date();
+const open = rows.filter((r) => r.kill.status === "escalated" || isOverdue(r.kill, now));
+const waiting = rows.filter((r) => r.kill.status === "pending" && !isOverdue(r.kill, now));
+const applied = viewer.isGamemaster ? rows.filter((r) => r.kill.status === "applied") : [];
+return { viewer, rows, now, open, waiting, applied };
+});

@@ -1,20 +1,18 @@
+import { createServerFn } from "@tanstack/react-start";
 import { createFileRoute } from "@tanstack/react-router";
 import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { formatOslo } from "@/game/time";
-import { redirectToLogin } from "@/lib/guard";
-import { getViewer } from "@/server/auth/session";
-import { seasonQuestions } from "@/server/questions";
+
+
+
 import { deleteQuestionAction } from "../../admin/actions";
 import { askAction } from "../actions";
 export const dynamic = "force-dynamic";
-async function QuestionsPage() {
-    const viewer = await getViewer();
-    if (!viewer)
-        return redirectToLogin();
-    const all = await seasonQuestions(viewer);
-    return (<div className="mx-auto max-w-2xl space-y-6">
+function QuestionsPage() {
+ const { viewer, all } = Route.useLoaderData();
+return (<div className="mx-auto max-w-2xl space-y-6">
       <PageTitle sub="Spørsmål og svar er synlige for alle innloggede, uten navn.">Spør spillmesterne</PageTitle>
       <Card>
         <ActionForm action={askAction} className="space-y-3" resetOnSuccess>
@@ -40,4 +38,15 @@ async function QuestionsPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/sporsmal/")({ component: QuestionsPage });
+export const Route = createFileRoute("/(site)/sporsmal/")({ loader: () => loadQuestionsPage(), component: QuestionsPage });
+
+const loadQuestionsPage = createServerFn({ method: "GET" }).handler(async () => {
+const { redirectToLogin } = await import("@/lib/guard");
+const { getViewer } = await import("@/server/auth/session");
+const { seasonQuestions } = await import("@/server/questions");
+const viewer = await getViewer();
+if (!viewer)
+        return redirectToLogin();
+const all = await seasonQuestions(viewer);
+return { viewer, all };
+});
