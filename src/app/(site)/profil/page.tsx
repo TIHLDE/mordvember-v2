@@ -15,7 +15,7 @@ import { signupOpen } from "@/server/season";
 import { bioAction, defaultImageAction, deleteImageAction, uploadImageAction, withdrawAction, } from "../actions";
 export const dynamic = "force-dynamic";
 async function ProfilePage() {
-    const [{ pameldt }, viewer] = await Promise.all([searchParams, getViewer()]);
+    const [{ pameldt }, viewer] = await Promise.all([Route.useSearch(), getViewer()]);
     if (!viewer)
         return redirectToLogin();
     const { player, season } = viewer;
@@ -87,4 +87,4 @@ function ImageBadge({ player }: {
     return <Badge tone="amber">Venter på godkjenning</Badge>;
 }
 
-export const Route = createFileRoute("/(site)/profil/")({ component: ProfilePage });
+export const Route = createFileRoute("/(site)/profil/")({ validateSearch: (search: Record<string, unknown>) => ({ pameldt: typeof search.pameldt === "string" ? search.pameldt : undefined }), component: ProfilePage });

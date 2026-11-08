@@ -34,7 +34,7 @@ async function DevLoginPage() {
     if (process.env.NODE_ENV !== "development")
         notFound();
     const [{ next }, testUsers] = await Promise.all([
-        searchParams,
+        Route.useSearch(),
         db.select().from(users).where(like(users.username, `${TEST_PREFIX}%`)).orderBy(asc(users.username)),
     ]);
     return (<div className="mx-auto max-w-2xl">
@@ -58,4 +58,4 @@ async function DevLoginPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/dev/")({ component: DevLoginPage });
+export const Route = createFileRoute("/(site)/dev/")({ validateSearch: (search: Record<string, unknown>) => ({ next: typeof search.next === "string" ? search.next : undefined }), component: DevLoginPage });

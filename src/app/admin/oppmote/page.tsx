@@ -14,7 +14,7 @@ import { addCheckinAction, editCheckinAction } from "../actions";
 export const dynamic = "force-dynamic";
 async function AttendanceAdmin() {
     const viewer = await guard("gamemaster");
-    const { uke } = await searchParams;
+    const { uke } = Route.useSearch();
     const week = uke && /^\d{4}-\d{2}-\d{2}$/.test(uke) ? uke : weekStartOf(new Date());
     const [rows, roster] = await Promise.all([
         weekSessions(viewer.season.id, week),
@@ -76,4 +76,4 @@ async function AttendanceAdmin() {
     </div>);
 }
 
-export const Route = createFileRoute("/admin/oppmote/")({ component: AttendanceAdmin });
+export const Route = createFileRoute("/admin/oppmote/")({ validateSearch: (search: Record<string, unknown>) => ({ uke: typeof search.uke === "string" ? search.uke : undefined }), component: AttendanceAdmin });

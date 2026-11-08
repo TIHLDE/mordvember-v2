@@ -15,7 +15,7 @@ import { imageStatus, STATUS } from "../status";
 export const dynamic = "force-dynamic";
 async function PlayerAdmin() {
     const viewer = await guard("gamemaster");
-    const { id } = await params;
+    const { id } = Route.useParams();
     if (!/^[0-9a-f-]{36}$/i.test(id))
         notFound();
     const player = await db.query.players.findFirst({ where: and(eq(players.id, id), eq(players.seasonId, viewer.season.id)) });

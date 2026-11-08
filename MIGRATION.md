@@ -19,3 +19,5 @@ Root document and router created; pages, layouts and HTTP endpoints now export R
 - `src/app/api/auth/*`, `src/server/auth/*`: NextResponse cookie mutation and next/headers remain pending explicit auth request-boundary migration. Verify OAuth state, PKCE, session creation/refresh/logout and cookie flags before completion.
 
 Stage 3: Renamed [id] and both [playerId] route directories to $id/$playerId. Regenerated the route tree with Vite; public paths and parameter names preserved.
+
+Stage 4: Route params use Route.useParams; login/dev/profile/checkin/attendance search values have explicit string validation. Layouts render Outlet. Async component execution remains stage 8 work.

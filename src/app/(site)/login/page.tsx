@@ -13,7 +13,7 @@ const ERRORS: Record<string, string> = {
     godkjenning: "TIHLDE-kontoen din venter på godkjenning fra en administrator. Du kan logge inn når den er godkjent.",
 };
 async function LoginPage() {
-    const { feil, next } = await searchParams;
+    const { feil, next } = Route.useSearch();
     if (await getViewer())
         redirect(safeNext(next));
     const target = safeNext(next);
@@ -28,4 +28,4 @@ async function LoginPage() {
     </div>);
 }
 
-export const Route = createFileRoute("/(site)/login/")({ component: LoginPage });
+export const Route = createFileRoute("/(site)/login/")({ validateSearch: (search: Record<string, unknown>) => ({ feil: typeof search.feil === "string" ? search.feil : undefined, next: typeof search.next === "string" ? search.next : undefined }), component: LoginPage });

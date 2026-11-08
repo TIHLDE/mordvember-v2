@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 async function CheckinPage() {
     return (<div className="mx-auto max-w-md py-8 text-center">
       <PageTitle center>Oppmøte</PageTitle>
-      <CheckinState searchParams={searchParams}/>
+      <CheckinState searchParams={Promise.resolve(Route.useSearch())}/>
     </div>);
 }
 async function CheckinState({ searchParams }: {
@@ -20,7 +20,7 @@ async function CheckinState({ searchParams }: {
         feil?: string;
     }>;
 }) {
-    const [{ feil }, viewer, jar] = await Promise.all([searchParams, getViewer(), cookies()]);
+    const [{ feil }, viewer, jar] = await Promise.all([Route.useSearch(), getViewer(), cookies()]);
     const season = viewer?.season;
     const pending = season ? readPendingScan(jar.get(PENDING_SCAN_COOKIE)?.value, season.id) : !!jar.get(PENDING_SCAN_COOKIE);
     if (feil === "kode" && !pending)
@@ -100,4 +100,4 @@ function SessionStatus({ attendance, open, now, checkout = false }: {
     </>);
 }
 
-export const Route = createFileRoute("/(site)/sjekkinn/")({ component: CheckinPage });
+export const Route = createFileRoute("/(site)/sjekkinn/")({ validateSearch: (search: Record<string, unknown>) => ({ feil: typeof search.feil === "string" ? search.feil : undefined }), component: CheckinPage });
