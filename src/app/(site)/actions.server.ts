@@ -5,7 +5,13 @@ import { cookies } from "@/server/cookies";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
 import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
-import { isCheckedIn, PENDING_SCAN_COOKIE, readPendingScan, SCAN_RESULT_COOKIE, toggleCheckin } from "@/server/attendance";
+import {
+  isCheckedIn,
+  PENDING_SCAN_COOKIE,
+  readPendingScan,
+  SCAN_RESULT_COOKIE,
+  toggleCheckin,
+} from "@/server/attendance";
 import { requirePlayer, requireSeason, requireViewer } from "@/server/auth/session";
 import { myTarget } from "@/server/circle";
 import { confirmKill, disputeKill, GameError, reportKill } from "@/server/game";
@@ -23,7 +29,11 @@ export async function signUpAction(_: ActionState, form: FormData) {
   return run(async () => {
     const viewer = await requireSeason();
     const image = form.get("image");
-    await signUp(viewer, { consent: form.get("consent") === "on", image: image instanceof File ? image : null, bio: bioFrom(form) });
+    await signUp(viewer, {
+      consent: form.get("consent") === "on",
+      image: image instanceof File ? image : null,
+      bio: bioFrom(form),
+    });
     return "Du er påmeldt!";
   });
 }
@@ -65,11 +75,21 @@ export async function bioAction(_: ActionState, form: FormData) {
   });
 }
 
-export async function revealTargetAction(): Promise<{ name: string; image: string; bio: string | null; checkedIn: boolean } | null> {
+export async function revealTargetAction(): Promise<{
+  name: string;
+  image: string;
+  bio: string | null;
+  checkedIn: boolean;
+} | null> {
   const viewer = await requirePlayer();
   const target = await myTarget(viewer);
   if (!target) return null;
-  return { name: target.name, image: `/api/bilde/${target.id}`, bio: target.bio, checkedIn: await isCheckedIn(target.id) };
+  return {
+    name: target.name,
+    image: `/api/bilde/${target.id}`,
+    bio: target.bio,
+    checkedIn: await isCheckedIn(target.id),
+  };
 }
 
 export async function reportKillAction(_: ActionState, form: FormData) {
@@ -94,7 +114,10 @@ export async function disputeKillAction(_: ActionState, form: FormData) {
   });
 }
 
-export async function completeScanAction(intent: "in" | "out", position: { lat: number; lng: number } | null): Promise<ActionState> {
+export async function completeScanAction(
+  intent: "in" | "out",
+  position: { lat: number; lng: number } | null,
+): Promise<ActionState> {
   return run(async () => {
     const viewer = await requirePlayer();
     const jar = cookies();
@@ -102,7 +125,11 @@ export async function completeScanAction(intent: "in" | "out", position: { lat: 
       throw new GameError("QR-koden er utløpt. Skann på nytt.");
     }
     const valid =
-      position && Number.isFinite(position.lat) && Number.isFinite(position.lng) && Math.abs(position.lat) <= 90 && Math.abs(position.lng) <= 180
+      position &&
+      Number.isFinite(position.lat) &&
+      Number.isFinite(position.lng) &&
+      Math.abs(position.lat) <= 90 &&
+      Math.abs(position.lng) <= 180
         ? position
         : null;
     const result = await toggleCheckin(viewer, valid, intent === "out" ? "out" : "in");
@@ -114,7 +141,9 @@ export async function completeScanAction(intent: "in" | "out", position: { lat: 
       path: "/sjekkinn",
       maxAge: 60,
     });
-    return { in: "Du er sjekket inn", out: "Du er sjekket ut", forgotten: "Økta er lukket" }[result.kind];
+    return { in: "Du er sjekket inn", out: "Du er sjekket ut", forgotten: "Økta er lukket" }[
+      result.kind
+    ];
   });
 }
 

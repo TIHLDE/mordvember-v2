@@ -4,7 +4,7 @@ import { boardQrSvg } from "@/server/attendance";
 import { getCurrentSeason } from "@/server/season";
 
 // Public: the check-in QR code. Check-in itself is limited to Gløshaugen by position.
- async function GET() {
+async function GET() {
   const season = await getCurrentSeason();
   // One timestamp for both, so the countdown always belongs to the code it is sent with.
   const now = Date.now();
@@ -14,4 +14,6 @@ import { getCurrentSeason } from "@/server/season";
   return Response.json({ qrSvg, nextCodeInMs }, { headers: { "Cache-Control": "no-store" } });
 }
 
-export const Route = createFileRoute("/api/status/live")({ server: { handlers: { GET: () => GET() } } });
+export const Route = createFileRoute("/api/status/live")({
+  server: { handlers: { GET: () => GET() } },
+});

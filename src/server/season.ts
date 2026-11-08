@@ -30,7 +30,11 @@ export function signupOpen(season: { phase: Phase }): boolean {
 
 // The game has one ruleset. Changes made while the game is underway are stored from that week on, so earlier weeks keep the rules they had.
 // Inside a transaction, pass it in: on Vercel the pool has a single connection, so reaching for `db` deadlocks.
-export async function rulesForWeek(season: { id: string; settings: SeasonSettings }, weekStart: string, conn: Tx | typeof db = db): Promise<WeekRules> {
+export async function rulesForWeek(
+  season: { id: string; settings: SeasonSettings },
+  weekStart: string,
+  conn: Tx | typeof db = db,
+): Promise<WeekRules> {
   const change = await conn.query.weekRules.findFirst({
     where: and(eq(weekRules.seasonId, season.id), lte(weekRules.weekStart, weekStart)),
     orderBy: desc(weekRules.weekStart),

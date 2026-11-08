@@ -31,7 +31,11 @@ export type DayResult = {
   hasUnclosed: boolean;
 };
 
-export function sessionMinutesInWindow(session: AttendanceSession, rules: WeekRules, now: Date): number {
+export function sessionMinutesInWindow(
+  session: AttendanceSession,
+  rules: WeekRules,
+  now: Date,
+): number {
   if (session.rejected) return 0;
   if (session.autoClosed && !session.approved) return 0;
   const date = osloDate(session.checkInAt);
@@ -45,7 +49,10 @@ export function sessionMinutesInWindow(session: AttendanceSession, rules: WeekRu
 }
 
 // When an open session has lasted long enough for the day to count, and whether that happens before the window closes.
-export function sessionCountsAt(checkInAt: Date, rules: WeekRules): { at: Date; reachable: boolean } {
+export function sessionCountsAt(
+  checkInAt: Date,
+  rules: WeekRules,
+): { at: Date; reachable: boolean } {
   const date = osloDate(checkInAt);
   const from = Math.max(checkInAt.getTime(), osloTime(date, rules.windowStart).getTime());
   const at = new Date(from + rules.hours * 60 * 60000);
@@ -104,7 +111,9 @@ export function evaluateWeek(input: {
   if (!exempt) {
     if (days < rules.days) {
       const lacking = rules.days - days;
-      missing.push(`Mangler ${lacking} oppmøtedag${lacking === 1 ? "" : "er"} (har ${days} av ${rules.days})`);
+      missing.push(
+        `Mangler ${lacking} oppmøtedag${lacking === 1 ? "" : "er"} (har ${days} av ${rules.days})`,
+      );
     }
     if (kills < rules.killsRequired) {
       const lacking = rules.killsRequired - kills;
@@ -121,17 +130,27 @@ export function closeTimeFor(checkInAt: Date, rules: WeekRules): Date {
 /** Used when the season has no office position set: the middle of NTNU Gløshaugen. */
 export const GLOSHAUGEN = { lat: 63.416162, lng: 10.405852, radiusMeters: 150 };
 
-export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+export function distanceMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
   const r = 6371000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * r * Math.asin(Math.sqrt(h));
 }
 
 // Warn at 16:00 on the day before the remaining attendance days are needed.
-export function weeklyWarningDue(evaluation: WeekEvaluation, rules: WeekRules, now: Date, weekStart = weekStartOf(now)): boolean {
+export function weeklyWarningDue(
+  evaluation: WeekEvaluation,
+  rules: WeekRules,
+  now: Date,
+  weekStart = weekStartOf(now),
+): boolean {
   if (evaluation.ok || evaluation.exempt) return false;
   const daysNeeded = Math.max(1, rules.days - evaluation.countingDays);
   const due = osloTime(addDays(weekStart, 4 - daysNeeded), "16:00");

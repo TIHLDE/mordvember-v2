@@ -50,13 +50,15 @@ export function CheckinButton({
     }
   }
 
-  if (state?.ok) return <p className="success-pop font-display text-4xl text-emerald-400">{state.ok}</p>;
+  if (state?.ok)
+    return <p className="success-pop font-display text-4xl text-emerald-400">{state.ok}</p>;
   if (warned && countsAt) {
     return (
       <div className="appear space-y-4">
         <Notice tone="amber">
-          Du har ikke vært her i {countsAt.hours} ennå. Sjekker du ut nå, blir ikke dagen godkjent. Blir du til kl. {countsAt.label}, teller
-          den. Sjekker du inn igjen senere, starter tiden på nytt.
+          Du har ikke vært her i {countsAt.hours} ennå. Sjekker du ut nå, blir ikke dagen godkjent.
+          Blir du til kl. {countsAt.label}, teller den. Sjekker du inn igjen senere, starter tiden
+          på nytt.
         </Notice>
         <div className="flex justify-center gap-3">
           <Button type="button" variant="ghost" onClick={() => setWarned(false)} disabled={busy}>
@@ -75,7 +77,9 @@ export function CheckinButton({
       <Button type="button" onClick={submit} disabled={busy}>
         {busy ? "Registrerer …" : intent === "in" ? "Sjekk inn" : "Sjekk ut"}
       </Button>
-      {busy && intent === "in" && <p className="reveal-pulse text-sm text-zinc-400">Svar ja hvis mobilen spør om posisjon.</p>}
+      {busy && intent === "in" && (
+        <p className="reveal-pulse text-sm text-zinc-400">Svar ja hvis mobilen spør om posisjon.</p>
+      )}
       {state?.error && <p className="appear text-red-400">{state.error}</p>}
     </div>
   );

@@ -11,7 +11,13 @@ export async function boardData(season: Season) {
     db
       .select({ id: players.id, name: players.name, at: players.eliminatedAt })
       .from(players)
-      .where(and(eq(players.seasonId, season.id), ne(players.status, "alive"), isNotNull(players.eliminatedAt)))
+      .where(
+        and(
+          eq(players.seasonId, season.id),
+          ne(players.status, "alive"),
+          isNotNull(players.eliminatedAt),
+        ),
+      )
       .orderBy(desc(players.eliminatedAt))
       .limit(1),
   ]);

@@ -15,7 +15,11 @@ const placeholder = (name: string) => image(placeholderSvg(name), "image/svg+xml
 export async function playerImageResponse(seasonId: string, playerId: string): Promise<Response> {
   if (!/^[0-9a-f-]{36}$/i.test(playerId)) return new Response("Ikke funnet", { status: 404 });
   const [row] = await db
-    .select({ player: players, photonImage: users.photonImage, photonImageKey: users.photonImageKey })
+    .select({
+      player: players,
+      photonImage: users.photonImage,
+      photonImageKey: users.photonImageKey,
+    })
     .from(players)
     .innerJoin(users, eq(users.id, players.userId))
     .where(and(eq(players.id, playerId), eq(players.seasonId, seasonId)));
@@ -29,7 +33,8 @@ export async function playerImageResponse(seasonId: string, playerId: string): P
   if (player.useDefaultImage && photonImage?.startsWith("https://")) {
     const upstream = await fetch(photonImage, { next: { revalidate: 3600 } }).catch(() => null);
     const type = upstream?.headers.get("content-type") ?? "";
-    if (upstream?.ok && type.startsWith("image/") && !type.includes("svg")) return image(upstream.body, type);
+    if (upstream?.ok && type.startsWith("image/") && !type.includes("svg"))
+      return image(upstream.body, type);
   }
   return placeholder(player.name);
 }

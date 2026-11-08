@@ -1,10 +1,15 @@
 import { setCookie } from "@tanstack/react-start/server";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { PENDING_SCAN_COOKIE, PENDING_SCAN_MS, pendingScanValue, verifyScan } from "@/server/attendance";
+import {
+  PENDING_SCAN_COOKIE,
+  PENDING_SCAN_MS,
+  pendingScanValue,
+  verifyScan,
+} from "@/server/attendance";
 import { getCurrentSeason } from "@/server/season";
 
- async function GET(request: Request) {
+async function GET(request: Request) {
   const code = new URL(request.url).searchParams.get("k") ?? "";
   const season = await getCurrentSeason();
   if (!season || season.phase !== "running" || !verifyScan(season.id, code)) {
@@ -21,4 +26,6 @@ import { getCurrentSeason } from "@/server/season";
   return response;
 }
 
-export const Route = createFileRoute("/api/sjekkinn")({ server: { handlers: { GET: ({ request }) => GET(request) } } });
+export const Route = createFileRoute("/api/sjekkinn")({
+  server: { handlers: { GET: ({ request }) => GET(request) } },
+});

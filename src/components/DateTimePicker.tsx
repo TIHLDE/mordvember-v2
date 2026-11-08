@@ -150,8 +150,15 @@ function DatePicker({
   const [open, setOpen] = useState(false);
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger id={id} type="button" aria-label={ariaLabel} className={`${triggerClass} min-w-36 flex-1 justify-between`}>
-        <span className={`truncate ${value ? "" : "text-zinc-500"}`}>{value ? format(value, "d. MMM yyyy", { locale: nb }) : placeholder}</span>
+      <Popover.Trigger
+        id={id}
+        type="button"
+        aria-label={ariaLabel}
+        className={`${triggerClass} min-w-36 flex-1 justify-between`}
+      >
+        <span className={`truncate ${value ? "" : "text-zinc-500"}`}>
+          {value ? format(value, "d. MMM yyyy", { locale: nb }) : placeholder}
+        </span>
         <CalendarIcon />
       </Popover.Trigger>
       <Popover.Portal>
@@ -299,7 +306,13 @@ function TimePicker({
     else if (value) emit({ hour: value.hour, minute: m });
   };
 
-  const onBlur = (text: string, max: number, reset: () => void, setText: (t: string) => void, commit: (n: number) => void) => {
+  const onBlur = (
+    text: string,
+    max: number,
+    reset: () => void,
+    setText: (t: string) => void,
+    commit: (n: number) => void,
+  ) => {
     if (text === "") {
       if (value !== null) emit(null);
       return;
@@ -329,7 +342,8 @@ function TimePicker({
     else if (pendingHour !== null) emit({ hour: pendingHour, minute });
   };
 
-  const segmentClass = "w-[2.6ch] bg-transparent text-base tabular-nums sm:text-sm text-white outline-none placeholder:text-zinc-500";
+  const segmentClass =
+    "w-[2.6ch] bg-transparent text-base tabular-nums sm:text-sm text-white outline-none placeholder:text-zinc-500";
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
@@ -372,10 +386,20 @@ function TimePicker({
               requestAnimationFrame(() => minuteRef.current?.setSelectionRange(0, 0));
             }
           }}
-          onBlur={() => onBlur(hourInput(), 23, () => setHourText(value ? pad(value.hour) : ""), setHourText, commitHour)}
+          onBlur={() =>
+            onBlur(
+              hourInput(),
+              23,
+              () => setHourText(value ? pad(value.hour) : ""),
+              setHourText,
+              commitHour,
+            )
+          }
           className={segmentClass}
         />
-        <span aria-hidden onClick={stop} className="text-zinc-500 select-none">:</span>
+        <span aria-hidden onClick={stop} className="text-zinc-500 select-none">
+          :
+        </span>
         <input
           ref={minuteRef}
           type="text"
@@ -399,12 +423,23 @@ function TimePicker({
           }}
           onKeyDown={(e) => {
             const input = e.currentTarget;
-            if ((e.key === "Backspace" && input.value === "") || (e.key === "ArrowLeft" && input.selectionStart === 0)) {
+            if (
+              (e.key === "Backspace" && input.value === "") ||
+              (e.key === "ArrowLeft" && input.selectionStart === 0)
+            ) {
               e.preventDefault();
               focusHourEnd();
             }
           }}
-          onBlur={() => onBlur(minuteInput(), 59, () => setMinuteText(value ? pad(value.minute) : ""), setMinuteText, commitMinute)}
+          onBlur={() =>
+            onBlur(
+              minuteInput(),
+              59,
+              () => setMinuteText(value ? pad(value.minute) : ""),
+              setMinuteText,
+              commitMinute,
+            )
+          }
           className={segmentClass}
         />
         <span className="ml-auto text-zinc-400">
@@ -416,8 +451,15 @@ function TimePicker({
           <Popover.Popup aria-label="Velg tid" initialFocus={false} className={`${popupClass} p-1`}>
             <div className="flex items-stretch" role="group" aria-label="Tidsvelger">
               <TimeColumn label="Timer" items={HOURS} value={pendingHour} onSelect={pickHour} />
-              <div aria-hidden className="flex items-center px-1 text-zinc-500 select-none">:</div>
-              <TimeColumn label="Minutter" items={minutes} value={pendingMinute} onSelect={pickMinute} />
+              <div aria-hidden className="flex items-center px-1 text-zinc-500 select-none">
+                :
+              </div>
+              <TimeColumn
+                label="Minutter"
+                items={minutes}
+                value={pendingMinute}
+                onSelect={pickMinute}
+              />
             </div>
           </Popover.Popup>
         </Popover.Positioner>
@@ -465,7 +507,9 @@ function TimeColumn({
             aria-selected={selected}
             onClick={() => onSelect(n)}
             className={`h-7 shrink-0 rounded-md text-sm tabular-nums transition ${
-              selected ? "bg-blood text-white hover:bg-blood-light" : "text-zinc-300 hover:bg-white/10 hover:text-white"
+              selected
+                ? "bg-blood text-white hover:bg-blood-light"
+                : "text-zinc-300 hover:bg-white/10 hover:text-white"
             }`}
           >
             {pad(n)}
@@ -478,7 +522,16 @@ function TimeColumn({
 
 function CalendarIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0 text-zinc-400" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4 shrink-0 text-zinc-400"
+      aria-hidden
+    >
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <path d="M16 2v4M8 2v4M3 10h18" />
     </svg>
@@ -487,7 +540,16 @@ function CalendarIcon() {
 
 function ClockIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="10" />
       <path d="M12 6v6l4 2" />
     </svg>
@@ -496,7 +558,16 @@ function ClockIcon() {
 
 function ChevronIcon({ left }: { left: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+      aria-hidden
+    >
       <path d={left ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
     </svg>
   );

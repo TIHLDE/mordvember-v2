@@ -6,7 +6,9 @@ import { getViewer, type Season, type Viewer } from "@/server/auth/session";
 
 /** Sends a logged-out visitor to login, and back to the page they asked for afterwards. */
 export async function redirectToLogin(): Promise<never> {
-  const path = safeNext(getRequestHeader(PATH_HEADER) ?? (getRequestUrl().pathname + getRequestUrl().search));
+  const path = safeNext(
+    getRequestHeader(PATH_HEADER) ?? getRequestUrl().pathname + getRequestUrl().search,
+  );
   throw redirect({ to: "/login", search: { next: path } });
 }
 

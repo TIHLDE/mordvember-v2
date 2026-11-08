@@ -6,10 +6,15 @@ import { useEffect, useState } from "react";
 import { UserAvatar } from "./Avatar";
 import { cx } from "./styles";
 
-export type AdminNavGroup = { label?: string; links: { href: string; label: string; exact?: boolean }[] };
+export type AdminNavGroup = {
+  label?: string;
+  links: { href: string; label: string; exact?: boolean }[];
+};
 
 function isActive(pathname: string, link: { href: string; exact?: boolean }) {
-  return link.exact ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`);
+  return link.exact
+    ? pathname === link.href
+    : pathname === link.href || pathname.startsWith(`${link.href}/`);
 }
 
 export function AdminShell({
@@ -38,7 +43,13 @@ export function AdminShell({
 
   return (
     <div className="min-h-dvh">
-      {open && <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden
+        />
+      )}
       <aside
         className={cx(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-ink transition-[translate,visibility] duration-200 ease-out-strong md:visible md:translate-x-0",
@@ -49,7 +60,9 @@ export function AdminShell({
           <Link to="/" className="font-display text-2xl text-blood">
             Mordvember
           </Link>
-          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-medium text-zinc-300">Admin</span>
+          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-xs font-medium text-zinc-300">
+            Admin
+          </span>
         </div>
         <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
           {groups.map((g) => (
@@ -66,7 +79,9 @@ export function AdminShell({
                         aria-current={active ? "page" : undefined}
                         className={cx(
                           "flex min-h-9 items-center rounded-lg px-3 text-sm transition-colors duration-150",
-                          active ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white",
+                          active
+                            ? "bg-white/10 text-white"
+                            : "text-zinc-400 hover:bg-white/5 hover:text-white",
                         )}
                       >
                         {l.label}
@@ -96,7 +111,14 @@ export function AdminShell({
             aria-label="Åpne menyen"
             className="-ml-2 inline-flex size-9 items-center justify-center rounded-lg text-zinc-300 transition-colors hover:bg-white/5 hover:text-white md:hidden"
           >
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className="size-5">
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              className="size-5"
+            >
               <path d="M3 5h14M3 10h14M3 15h14" />
             </svg>
           </button>
@@ -113,12 +135,20 @@ export function AdminShell({
           </p>
           <div className="ml-auto flex items-center gap-2">
             <form action="/api/auth/logout" method="post">
-              <button type="submit" className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+              <button
+                type="submit"
+                className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+              >
                 Logg ut
               </button>
             </form>
             {user.hasProfile ? (
-              <Link to="/profil" search={{}} aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+              <Link
+                to="/profil"
+                search={{}}
+                aria-label="Gå til profil"
+                className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60"
+              >
                 {avatar}
               </Link>
             ) : (
@@ -127,7 +157,9 @@ export function AdminShell({
           </div>
         </header>
         {banner}
-        <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 px-4 pt-8 pb-16 md:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 px-4 pt-8 pb-16 md:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );

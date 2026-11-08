@@ -47,7 +47,8 @@ export function NumberStepper({
           const raw = e.target.value.replace(decimals ? /[^\d,.]/g : /\D/g, "");
           setText(raw);
           const parsed = Number(raw.replace(",", "."));
-          if (raw !== "" && Number.isFinite(parsed)) setValue(Number(clamp(parsed).toFixed(decimals)));
+          if (raw !== "" && Number.isFinite(parsed))
+            setValue(Number(clamp(parsed).toFixed(decimals)));
         }}
         onBlur={() => commit(value)}
         onKeyDown={(e) => {
@@ -58,10 +59,20 @@ export function NumberStepper({
         }}
         className="order-2 w-0 min-w-8 flex-1 bg-transparent text-center text-base font-medium text-white tabular-nums outline-none sm:text-sm"
       />
-      <StepButton label="Mindre" disabled={value <= min} onClick={() => commit(value - step)} className="order-1 border-r">
+      <StepButton
+        label="Mindre"
+        disabled={value <= min}
+        onClick={() => commit(value - step)}
+        className="order-1 border-r"
+      >
         <path d="M5 12h14" />
       </StepButton>
-      <StepButton label="Mer" disabled={max !== undefined && value >= max} onClick={() => commit(value + step)} className="order-3 border-l">
+      <StepButton
+        label="Mer"
+        disabled={max !== undefined && value >= max}
+        onClick={() => commit(value + step)}
+        className="order-3 border-l"
+      >
         <path d="M5 12h14M12 5v14" />
       </StepButton>
     </div>
@@ -90,7 +101,15 @@ function StepButton({
       onClick={onClick}
       className={`flex items-center border-white/10 px-2.5 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white disabled:pointer-events-none disabled:opacity-40 ${className}`}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="size-3.5" aria-hidden>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        className="size-3.5"
+        aria-hidden
+      >
         {children}
       </svg>
     </button>

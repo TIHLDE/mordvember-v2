@@ -52,8 +52,17 @@ export function authorizeUrl(redirectUri: string, state: string, challenge: stri
   return url.toString();
 }
 
-export async function exchangeCode(code: string, redirectUri: string, verifier: string): Promise<PhotonTokens> {
-  return requestTokens({ grant_type: "authorization_code", code, redirect_uri: redirectUri, code_verifier: verifier });
+export async function exchangeCode(
+  code: string,
+  redirectUri: string,
+  verifier: string,
+): Promise<PhotonTokens> {
+  return requestTokens({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: redirectUri,
+    code_verifier: verifier,
+  });
 }
 
 export async function refreshTokens(refreshToken: string): Promise<PhotonTokens> {
@@ -82,10 +91,15 @@ async function requestTokens(grant: Record<string, string>): Promise<PhotonToken
     const { error, description } = await oauthError(response);
     const message = `Tokenveksling feilet (${response.status}): ${error}${description ? `: ${description}` : ""}`;
     // Refresh-tokenet er trukket tilbake eller utløpt, så brukeren må logge inn på nytt.
-    if (error === "invalid_grant" && grant.grant_type === "refresh_token") throw new PhotonUnauthorizedError(message);
+    if (error === "invalid_grant" && grant.grant_type === "refresh_token")
+      throw new PhotonUnauthorizedError(message);
     throw new Error(message);
   }
-  const tokens = (await response.json()) as { access_token: string; refresh_token?: string; expires_in?: number };
+  const tokens = (await response.json()) as {
+    access_token: string;
+    refresh_token?: string;
+    expires_in?: number;
+  };
   return {
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token ?? null,
@@ -94,32 +108,49 @@ async function requestTokens(grant: Record<string, string>): Promise<PhotonToken
 }
 
 // Feilsvar fra Photon følger RFC 6749: { error, error_description }.
-async function oauthError(response: Response): Promise<{ error: string; description: string | null }> {
+async function oauthError(
+  response: Response,
+): Promise<{ error: string; description: string | null }> {
   const text = await response.text().catch(() => "");
   try {
     const body = JSON.parse(text) as { error?: unknown; error_description?: unknown };
     if (typeof body.error === "string") {
-      return { error: body.error, description: typeof body.error_description === "string" ? body.error_description : null };
+      return {
+        error: body.error,
+        description: typeof body.error_description === "string" ? body.error_description : null,
+      };
     }
   } catch {}
   return { error: text.slice(0, 200), description: null };
 }
 
 // groupSlug lets the leader of that group search, since Photon otherwise requires users:view.
-export async function searchUsers(token: string, query: string, groupSlug?: string): Promise<PhotonUser[]> {
+export async function searchUsers(
+  token: string,
+  query: string,
+  groupSlug?: string,
+): Promise<PhotonUser[]> {
   const url = new URL(`${env.photonApi}/user/search`);
   url.searchParams.set("q", query);
   if (groupSlug) url.searchParams.set("groupSlug", groupSlug);
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
   if (response.status === 401) throw new PhotonUnauthorizedError();
   if (response.status === 403) throw new PhotonForbiddenError();
   if (!response.ok) throw new Error(`Photon-søket svarte ${response.status}`);
   const users = (await response.json()) as { name: string | null; username: string | null }[];
-  return users.flatMap((u) => (u.username ? [{ username: u.username, name: u.name ?? u.username }] : []));
+  return users.flatMap((u) =>
+    u.username ? [{ username: u.username, name: u.name ?? u.username }] : [],
+  );
 }
 
 async function photonGet<T>(url: string, token: string): Promise<T> {
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
   if (response.status === 401) throw new PhotonUnauthorizedError(`Photon ${url} svarte 401`);
   if (response.status === 403) throw new PhotonForbiddenError();
   if (!response.ok) {
@@ -145,7 +176,13 @@ export async function downloadPhotonImage(url: string, token: string): Promise<F
   return new File([blob], "photon", { type: blob.type });
 }
 
-type UserInfo = { sub: string; name?: string | null; email?: string | null; picture?: string | null; preferred_username?: string | null };
+type UserInfo = {
+  sub: string;
+  name?: string | null;
+  email?: string | null;
+  picture?: string | null;
+  preferred_username?: string | null;
+};
 
 type UserProfile = {
   image: string | null;
@@ -163,12 +200,13 @@ export async function fetchIdentity(token: string): Promise<PhotonIdentity> {
   ]);
   const username = info.preferred_username;
   if (!username) throw new Error("Photon-brukeren mangler brukernavn");
-  const profile = await photonGet<UserProfile>(`${env.photonApi}/user/${encodeURIComponent(username)}`, token).catch(
-    (error) => {
-      console.error("Kunne ikke hente studie og kull fra Photon", error);
-      return null;
-    },
-  );
+  const profile = await photonGet<UserProfile>(
+    `${env.photonApi}/user/${encodeURIComponent(username)}`,
+    token,
+  ).catch((error) => {
+    console.error("Kunne ikke hente studie og kull fra Photon", error);
+    return null;
+  });
   const isLeaderOf = (slug: string) =>
     groups.some((g) => g.slug.toLowerCase() === slug && g.membership?.role === "leader");
   return {

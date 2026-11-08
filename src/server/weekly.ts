@@ -26,7 +26,13 @@ export async function evaluateSeasonWeek(season: Season, weekStart: string, now 
   const [rules, alive, sessions, applied] = await Promise.all([
     rulesForWeek(season, weekStart),
     db
-      .select({ id: players.id, name: players.name, userId: players.userId, email: users.email, requirementsFromWeek: players.requirementsFromWeek })
+      .select({
+        id: players.id,
+        name: players.name,
+        userId: players.userId,
+        email: users.email,
+        requirementsFromWeek: players.requirementsFromWeek,
+      })
       .from(players)
       .innerJoin(users, eq(users.id, players.userId))
       .where(and(eq(players.seasonId, season.id), eq(players.status, "alive")))
@@ -63,10 +69,23 @@ export async function sendWeeklyWarnings(season: Season, weekStart: string, now 
     if (!weeklyWarningDue(evaluation, rules, now, weekStart)) continue;
     // Eget krav per deltaker, så et nytt forsøk etter en feil halvveis ikke varsler noen to ganger.
     await db.transaction(async (tx) => {
-      const [claimed] = await tx.insert(jobRuns).values({ key: `torsdag:${season.id}:${weekStart}:${player.id}` }).onConflictDoNothing().returning();
+      const [claimed] = await tx
+        .insert(jobRuns)
+        .values({ key: `torsdag:${season.id}:${weekStart}:${player.id}` })
+        .onConflictDoNothing()
+        .returning();
       if (!claimed) return;
-      await notify(tx, [{ userId: player.userId, seasonId: season.id, text: `Du ligger an til å ryke: ${evaluation.missing.join(", ")}`, href: "/oppmote" }]);
-      await queueEmail(tx, "weekly_warning", [player.email], { mangler: evaluation.missing.join("\n") });
+      await notify(tx, [
+        {
+          userId: player.userId,
+          seasonId: season.id,
+          text: `Du ligger an til å ryke: ${evaluation.missing.join(", ")}`,
+          href: "/oppmote",
+        },
+      ]);
+      await queueEmail(tx, "weekly_warning", [player.email], {
+        mangler: evaluation.missing.join("\n"),
+      });
     });
   }
 }
@@ -83,18 +102,33 @@ async function buildFridayList(season: Season, weekStart: string, now: Date) {
   const complete = now >= fridayListDueAt(weekStart);
   return db.transaction(async (tx) => {
     const [claimed] = complete
-      ? await tx.insert(jobRuns).values({ key: fridayJobKey(season.id, weekStart) }).onConflictDoNothing().returning()
+      ? await tx
+          .insert(jobRuns)
+          .values({ key: fridayJobKey(season.id, weekStart) })
+          .onConflictDoNothing()
+          .returning()
       : [];
     const added = failing.length
       ? await tx
           .insert(weeklyReviews)
-          .values(failing.map((f) => ({ seasonId: season.id, weekStart, playerId: f.player.id, reasons: f.evaluation.missing })))
+          .values(
+            failing.map((f) => ({
+              seasonId: season.id,
+              weekStart,
+              playerId: f.player.id,
+              reasons: f.evaluation.missing,
+            })),
+          )
           .onConflictDoNothing()
           .returning({ id: weeklyReviews.id })
       : [];
     const pending = await tx.$count(
       weeklyReviews,
-      and(eq(weeklyReviews.seasonId, season.id), eq(weeklyReviews.weekStart, weekStart), eq(weeklyReviews.decision, "pending")),
+      and(
+        eq(weeklyReviews.seasonId, season.id),
+        eq(weeklyReviews.weekStart, weekStart),
+        eq(weeklyReviews.decision, "pending"),
+      ),
     );
     if (claimed || (complete && added.length)) {
       const staffRows = await staffEmails(tx, season.id);
@@ -113,7 +147,9 @@ async function buildFridayList(season: Season, weekStart: string, now: Date) {
 }
 
 export async function buildFridayListOnce(season: Season, weekStart: string, now = new Date()) {
-  const built = await db.query.jobRuns.findFirst({ where: eq(jobRuns.key, fridayJobKey(season.id, weekStart)) });
+  const built = await db.query.jobRuns.findFirst({
+    where: eq(jobRuns.key, fridayJobKey(season.id, weekStart)),
+  });
   if (built) return false;
   return (await buildFridayList(season, weekStart, now)).claimed;
 }
@@ -121,11 +157,17 @@ export async function buildFridayListOnce(season: Season, weekStart: string, now
 export async function buildFridayListManually(viewer: Viewer, weekStart: string, now = new Date()) {
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   const season = viewer.season;
-  if (season.phase !== "running" || !season.startedAt) throw new GameError("Fredagslista kan bare lages mens spillet pågår");
+  if (season.phase !== "running" || !season.startedAt)
+    throw new GameError("Fredagslista kan bare lages mens spillet pågår");
   const invalid = listWeekError(weekStart, season.startedAt, now);
   if (invalid) throw new GameError(invalid);
   const result = await buildFridayList(season, weekStart, now);
-  await audit(db, { seasonId: season.id, actorUserId: viewer.user.id, action: "fredag.liste", details: { weekStart, nye: result.added } });
+  await audit(db, {
+    seasonId: season.id,
+    actorUserId: viewer.user.id,
+    action: "fredag.liste",
+    details: { weekStart, nye: result.added },
+  });
   return result;
 }
 
@@ -133,7 +175,15 @@ export async function buildFridayListManually(viewer: Viewer, weekStart: string,
 // and a list made before the deadline has reviews but no claim.
 export async function missingFridayLists(seasonId: string, weeks: string[]) {
   if (!weeks.length) return [];
-  const built = await db.select({ key: jobRuns.key }).from(jobRuns).where(inArray(jobRuns.key, weeks.map((w) => fridayJobKey(seasonId, w))));
+  const built = await db
+    .select({ key: jobRuns.key })
+    .from(jobRuns)
+    .where(
+      inArray(
+        jobRuns.key,
+        weeks.map((w) => fridayJobKey(seasonId, w)),
+      ),
+    );
   const keys = new Set(built.map((b) => b.key));
   return weeks.filter((w) => !keys.has(fridayJobKey(seasonId, w)));
 }
@@ -147,7 +197,12 @@ export async function reviews(seasonId: string) {
     .orderBy(desc(weeklyReviews.weekStart), asc(players.name));
 }
 
-export async function decideReview(viewer: Viewer, reviewId: string, decision: "disqualified" | "exception", reason: string) {
+export async function decideReview(
+  viewer: Viewer,
+  reviewId: string,
+  decision: "disqualified" | "exception",
+  reason: string,
+) {
   if (!viewer.season || !viewer.isGamemaster) throw new AccessError();
   if (!reason.trim()) throw new GameError("Skriv en begrunnelse");
   const review = await db.query.weeklyReviews.findFirst({
@@ -160,11 +215,24 @@ export async function decideReview(viewer: Viewer, reviewId: string, decision: "
   }
   await db
     .update(weeklyReviews)
-    .set({ decision, decisionReason: reason.trim(), decidedBy: viewer.user.id, decidedAt: new Date() })
+    .set({
+      decision,
+      decisionReason: reason.trim(),
+      decidedBy: viewer.user.id,
+      decidedAt: new Date(),
+    })
     .where(eq(weeklyReviews.id, reviewId));
-  await audit(db, { seasonId: viewer.season.id, actorUserId: viewer.user.id, action: `fredag.${decision}`, details: { reviewId } });
+  await audit(db, {
+    seasonId: viewer.season.id,
+    actorUserId: viewer.user.id,
+    action: `fredag.${decision}`,
+    details: { reviewId },
+  });
 }
 
 export async function pendingReviewCount(seasonId: string) {
-  return db.$count(weeklyReviews, and(eq(weeklyReviews.seasonId, seasonId), inArray(weeklyReviews.decision, ["pending"])));
+  return db.$count(
+    weeklyReviews,
+    and(eq(weeklyReviews.seasonId, seasonId), inArray(weeklyReviews.decision, ["pending"])),
+  );
 }

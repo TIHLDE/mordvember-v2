@@ -37,4 +37,6 @@ const responsePolicy = createMiddleware().server(async ({ next }) => {
   return result;
 });
 
-export const startInstance = createStart(() => ({ requestMiddleware: [responsePolicy, actionBodyLimit] }));
+export const startInstance = createStart(() => ({
+  requestMiddleware: [responsePolicy, actionBodyLimit],
+}));

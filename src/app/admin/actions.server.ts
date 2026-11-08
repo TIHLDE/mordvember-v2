@@ -34,14 +34,20 @@ import {
   startGame,
   undoKillAsGamemaster,
 } from "@/server/game";
-import { approveImage, rejectImage, setBioAsGamemaster, setImageAsGamemaster } from "@/server/players";
+import {
+  approveImage,
+  rejectImage,
+  setBioAsGamemaster,
+  setImageAsGamemaster,
+} from "@/server/players";
 import { answerQuestion, deleteQuestion } from "@/server/questions";
 import type { Phase } from "@/server/season";
 import { buildFridayListManually, decideReview } from "@/server/weekly";
 
 const num = (form: FormData, key: string, min: number, max: number) => {
   const value = Number(text(form, key));
-  if (!Number.isFinite(value) || value < min || value > max) throw new GameError(`Ugyldig verdi for ${key}`);
+  if (!Number.isFinite(value) || value < min || value > max)
+    throw new GameError(`Ugyldig verdi for ${key}`);
   return value;
 };
 
@@ -59,38 +65,62 @@ function rulesFrom(form: FormData): WeekRules {
     windowEnd: time(form, "windowEnd"),
     killsRequired: num(form, "killsRequired", 0, 20),
   };
-  if (rules.windowStart >= rules.windowEnd) throw new GameError("Tidsvinduet må starte før det slutter");
+  if (rules.windowStart >= rules.windowEnd)
+    throw new GameError("Tidsvinduet må starte før det slutter");
   return rules;
 }
 
 export async function approveKillAction(_: ActionState, form: FormData) {
-  return run(async () => approveKill(await requireGamemaster(), text(form, "killId"), text(form, "note")), "Drapet er godkjent");
+  return run(
+    async () => approveKill(await requireGamemaster(), text(form, "killId"), text(form, "note")),
+    "Drapet er godkjent",
+  );
 }
 
 export async function rejectKillAction(_: ActionState, form: FormData) {
-  return run(async () => rejectKill(await requireGamemaster(), text(form, "killId"), text(form, "note")), "Drapet er avvist");
+  return run(
+    async () => rejectKill(await requireGamemaster(), text(form, "killId"), text(form, "note")),
+    "Drapet er avvist",
+  );
 }
 
 export async function undoKillAction(_: ActionState, form: FormData) {
-  return run(async () => undoKillAsGamemaster(await requireGamemaster(), text(form, "killId")), "Drapet er angret");
+  return run(
+    async () => undoKillAsGamemaster(await requireGamemaster(), text(form, "killId")),
+    "Drapet er angret",
+  );
 }
 
 export async function decideReviewAction(_: ActionState, form: FormData) {
   return run(async () => {
     const decision = text(form, "decision") === "disqualified" ? "disqualified" : "exception";
-    await decideReview(await requireGamemaster(), text(form, "reviewId"), decision, text(form, "reason"));
+    await decideReview(
+      await requireGamemaster(),
+      text(form, "reviewId"),
+      decision,
+      text(form, "reason"),
+    );
   }, "Avgjort");
 }
 
 export async function buildFridayListAction(_: ActionState, form: FormData) {
   return run(async () => {
-    const { existed, added, pending } = await buildFridayListManually(await requireGamemaster(), text(form, "week"));
-    return existed ? `Lista fantes allerede: ${added} nye til gjennomgang. Eksisterende saker er ikke endret.` : `Lista er laget: ${pending} til gjennomgang`;
+    const { existed, added, pending } = await buildFridayListManually(
+      await requireGamemaster(),
+      text(form, "week"),
+    );
+    return existed
+      ? `Lista fantes allerede: ${added} nye til gjennomgang. Eksisterende saker er ikke endret.`
+      : `Lista er laget: ${pending} til gjennomgang`;
   });
 }
 
 export async function disqualifyAction(_: ActionState, form: FormData) {
-  return run(async () => disqualify(await requireGamemaster(), [text(form, "playerId")], text(form, "reason")), "Deltakeren er diskvalifisert");
+  return run(
+    async () =>
+      disqualify(await requireGamemaster(), [text(form, "playerId")], text(form, "reason")),
+    "Deltakeren er diskvalifisert",
+  );
 }
 
 export async function editCheckinAction(_: ActionState, form: FormData) {
@@ -104,7 +134,12 @@ export async function editCheckinAction(_: ActionState, form: FormData) {
         checkInAt: osloInput(text(form, "checkInAt")),
         checkOutAt: out ? osloInput(out) : null,
       });
-    } else if (kind === "approve" || kind === "reject" || kind === "restore" || kind === "reviewed") {
+    } else if (
+      kind === "approve" ||
+      kind === "reject" ||
+      kind === "restore" ||
+      kind === "reviewed"
+    ) {
       await editCheckin(viewer, text(form, "checkinId"), { kind });
     } else throw new GameError("Ukjent handling");
   });
@@ -112,16 +147,28 @@ export async function editCheckinAction(_: ActionState, form: FormData) {
 
 export async function addCheckinAction(_: ActionState, form: FormData) {
   return run(async () =>
-    addManualCheckin(await requireGamemaster(), text(form, "playerId"), osloInput(text(form, "checkInAt")), osloInput(text(form, "checkOutAt"))),
+    addManualCheckin(
+      await requireGamemaster(),
+      text(form, "playerId"),
+      osloInput(text(form, "checkInAt")),
+      osloInput(text(form, "checkOutAt")),
+    ),
   );
 }
 
 export async function rejectImageAction(_: ActionState, form: FormData) {
-  return run(async () => rejectImage(await requireGamemaster(), text(form, "playerId"), text(form, "message")), "Bildet er avvist");
+  return run(
+    async () =>
+      rejectImage(await requireGamemaster(), text(form, "playerId"), text(form, "message")),
+    "Bildet er avvist",
+  );
 }
 
 export async function approveImageAction(_: ActionState, form: FormData) {
-  return run(async () => approveImage(await requireGamemaster(), text(form, "playerId")), "Godkjent");
+  return run(
+    async () => approveImage(await requireGamemaster(), text(form, "playerId")),
+    "Godkjent",
+  );
 }
 
 export async function playerImageAction(_: ActionState, form: FormData) {
@@ -134,15 +181,25 @@ export async function playerImageAction(_: ActionState, form: FormData) {
 }
 
 export async function playerBioAction(_: ActionState, form: FormData) {
-  return run(async () => setBioAsGamemaster(await requireGamemaster(), text(form, "playerId"), bioFrom(form)), "Utseendet er lagret");
+  return run(
+    async () =>
+      setBioAsGamemaster(await requireGamemaster(), text(form, "playerId"), bioFrom(form)),
+    "Utseendet er lagret",
+  );
 }
 
 export async function answerAction(_: ActionState, form: FormData) {
-  return run(async () => answerQuestion(await requireGamemaster(), text(form, "id"), text(form, "answer")), "Svaret er sendt");
+  return run(
+    async () => answerQuestion(await requireGamemaster(), text(form, "id"), text(form, "answer")),
+    "Svaret er sendt",
+  );
 }
 
 export async function deleteQuestionAction(_: ActionState, form: FormData) {
-  return run(async () => deleteQuestion(await requireGamemaster(), text(form, "id")), "Spørsmålet er slettet");
+  return run(
+    async () => deleteQuestion(await requireGamemaster(), text(form, "id")),
+    "Spørsmålet er slettet",
+  );
 }
 
 export async function generateCircleAction(_: ActionState) {
@@ -150,7 +207,10 @@ export async function generateCircleAction(_: ActionState) {
 }
 
 export async function startGameAction(_: ActionState) {
-  return run(async () => startGame(await requireGamemaster()), "Spillet er i gang. E-post om første offer er sendt.");
+  return run(
+    async () => startGame(await requireGamemaster()),
+    "Spillet er i gang. E-post om første offer er sendt.",
+  );
 }
 
 export async function resumeGameAction(_: ActionState) {
@@ -158,34 +218,57 @@ export async function resumeGameAction(_: ActionState) {
 }
 
 export async function moveAction(_: ActionState, form: FormData) {
-  return run(async () => moveInCircle(await requireGamemaster(), text(form, "playerId"), text(form, "afterId")), "Flyttet");
+  return run(
+    async () =>
+      moveInCircle(await requireGamemaster(), text(form, "playerId"), text(form, "afterId")),
+    "Flyttet",
+  );
 }
 
 export async function mercyAction(_: ActionState, form: FormData) {
-  return run(async () => grantMercy(await requireGamemaster(), text(form, "playerId"), text(form, "afterId") || null), "Nåde gitt");
+  return run(
+    async () =>
+      grantMercy(await requireGamemaster(), text(form, "playerId"), text(form, "afterId") || null),
+    "Nåde gitt",
+  );
 }
 
 export async function addPlayerAction(_: ActionState, form: FormData) {
-  return run(async () => addPlayerAsGamemaster(await requireGamemaster(), text(form, "userId")), "Deltakeren er lagt til");
+  return run(
+    async () => addPlayerAsGamemaster(await requireGamemaster(), text(form, "userId")),
+    "Deltakeren er lagt til",
+  );
 }
 
 export async function removePlayerAction(_: ActionState, form: FormData) {
-  const result = await run(async () => removePlayerAsGamemaster(await requireGamemaster(), text(form, "playerId")), "Deltakeren er fjernet");
+  const result = await run(
+    async () => removePlayerAsGamemaster(await requireGamemaster(), text(form, "playerId")),
+    "Deltakeren er fjernet",
+  );
   if (result?.ok) throw redirect({ to: "/admin/deltakere" });
   return result;
 }
 
 export async function createSeasonAction(_: ActionState, form: FormData) {
-  return run(async () => createSeason(await requireViewer(), text(form, "name")), "Spillet er opprettet");
+  return run(
+    async () => createSeason(await requireViewer(), text(form, "name")),
+    "Spillet er opprettet",
+  );
 }
 
 export async function setPhaseAction(_: ActionState, form: FormData) {
-  return run(async () => setPhase(await requireGamemaster(), text(form, "phase") as Phase), "Fasen er endret");
+  return run(
+    async () => setPhase(await requireGamemaster(), text(form, "phase") as Phase),
+    "Fasen er endret",
+  );
 }
 
 export async function updateBasicsAction(_: ActionState, form: FormData) {
   return run(async () => {
-    await updateSeasonBasics(await requireGamemaster(), { name: text(form, "name"), rulesText: text(form, "rulesText") });
+    await updateSeasonBasics(await requireGamemaster(), {
+      name: text(form, "name"),
+      rulesText: text(form, "rulesText"),
+    });
   });
 }
 
@@ -198,13 +281,20 @@ export async function officeAction(_: ActionState, form: FormData) {
     const viewer = await requireGamemaster();
     if (!text(form, "lat") && !text(form, "lng")) return updateSettings(viewer, { office: null });
     await updateSettings(viewer, {
-      office: { lat: num(form, "lat", -90, 90), lng: num(form, "lng", -180, 180), radiusMeters: num(form, "radius", 20, 5000) },
+      office: {
+        lat: num(form, "lat", -90, 90),
+        lng: num(form, "lng", -180, 180),
+        radiusMeters: num(form, "radius", 20, 5000),
+      },
     });
   });
 }
 
 export async function resetGameAction(_: ActionState, form: FormData) {
-  return run(async () => resetGame(await requireGamemaster(), text(form, "confirm")), "Spillet er nullstilt");
+  return run(
+    async () => resetGame(await requireGamemaster(), text(form, "confirm")),
+    "Spillet er nullstilt",
+  );
 }
 
 export async function addStaffAction(_: ActionState, form: FormData) {
@@ -218,7 +308,10 @@ export async function removeStaffAction(_: ActionState, form: FormData) {
 }
 
 export async function emergencyStartAction(_: ActionState, form: FormData) {
-  return run(async () => startEmergencyAccess(await requireSeason(), text(form, "reason")), "Nødtilgang er på i én time");
+  return run(
+    async () => startEmergencyAccess(await requireSeason(), text(form, "reason")),
+    "Nødtilgang er på i én time",
+  );
 }
 
 export async function emergencyEndAction(_: ActionState) {
@@ -229,7 +322,13 @@ export async function saveTemplateAction(_: ActionState, form: FormData) {
   return run(async () => {
     const key = text(form, "key");
     if (!(key in DEFAULT_TEMPLATES)) throw new GameError("Ukjent mal");
-    if (form.get("restoreDefault") === "on") return resetTemplate(await requireGamemaster(), key as TemplateKey);
-    await saveTemplate(await requireGamemaster(), key as TemplateKey, text(form, "subject"), text(form, "body"));
+    if (form.get("restoreDefault") === "on")
+      return resetTemplate(await requireGamemaster(), key as TemplateKey);
+    await saveTemplate(
+      await requireGamemaster(),
+      key as TemplateKey,
+      text(form, "subject"),
+      text(form, "body"),
+    );
   });
 }

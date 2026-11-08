@@ -19,10 +19,15 @@ export async function onLogin(identity: PhotonIdentity, tokens?: PhotonTokens) {
   if (!season) return;
   const [user, isPlayer] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
-    db.query.players.findFirst({ where: and(eq(players.seasonId, season.id), eq(players.userId, userId)) }),
+    db.query.players.findFirst({
+      where: and(eq(players.seasonId, season.id), eq(players.userId, userId)),
+    }),
   ]);
   if (user && !isPlayer) {
-    await db.insert(staff).values({ seasonId: season.id, username: user.username }).onConflictDoNothing();
+    await db
+      .insert(staff)
+      .values({ seasonId: season.id, username: user.username })
+      .onConflictDoNothing();
   }
 }
 
@@ -30,7 +35,10 @@ export async function onLogin(identity: PhotonIdentity, tokens?: PhotonTokens) {
 async function copyPhotonImage(userId: string, image: string | null, token: string) {
   const file = image ? await downloadPhotonImage(image, token) : null;
   const key = file ? await storeImage("photon", file) : null;
-  const [before] = await db.select({ key: users.photonImageKey }).from(users).where(eq(users.id, userId));
+  const [before] = await db
+    .select({ key: users.photonImageKey })
+    .from(users)
+    .where(eq(users.id, userId));
   await db.update(users).set({ photonImageKey: key }).where(eq(users.id, userId));
   if (before?.key && before.key !== key) await deleteImages([before.key]).catch(() => undefined);
 }

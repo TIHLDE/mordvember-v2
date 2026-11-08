@@ -24,7 +24,8 @@ export function readOAuthState(): Partial<OAuthState> {
     if (!value || typeof value !== "object") return {};
     return {
       state: "state" in value && typeof value.state === "string" ? value.state : undefined,
-      verifier: "verifier" in value && typeof value.verifier === "string" ? value.verifier : undefined,
+      verifier:
+        "verifier" in value && typeof value.verifier === "string" ? value.verifier : undefined,
       next: "next" in value && typeof value.next === "string" ? value.next : undefined,
     };
   } catch {

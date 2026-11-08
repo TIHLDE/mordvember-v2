@@ -2,7 +2,11 @@
 
 export type ImageState = "deleted" | "rejected" | "approved" | "pending";
 
-export function imageState(p: { imageApprovedAt: Date | null; imageRejectedReason: string | null; imageDeleted: boolean }): ImageState {
+export function imageState(p: {
+  imageApprovedAt: Date | null;
+  imageRejectedReason: string | null;
+  imageDeleted: boolean;
+}): ImageState {
   if (p.imageDeleted) return "deleted";
   if (p.imageRejectedReason) return "rejected";
   if (p.imageApprovedAt) return "approved";
@@ -20,7 +24,11 @@ export type ReviewItem = {
 export type ReviewInput = {
   playerId: string;
   alive: boolean;
-  image: { imageApprovedAt: Date | null; imageRejectedReason: string | null; imageDeleted: boolean };
+  image: {
+    imageApprovedAt: Date | null;
+    imageRejectedReason: string | null;
+    imageDeleted: boolean;
+  };
   kills: { status: string; reportedBy: "killer" | "victim"; killerId: string; victimId: string }[];
   unclosedCheckinDates: string[];
   pendingReviewWeeks: string[];
@@ -31,19 +39,42 @@ export function reviewItems(input: ReviewInput): ReviewItem[] {
   const items: ReviewItem[] = [];
   const image = imageState(input.image);
   if (input.alive && image === "rejected") {
-    items.push({ kind: "action", text: `Bildet ditt ble avvist: ${input.image.imageRejectedReason}`, href: "/profil", cta: "Last opp nytt bilde" });
+    items.push({
+      kind: "action",
+      text: `Bildet ditt ble avvist: ${input.image.imageRejectedReason}`,
+      href: "/profil",
+      cta: "Last opp nytt bilde",
+    });
   }
   if (input.alive && image === "pending") {
-    items.push({ kind: "waiting", text: "Bildet ditt venter på godkjenning fra spillmesterne.", href: "/profil" });
+    items.push({
+      kind: "waiting",
+      text: "Bildet ditt venter på godkjenning fra spillmesterne.",
+      href: "/profil",
+    });
   }
   for (const kill of input.kills) {
-    const iConfirm = (kill.reportedBy === "killer" ? kill.victimId : kill.killerId) === input.playerId;
+    const iConfirm =
+      (kill.reportedBy === "killer" ? kill.victimId : kill.killerId) === input.playerId;
     if (kill.status === "escalated") {
-      items.push({ kind: "waiting", text: "Et drap du er part i behandles av spillmesterne.", href: "/drap" });
+      items.push({
+        kind: "waiting",
+        text: "Et drap du er part i behandles av spillmesterne.",
+        href: "/drap",
+      });
     } else if (kill.status === "pending" && iConfirm) {
-      items.push({ kind: "action", text: "Et drap du er part i venter på svar fra deg.", href: "/drap", cta: "Bekreft eller avvis" });
+      items.push({
+        kind: "action",
+        text: "Et drap du er part i venter på svar fra deg.",
+        href: "/drap",
+        cta: "Bekreft eller avvis",
+      });
     } else if (kill.status === "pending") {
-      items.push({ kind: "waiting", text: "Et drap du har meldt venter på bekreftelse fra den andre.", href: "/drap" });
+      items.push({
+        kind: "waiting",
+        text: "Et drap du har meldt venter på bekreftelse fra den andre.",
+        href: "/drap",
+      });
     }
   }
   for (const date of input.unclosedCheckinDates) {
@@ -54,7 +85,11 @@ export function reviewItems(input: ReviewInput): ReviewItem[] {
     });
   }
   for (const week of input.pendingReviewWeeks) {
-    items.push({ kind: "waiting", text: `Uka fra ${input.formatDate(week)} oppfylte ikke kravene og vurderes av spillmesterne.`, href: "/oppmote" });
+    items.push({
+      kind: "waiting",
+      text: `Uka fra ${input.formatDate(week)} oppfylte ikke kravene og vurderes av spillmesterne.`,
+      href: "/oppmote",
+    });
   }
   // Things to act on first.
   return items.sort((a, b) => Number(b.kind === "action") - Number(a.kind === "action"));

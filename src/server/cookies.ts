@@ -7,6 +7,8 @@ export function cookies() {
       return value === undefined ? undefined : { value };
     },
     set: setCookie,
-    delete(name: string) { deleteCookie(name, { path: "/" }); },
+    delete(name: string) {
+      deleteCookie(name, { path: "/" });
+    },
   };
 }

@@ -5,7 +5,8 @@ const noNativeDateInput = defineRule({
     type: "problem",
     schema: [],
     messages: {
-      usePicker: "Bruk <DateTimePicker> fra @/components/DateTimePicker i stedet for native dato- og tidsfelt.",
+      usePicker:
+        "Bruk <DateTimePicker> fra @/components/DateTimePicker i stedet for native dato- og tidsfelt.",
     },
   },
   create(context) {

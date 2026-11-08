@@ -9,8 +9,15 @@ const LOCAL_DIR = path.join(process.cwd(), ".data", "uploads");
 
 const TYPES: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = {
   "image/jpeg": { ext: "jpg", magic: (b) => b[0] === 0xff && b[1] === 0xd8 },
-  "image/png": { ext: "png", magic: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
-  "image/webp": { ext: "webp", magic: (b) => b.subarray(0, 4).toString() === "RIFF" && b.subarray(8, 12).toString() === "WEBP" },
+  "image/png": {
+    ext: "png",
+    magic: (b) =>
+      b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  },
+  "image/webp": {
+    ext: "webp",
+    magic: (b) => b.subarray(0, 4).toString() === "RIFF" && b.subarray(8, 12).toString() === "WEBP",
+  },
 };
 
 function storesLocally() {
@@ -31,18 +38,25 @@ export async function storeImage(prefix: string, file: File): Promise<string> {
     await writeFile(target, buffer);
     return key;
   }
-  const result = await put(key, buffer, { access: "private", contentType: file.type, addRandomSuffix: true });
+  const result = await put(key, buffer, {
+    access: "private",
+    contentType: file.type,
+    addRandomSuffix: true,
+  });
   return result.pathname;
 }
 
-export async function readImage(key: string): Promise<{ body: BodyInit; contentType: string } | null> {
+export async function readImage(
+  key: string,
+): Promise<{ body: BodyInit; contentType: string } | null> {
   if (storesLocally()) {
     const target = path.join(LOCAL_DIR, key);
     if (!target.startsWith(LOCAL_DIR)) return null;
     try {
       const data = await readFile(target);
       const ext = path.extname(key).slice(1);
-      const contentType = Object.entries(TYPES).find(([, t]) => t.ext === ext)?.[0] ?? "application/octet-stream";
+      const contentType =
+        Object.entries(TYPES).find(([, t]) => t.ext === ext)?.[0] ?? "application/octet-stream";
       return { body: new Uint8Array(data), contentType };
     } catch {
       return null;

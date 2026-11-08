@@ -16,7 +16,10 @@ const DIRECTORY = [
 
 type MockUser = { username: string; name: string; leaderOf: string[]; pending?: boolean };
 let current: MockUser = { username: "mock-deltaker", name: "Mock Deltaker", leaderOf: [] };
-const codes = new Map<string, { challenge: string; redirectUri: string; user: MockUser; offline: boolean }>();
+const codes = new Map<
+  string,
+  { challenge: string; redirectUri: string; user: MockUser; offline: boolean }
+>();
 const tokens = new Map<string, { user: MockUser; expiresAt: number }>();
 const refreshTokens = new Map<string, MockUser>();
 const revokedRefreshTokens = new Set<string>();
@@ -25,7 +28,10 @@ const emails: unknown[] = [];
 const errors: string[] = [];
 
 const b64url = (buf: Buffer) => buf.toString("base64url");
-const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
 const imageRequests: { key: string; width: string | null }[] = [];
 
 function body(req: import("node:http").IncomingMessage): Promise<string> {
@@ -42,22 +48,31 @@ function json(res: import("node:http").ServerResponse, status: number, value: un
 }
 
 // Better Auth 1.7 svarer med RFC 6749-feil og håndhever klientens registrerte autentiseringsmetode.
-function oauthError(res: import("node:http").ServerResponse, status: number, error: string, description: string) {
+function oauthError(
+  res: import("node:http").ServerResponse,
+  status: number,
+  error: string,
+  description: string,
+) {
   if (status === 401) res.setHeader("WWW-Authenticate", 'Basic realm="oauth"');
   return json(res, status, { error, error_description: description });
 }
 
 // Klienten er registrert som client_secret_basic. Hemmelighet i skjemaet gir 400, feil Basic gir 401.
 function clientAuthError(req: import("node:http").IncomingMessage, form: URLSearchParams) {
-  if (form.has("client_secret")) return { status: 400, description: "client_secret_post er ikke registrert for klienten" };
+  if (form.has("client_secret"))
+    return { status: 400, description: "client_secret_post er ikke registrert for klienten" };
   const [scheme, value] = (req.headers.authorization ?? "").split(" ");
-  if (scheme !== "Basic" || !value) return { status: 401, description: "mangler Basic-autentisering" };
+  if (scheme !== "Basic" || !value)
+    return { status: 401, description: "mangler Basic-autentisering" };
   const decoded = Buffer.from(value, "base64").toString();
   const split = decoded.indexOf(":");
   const id = decodeURIComponent(decoded.slice(0, split));
   const secret = decodeURIComponent(decoded.slice(split + 1));
-  if (split < 0 || id !== CLIENT_ID || secret !== CLIENT_SECRET) return { status: 401, description: "feil klient-id eller hemmelighet" };
-  if (form.has("client_id") && form.get("client_id") !== id) return { status: 400, description: "client_id i skjemaet stemmer ikke med Basic" };
+  if (split < 0 || id !== CLIENT_ID || secret !== CLIENT_SECRET)
+    return { status: 401, description: "feil klient-id eller hemmelighet" };
+  if (form.has("client_id") && form.get("client_id") !== id)
+    return { status: 400, description: "client_id i skjemaet stemmer ikke med Basic" };
   return null;
 }
 
@@ -72,7 +87,12 @@ function issue(res: import("node:http").ServerResponse, user: MockUser, offline:
   tokens.set(token, { user, expiresAt: Date.now() + TOKEN_TTL * 1000 });
   const refresh = offline ? `refresh.${randomUUID()}` : undefined;
   if (refresh) refreshTokens.set(refresh, user);
-  return json(res, 200, { access_token: token, token_type: "Bearer", expires_in: TOKEN_TTL, refresh_token: refresh });
+  return json(res, 200, {
+    access_token: token,
+    token_type: "Bearer",
+    expires_in: TOKEN_TTL,
+    refresh_token: refresh,
+  });
 }
 
 createServer(async (req, res) => {
@@ -112,7 +132,12 @@ createServer(async (req, res) => {
       return json(res, 400, { error: problems });
     }
     const code = randomUUID();
-    codes.set(code, { challenge: p.get("code_challenge")!, redirectUri: p.get("redirect_uri")!, user: current, offline: p.get("scope")!.split(" ").includes("offline_access") });
+    codes.set(code, {
+      challenge: p.get("code_challenge")!,
+      redirectUri: p.get("redirect_uri")!,
+      user: current,
+      offline: p.get("scope")!.split(" ").includes("offline_access"),
+    });
     const back = new URL(p.get("redirect_uri")!);
     back.searchParams.set("code", code);
     back.searchParams.set("state", p.get("state")!);
@@ -135,7 +160,8 @@ createServer(async (req, res) => {
       const user = refreshTokens.get(form.get("refresh_token") ?? "");
       if (!user) {
         // Et tilbakekalt token er et gyldig avslag, ikke en feil i klienten.
-        if (!revokedRefreshTokens.has(form.get("refresh_token") ?? "")) errors.push("refresh: ugyldig");
+        if (!revokedRefreshTokens.has(form.get("refresh_token") ?? ""))
+          errors.push("refresh: ugyldig");
         return oauthError(res, 400, "invalid_grant", "ukjent eller tilbakekalt refresh-token");
       }
       refreshTokens.delete(form.get("refresh_token")!);
@@ -147,7 +173,9 @@ createServer(async (req, res) => {
     const problems = [
       !entry && "ukjent kode",
       form.get("grant_type") !== "authorization_code" && "grant_type",
-      entry && b64url(createHash("sha256").update(verifier).digest()) !== entry.challenge && "pkce stemmer ikke",
+      entry &&
+        b64url(createHash("sha256").update(verifier).digest()) !== entry.challenge &&
+        "pkce stemmer ikke",
       entry && form.get("redirect_uri") !== entry.redirectUri && "redirect_uri ulik",
     ].filter(Boolean);
     if (problems.length || !entry) {
@@ -161,7 +189,12 @@ createServer(async (req, res) => {
   if (path === "/api/auth/oauth2/userinfo") {
     const user = bearerUser(req);
     if (!user) return oauthError(res, 401, "invalid_token", "tokenet er ugyldig eller tilbakekalt");
-    return json(res, 200, { sub: `sub-${user.username}`, name: user.name, email: `${user.username}@example.test`, preferred_username: user.username });
+    return json(res, 200, {
+      sub: `sub-${user.username}`,
+      name: user.name,
+      email: `${user.username}@example.test`,
+      preferred_username: user.username,
+    });
   }
 
   if (path === "/api/groups/mine") {
@@ -169,8 +202,16 @@ createServer(async (req, res) => {
     if (!user) return json(res, 401, {});
     if (user.pending) return json(res, 403, {});
     return json(res, 200, [
-      { slug: "kok", name: "KoK", membership: { role: user.leaderOf.includes("kok") ? "leader" : "member" } },
-      { slug: "index", name: "Index", membership: { role: user.leaderOf.includes("index") ? "leader" : "member" } },
+      {
+        slug: "kok",
+        name: "KoK",
+        membership: { role: user.leaderOf.includes("kok") ? "leader" : "member" },
+      },
+      {
+        slug: "index",
+        name: "Index",
+        membership: { role: user.leaderOf.includes("index") ? "leader" : "member" },
+      },
     ]);
   }
 
@@ -180,14 +221,28 @@ createServer(async (req, res) => {
     const group = url.searchParams.get("groupSlug");
     if (!group || !user.leaderOf.includes(group)) return json(res, 403, {});
     const q = (url.searchParams.get("q") ?? "").toLowerCase();
-    return json(res, 200, DIRECTORY.filter((u) => u.username.includes(q) || u.name.toLowerCase().includes(q)).map((u) => ({ id: u.username, ...u, image: null })));
+    return json(
+      res,
+      200,
+      DIRECTORY.filter((u) => u.username.includes(q) || u.name.toLowerCase().includes(q)).map(
+        (u) => ({ id: u.username, ...u, image: null }),
+      ),
+    );
   }
 
   const profile = /^\/api\/user\/([^/]+)$/.exec(path);
   if (profile) {
     const user = bearerUser(req);
     if (!user || decodeURIComponent(profile[1]!) !== user.username) return json(res, 401, {});
-    return json(res, 200, { id: "x", username: user.username, name: user.name, image: `http://localhost:${PORT}/api/assets/profil-${user.username}.png`, studyProgram: "Dataingeniør", studyStartYear: 2024, classYear: 3 });
+    return json(res, 200, {
+      id: "x",
+      username: user.username,
+      name: user.name,
+      image: `http://localhost:${PORT}/api/assets/profil-${user.username}.png`,
+      studyProgram: "Dataingeniør",
+      studyStartYear: 2024,
+      classYear: 3,
+    });
   }
 
   const asset = /^\/api\/assets\/(.+)$/.exec(path);
@@ -203,7 +258,12 @@ createServer(async (req, res) => {
       errors.push("email: feil nøkkel");
       return json(res, 403, {});
     }
-    const mail = JSON.parse(await body(req)) as { to?: unknown; subject?: unknown; content?: { type: string }[]; from?: string };
+    const mail = JSON.parse(await body(req)) as {
+      to?: unknown;
+      subject?: unknown;
+      content?: { type: string }[];
+      from?: string;
+    };
     const valid =
       typeof mail.to === "string" &&
       typeof mail.subject === "string" &&

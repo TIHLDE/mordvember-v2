@@ -14,17 +14,38 @@ export async function askQuestion(viewer: Viewer, text: string) {
   if (question.length < 5) throw new GameError("Spørsmålet er for kort");
   if (question.length > 2000) throw new GameError("Spørsmålet er for langt");
   await db.transaction(async (tx) => {
-    await tx.insert(questions).values({ seasonId: viewer.season!.id, userId: viewer.user.id, question });
+    await tx
+      .insert(questions)
+      .values({ seasonId: viewer.season!.id, userId: viewer.user.id, question });
     const staffRows = await staffEmails(tx, viewer.season!.id);
-    await notify(tx, staffRows.map((s) => ({ userId: s.userId, seasonId: viewer.season!.id, text: "Nytt spørsmål i innboksen", href: "/admin/sporsmal" })));
-    await queueEmail(tx, "staff_question", staffRows.map((s) => s.email));
+    await notify(
+      tx,
+      staffRows.map((s) => ({
+        userId: s.userId,
+        seasonId: viewer.season!.id,
+        text: "Nytt spørsmål i innboksen",
+        href: "/admin/sporsmal",
+      })),
+    );
+    await queueEmail(
+      tx,
+      "staff_question",
+      staffRows.map((s) => s.email),
+    );
   });
 }
 
 export async function seasonQuestions(viewer: Viewer) {
   if (!viewer.season) return [];
   const rows = await db
-    .select({ id: questions.id, userId: questions.userId, question: questions.question, answer: questions.answer, answeredAt: questions.answeredAt, createdAt: questions.createdAt })
+    .select({
+      id: questions.id,
+      userId: questions.userId,
+      question: questions.question,
+      answer: questions.answer,
+      answeredAt: questions.answeredAt,
+      createdAt: questions.createdAt,
+    })
     .from(questions)
     .where(eq(questions.seasonId, viewer.season.id))
     .orderBy(desc(questions.createdAt));
@@ -52,9 +73,24 @@ export async function answerQuestion(viewer: Viewer, id: string, answer: string)
       .returning();
     if (!q) throw new GameError("Spørsmålet finnes ikke");
     const asker = await tx.query.users.findFirst({ where: eq(users.id, q.userId) });
-    await notify(tx, [{ userId: q.userId, seasonId: q.seasonId, text: "Spillmesterne har svart på spørsmålet ditt", href: "/sporsmal" }]);
-    await queueEmail(tx, "question_answered", [asker?.email], { sporsmal: q.question, svar: answer.trim() });
-    await audit(tx, { seasonId: q.seasonId, actorUserId: viewer.user.id, action: "sporsmal.besvart", details: { id } });
+    await notify(tx, [
+      {
+        userId: q.userId,
+        seasonId: q.seasonId,
+        text: "Spillmesterne har svart på spørsmålet ditt",
+        href: "/sporsmal",
+      },
+    ]);
+    await queueEmail(tx, "question_answered", [asker?.email], {
+      sporsmal: q.question,
+      svar: answer.trim(),
+    });
+    await audit(tx, {
+      seasonId: q.seasonId,
+      actorUserId: viewer.user.id,
+      action: "sporsmal.besvart",
+      details: { id },
+    });
   });
 }
 
@@ -66,6 +102,11 @@ export async function deleteQuestion(viewer: Viewer, id: string) {
       .where(and(eq(questions.id, id), eq(questions.seasonId, viewer.season!.id)))
       .returning();
     if (!q) throw new GameError("Spørsmålet finnes ikke");
-    await audit(tx, { seasonId: q.seasonId, actorUserId: viewer.user.id, action: "sporsmal.slettet", details: { id, sporsmal: q.question } });
+    await audit(tx, {
+      seasonId: q.seasonId,
+      actorUserId: viewer.user.id,
+      action: "sporsmal.slettet",
+      details: { id, sporsmal: q.question },
+    });
   });
 }

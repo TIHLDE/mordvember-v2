@@ -15,7 +15,16 @@
   summary,
   label[for],
   label:has(> input:is([type="checkbox"], [type="radio"])),
-  input:is([type="checkbox"], [type="radio"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="color"], [type="range"]),
+  input:is(
+    [type="checkbox"],
+    [type="radio"],
+    [type="file"],
+    [type="submit"],
+    [type="button"],
+    [type="reset"],
+    [type="color"],
+    [type="range"]
+  ),
   input[type="file"]::file-selector-button,
   [role="button"],
   [role="tab"],
@@ -28,7 +37,19 @@
     cursor: pointer;
   }
 
-  :is(button, select, input, [role="button"], [role="tab"], [role="checkbox"], [role="radio"], [role="switch"], [role="option"], [role="menuitem"], [role="combobox"]):is(:disabled, [aria-disabled="true"], [data-disabled]) {
+  :is(
+    button,
+    select,
+    input,
+    [role="button"],
+    [role="tab"],
+    [role="checkbox"],
+    [role="radio"],
+    [role="switch"],
+    [role="option"],
+    [role="menuitem"],
+    [role="combobox"]
+  ):is(:disabled, [aria-disabled="true"], [data-disabled]) {
     cursor: not-allowed;
   }
 }
@@ -101,9 +122,65 @@ html:has(.status-screen) {
 }
 
 :root {
-  --spring: linear(0, 0.06, 0.186, 0.329, 0.466, 0.584, 0.682, 0.76, 0.821, 0.868, 0.903, 0.929, 0.949, 0.963, 0.973, 0.981, 0.986, 0.99, 0.993, 0.995, 0.997, 0.998, 0.998, 0.999, 1);
+  --spring: linear(
+    0,
+    0.06,
+    0.186,
+    0.329,
+    0.466,
+    0.584,
+    0.682,
+    0.76,
+    0.821,
+    0.868,
+    0.903,
+    0.929,
+    0.949,
+    0.963,
+    0.973,
+    0.981,
+    0.986,
+    0.99,
+    0.993,
+    0.995,
+    0.997,
+    0.998,
+    0.998,
+    0.999,
+    1
+  );
   --spring-duration: 600ms;
-  --spring-bouncy: linear(0, 0.062, 0.202, 0.366, 0.526, 0.664, 0.776, 0.861, 0.922, 0.964, 0.99, 1.005, 1.012, 1.015, 1.015, 1.013, 1.01, 1.008, 1.006, 1.004, 1.002, 1.001, 1.001, 1, 1, 1, 1, 1, 1);
+  --spring-bouncy: linear(
+    0,
+    0.062,
+    0.202,
+    0.366,
+    0.526,
+    0.664,
+    0.776,
+    0.861,
+    0.922,
+    0.964,
+    0.99,
+    1.005,
+    1.012,
+    1.015,
+    1.015,
+    1.013,
+    1.01,
+    1.008,
+    1.006,
+    1.004,
+    1.002,
+    1.001,
+    1.001,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  );
   --spring-bouncy-duration: 700ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -126,12 +203,24 @@ html:has(.status-screen) {
     animation-delay: calc(min(var(--i, 0), 6) * 40ms);
   }
 
-  .page-enter > * > :nth-child(1) { --i: 0; }
-  .page-enter > * > :nth-child(2) { --i: 1; }
-  .page-enter > * > :nth-child(3) { --i: 2; }
-  .page-enter > * > :nth-child(4) { --i: 3; }
-  .page-enter > * > :nth-child(5) { --i: 4; }
-  .page-enter > * > :nth-child(n + 6) { --i: 5; }
+  .page-enter > * > :nth-child(1) {
+    --i: 0;
+  }
+  .page-enter > * > :nth-child(2) {
+    --i: 1;
+  }
+  .page-enter > * > :nth-child(3) {
+    --i: 2;
+  }
+  .page-enter > * > :nth-child(4) {
+    --i: 3;
+  }
+  .page-enter > * > :nth-child(5) {
+    --i: 4;
+  }
+  .page-enter > * > :nth-child(n + 6) {
+    --i: 5;
+  }
 
   .appear {
     animation: appear 320ms var(--ease-out) backwards;
@@ -140,7 +229,9 @@ html:has(.status-screen) {
   .glass {
     background: rgb(11 11 13 / 0.62);
     backdrop-filter: blur(20px) saturate(160%);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.06), 0 8px 24px -16px rgb(0 0 0 / 0.8);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.06),
+      0 8px 24px -16px rgb(0 0 0 / 0.8);
   }
 
   .portrait {
@@ -169,7 +260,9 @@ html:has(.status-screen) {
 
   .reveal-frame[data-state="revealed"] {
     border-color: rgb(208 31 41 / 0.6);
-    box-shadow: 0 0 0 4px rgb(179 18 27 / 0.15), 0 24px 60px -20px rgb(179 18 27 / 0.45);
+    box-shadow:
+      0 0 0 4px rgb(179 18 27 / 0.15),
+      0 24px 60px -20px rgb(179 18 27 / 0.45);
     transform: scale(1.02);
   }
 

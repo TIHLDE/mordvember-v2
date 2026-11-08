@@ -19,7 +19,9 @@ export function isOpen(kill: KillCase): boolean {
 }
 
 export function isOverdue(kill: KillCase, now: Date): boolean {
-  return kill.status === "pending" && now.getTime() - kill.reportedAt.getTime() >= CONFIRM_TIMEOUT_MS;
+  return (
+    kill.status === "pending" && now.getTime() - kill.reportedAt.getTime() >= CONFIRM_TIMEOUT_MS
+  );
 }
 
 export function findCollisions(
@@ -35,10 +37,12 @@ export function findCollisions(
     (k) => k.id !== kill.id && (isOpen(k) || (k.status === "applied" && !alive.has(k.victimId))),
   );
 
-  if (kill.killedAt.getTime() > now.getTime() + 5 * 60 * 1000) reasons.push("Drapstidspunktet er i framtiden");
+  if (kill.killedAt.getTime() > now.getTime() + 5 * 60 * 1000)
+    reasons.push("Drapstidspunktet er i framtiden");
   // Skjemaet oppgir tidspunkt på hele minutter, så starten rundes ned til samme presisjon.
   const startMinute = gameStartedAt ? Math.floor(gameStartedAt.getTime() / 60000) * 60000 : null;
-  if (startMinute !== null && kill.killedAt.getTime() < startMinute) reasons.push("Drapstidspunktet er før spillet startet");
+  if (startMinute !== null && kill.killedAt.getTime() < startMinute)
+    reasons.push("Drapstidspunktet er før spillet startet");
 
   if (others.some((k) => k.victimId === kill.victimId)) {
     reasons.push("Offeret er også meldt drept i en annen sak");
@@ -52,7 +56,9 @@ export function findCollisions(
   return reasons;
 }
 
-export type ReportCheck = { ok: true; killerId: string; victimId: string } | { ok: false; reason: string };
+export type ReportCheck =
+  | { ok: true; killerId: string; victimId: string }
+  | { ok: false; reason: string };
 
 export function checkReport(
   ring: Ring,
@@ -90,7 +96,8 @@ export function decideOnConfirm(
   now: Date,
 ): ConfirmOutcome {
   const reasons = findCollisions(kill, all, gameStartedAt, now, new Set(ring));
-  if (targetOf(ring, kill.killerId) !== kill.victimId) reasons.push("Sirkelen har endret seg siden drapet ble meldt");
+  if (targetOf(ring, kill.killerId) !== kill.victimId)
+    reasons.push("Sirkelen har endret seg siden drapet ble meldt");
   return reasons.length ? { action: "escalate", reasons } : { action: "apply" };
 }
 

@@ -6,12 +6,22 @@ import { cx } from "./styles";
 
 export type NavLink = { href: string; label: string; count?: number; exact?: boolean };
 
-export function NavLinks({ links, vertical = false, className = "" }: { links: NavLink[]; vertical?: boolean; className?: string }) {
+export function NavLinks({
+  links,
+  vertical = false,
+  className = "",
+}: {
+  links: NavLink[];
+  vertical?: boolean;
+  className?: string;
+}) {
   const pathname = useLocation({ select: (location) => location.pathname });
   return (
     <nav className={cx("flex gap-1", vertical ? "flex-wrap md:flex-col" : "flex-wrap", className)}>
       {links.map((l) => {
-        const active = l.exact ? pathname === l.href : pathname === l.href || pathname.startsWith(`${l.href}/`);
+        const active = l.exact
+          ? pathname === l.href
+          : pathname === l.href || pathname.startsWith(`${l.href}/`);
         return (
           <Link
             key={l.href}

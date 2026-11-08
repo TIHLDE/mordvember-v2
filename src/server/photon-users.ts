@@ -13,7 +13,8 @@ export async function searchPhotonUsers(viewer: Viewer, query: string): Promise<
   try {
     return await searchUsers(token, q, groupSlug);
   } catch (error) {
-    if (error instanceof PhotonForbiddenError) throw new GameError("Photon lar deg ikke søke etter brukere. Skriv inn brukernavnet.");
+    if (error instanceof PhotonForbiddenError)
+      throw new GameError("Photon lar deg ikke søke etter brukere. Skriv inn brukernavnet.");
     throw error;
   }
 }

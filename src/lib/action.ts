@@ -8,7 +8,10 @@ import { GameError } from "@/server/game";
 
 export type ActionState = { ok?: string; error?: string; nonce?: string } | null;
 
-export async function run(fn: () => Promise<string | void>, okMessage = "Lagret"): Promise<ActionState> {
+export async function run(
+  fn: () => Promise<string | void>,
+  okMessage = "Lagret",
+): Promise<ActionState> {
   try {
     const result = await fn();
     await deliverPendingEmails().catch((e) => console.error("E-postutsending feilet", e));
@@ -17,7 +20,8 @@ export async function run(fn: () => Promise<string | void>, okMessage = "Lagret"
     if (error instanceof GameError || error instanceof AccessError || error instanceof RingError) {
       return { error: error.message };
     }
-    if (error instanceof Error && /større enn|må være JPG/.test(error.message)) return { error: error.message };
+    if (error instanceof Error && /større enn|må være JPG/.test(error.message))
+      return { error: error.message };
     console.error(error);
     return { error: "Noe gikk galt. Prøv igjen." };
   }
@@ -29,7 +33,9 @@ export function text(form: FormData, key: string): string {
 }
 
 export function bioFrom(form: FormData) {
-  return composeBio(Object.fromEntries(BIO_FIELDS.map(({ key }) => [key, text(form, `bio_${key}`)])));
+  return composeBio(
+    Object.fromEntries(BIO_FIELDS.map(({ key }) => [key, text(form, `bio_${key}`)])),
+  );
 }
 
 export function osloInput(value: string): Date {
@@ -37,4 +43,3 @@ export function osloInput(value: string): Date {
   if (!match) throw new GameError("Ugyldig tidspunkt");
   return osloTime(match[1] as string, match[2] as string);
 }
-

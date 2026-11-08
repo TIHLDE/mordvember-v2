@@ -26,7 +26,8 @@ export type OsloParts = {
 };
 
 export function osloParts(at: Date): OsloParts {
-  const get = (type: string) => partsFormat.formatToParts(at).find((p) => p.type === type)?.value ?? "";
+  const get = (type: string) =>
+    partsFormat.formatToParts(at).find((p) => p.type === type)?.value ?? "";
   const year = Number(get("year"));
   const month = Number(get("month"));
   const day = Number(get("day"));
@@ -77,7 +78,11 @@ export function weekdaysOf(weekStart: string): string[] {
   return [0, 1, 2, 3, 4].map((i) => addDays(weekStart, i));
 }
 
-const timeFormat = new Intl.DateTimeFormat("nb-NO", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit" });
+const timeFormat = new Intl.DateTimeFormat("nb-NO", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+});
 const dateTimeFormat = new Intl.DateTimeFormat("nb-NO", {
   timeZone: TIME_ZONE,
   day: "numeric",
@@ -85,7 +90,12 @@ const dateTimeFormat = new Intl.DateTimeFormat("nb-NO", {
   hour: "2-digit",
   minute: "2-digit",
 });
-const dateFormat = new Intl.DateTimeFormat("nb-NO", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
+const dateFormat = new Intl.DateTimeFormat("nb-NO", {
+  timeZone: "UTC",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
 
 export function formatOslo(at: Date, withDate = true): string {
   return (withDate ? dateTimeFormat : timeFormat).format(at);

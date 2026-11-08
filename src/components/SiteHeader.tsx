@@ -19,7 +19,9 @@ export function SiteHeader({ viewer, unread, waiting }: Awaited<ReturnType<typeo
           : []),
         { href: "/sporsmal", label: "Spørsmål" },
         { href: "/varsler", label: "Varsler", count: unread },
-        ...(viewer.isGamemaster || viewer.canManageRoles ? [{ href: "/admin", label: "Admin" }] : []),
+        ...(viewer.isGamemaster || viewer.canManageRoles
+          ? [{ href: "/admin", label: "Admin" }]
+          : []),
       ]
     : [];
   const container = "mx-auto max-w-5xl px-4";
@@ -37,12 +39,20 @@ export function SiteHeader({ viewer, unread, waiting }: Awaited<ReturnType<typeo
               {viewer ? (
                 <>
                   <form action="/api/auth/logout" method="post">
-                    <button type="submit" className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200">
+                    <button
+                      type="submit"
+                      className="inline-flex min-h-9 items-center rounded-lg px-3 text-sm text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+                    >
                       Logg ut
                     </button>
                   </form>
                   {viewer.player ? (
-                    <Link to="/profil" search={{}} aria-label="Gå til profil" className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60">
+                    <Link
+                      to="/profil"
+                      search={{}}
+                      aria-label="Gå til profil"
+                      className="rounded-full transition-shadow hover:ring-2 hover:ring-blood/60"
+                    >
                       <UserAvatar name={viewer.user.name} image={viewer.user.photonImage} />
                     </Link>
                   ) : (
@@ -50,7 +60,11 @@ export function SiteHeader({ viewer, unread, waiting }: Awaited<ReturnType<typeo
                   )}
                 </>
               ) : (
-                <Link to="/login" search={{}} className={buttonClass({ variant: "ghost", size: "sm" })}>
+                <Link
+                  to="/login"
+                  search={{}}
+                  className={buttonClass({ variant: "ghost", size: "sm" })}
+                >
                   Logg inn
                 </Link>
               )}

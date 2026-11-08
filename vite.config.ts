@@ -6,9 +6,17 @@ import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
 const generated = [
-  ".next/**", ".output/**", ".nitro/**", ".tanstack/**", ".vitest/**",
-  "node_modules/**", "drizzle/**", ".data/**", "test-results/**",
-  "src/routeTree.gen.ts", "next-env.d.ts",
+  ".next/**",
+  ".output/**",
+  ".nitro/**",
+  ".tanstack/**",
+  ".vitest/**",
+  "node_modules/**",
+  "drizzle/**",
+  ".data/**",
+  "test-results/**",
+  "src/routeTree.gen.ts",
+  "next-env.d.ts",
 ];
 
 export default defineConfig(({ mode }) => ({
@@ -40,42 +48,49 @@ export default defineConfig(({ mode }) => ({
     fileParallelism: false,
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@tanstack/react-start/server-only": fileURLToPath(new URL("./tests/stubs/empty.ts", import.meta.url)),
+      "@tanstack/react-start/server-only": fileURLToPath(
+        new URL("./tests/stubs/empty.ts", import.meta.url),
+      ),
     },
   },
   server: { port: 3000 },
   resolve: { tsconfigPaths: true },
-  plugins: mode === "test" ? [] : lazyPlugins(() => [
-    tailwindcss(),
-    tanstackStart({
-      srcDirectory: "src",
-      router: {
-        routesDirectory: "app",
-        indexToken: "page",
-        routeToken: /layout|route/,
-        routeFileIgnorePattern:
-          "^(?!(?:__root|page|layout|route|sitemap\\[\\.\\]xml|robots\\[\\.\\]txt)\\.(?:ts|tsx)$).*\\.(?:ts|tsx)$",
-      },
-    }),
-    nitro({
-      experimental: { tasks: true },
-      tasks: {
-        "game:cron": {
-          handler: fileURLToPath(new URL("./src/tasks/game-cron.ts", import.meta.url)),
-          description: "Process scheduled game updates and queued email",
-        },
-      },
-      scheduledTasks: { "*/10 * * * *": ["game:cron"] },
-      vercel: { functionRules: { "/_vercel/cron": { maxDuration: 60 } } },
-      routeRules: {
-        "/**": { headers: {
-          "X-Content-Type-Options": "nosniff",
-          "Referrer-Policy": "same-origin",
-          "X-Frame-Options": "DENY",
-          "Permissions-Policy": "camera=(self), geolocation=(self)",
-        } },
-      },
-    }),
-    viteReact(),
-  ]),
+  plugins:
+    mode === "test"
+      ? []
+      : lazyPlugins(() => [
+          tailwindcss(),
+          tanstackStart({
+            srcDirectory: "src",
+            router: {
+              routesDirectory: "app",
+              indexToken: "page",
+              routeToken: /layout|route/,
+              routeFileIgnorePattern:
+                "^(?!(?:__root|page|layout|route|sitemap\\[\\.\\]xml|robots\\[\\.\\]txt)\\.(?:ts|tsx)$).*\\.(?:ts|tsx)$",
+            },
+          }),
+          nitro({
+            experimental: { tasks: true },
+            tasks: {
+              "game:cron": {
+                handler: fileURLToPath(new URL("./src/tasks/game-cron.ts", import.meta.url)),
+                description: "Process scheduled game updates and queued email",
+              },
+            },
+            scheduledTasks: { "*/10 * * * *": ["game:cron"] },
+            vercel: { functionRules: { "/_vercel/cron": { maxDuration: 60 } } },
+            routeRules: {
+              "/**": {
+                headers: {
+                  "X-Content-Type-Options": "nosniff",
+                  "Referrer-Policy": "same-origin",
+                  "X-Frame-Options": "DENY",
+                  "Permissions-Policy": "camera=(self), geolocation=(self)",
+                },
+              },
+            },
+          }),
+          viteReact(),
+        ]),
 }));
