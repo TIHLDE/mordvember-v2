@@ -65,8 +65,8 @@ export default defineConfig(({ mode }) => ({
           routesDirectory: "app",
           indexToken: "page",
           routeToken: /layout|route/,
-          routeFileIgnorePattern:
-            "^(?!(?:__root|page|layout|route|sitemap\\[\\.\\]xml|robots\\[\\.\\]txt)\\.(?:ts|tsx)$).*\\.(?:ts|tsx)$",
+          // Ignore colocated components and helpers without lookahead (also supported by Fallow).
+          routeFileIgnorePattern: "^(?:[A-Z].*|actions(?:[.]server)?|global-error|status)[.]tsx?$",
         },
       }),
       nitro({
