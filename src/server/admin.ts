@@ -31,7 +31,7 @@ import type { WeekRules } from "@/game/attendance";
 import { weekStartOf } from "@/game/time";
 import { audit } from "./audit";
 import { AccessError, type Viewer } from "./auth/session";
-import { DEFAULT_TEMPLATES, queueEmail, type TemplateKey } from "./email";
+import { DEFAULT_TEMPLATES, queueCustomEmail, queueEmail, type TemplateKey } from "./email";
 import { GameError } from "./game";
 import { deleteImages } from "./images";
 import { notify } from "./notify";
@@ -360,6 +360,56 @@ export async function saveTemplate(
 export async function resetTemplate(viewer: Viewer, key: TemplateKey) {
   gm(viewer);
   await db.delete(emailTemplates).where(eq(emailTemplates.key, key));
+}
+
+export const AUDIENCES = {
+  all: "Alle deltakere",
+  alive: "Gjenværende deltakere",
+  out: "Eliminerte deltakere",
+} as const;
+export type Audience = keyof typeof AUDIENCES;
+
+/** Queues a one-off e-mail to the chosen group of players in the current game. */
+export async function sendAnnouncement(
+  viewer: Viewer,
+  audience: Audience,
+  subject: string,
+  body: string,
+) {
+  const season = gm(viewer);
+  if (!Object.hasOwn(AUDIENCES, audience)) throw new GameError("Ukjent mottakergruppe");
+  subject = subject.trim();
+  body = body.trim();
+  if (!subject || !body) throw new GameError("Emne og tekst kan ikke være tomme");
+  return db.transaction(async (tx) => {
+    // Shares the season lock that a reset takes, so no mail is queued for players a reset just deleted.
+    await tx.select({ id: seasons.id }).from(seasons).where(eq(seasons.id, season.id)).for("share");
+    const filter =
+      audience === "alive"
+        ? eq(players.status, "alive")
+        : audience === "out"
+          ? ne(players.status, "alive")
+          : undefined;
+    const rows = await tx
+      .select({ email: users.email })
+      .from(players)
+      .innerJoin(users, eq(users.id, players.userId))
+      .where(and(eq(players.seasonId, season.id), filter));
+    const count = await queueCustomEmail(
+      tx,
+      rows.map((r) => r.email),
+      subject,
+      body,
+    );
+    if (!count) throw new GameError("Ingen mottakere i denne gruppen");
+    await audit(tx, {
+      seasonId: season.id,
+      actorUserId: viewer.user.id,
+      action: "epost.kunngjoring",
+      details: { audience, subject, recipients: count },
+    });
+    return count;
+  });
 }
 
 export async function templates() {

@@ -6,7 +6,7 @@ import { ActionForm } from "@/components/ActionForm";
 import { inputClass } from "@/components/styles";
 import { Badge, Button, Card, Checkbox, Field, PageTitle } from "@/components/ui";
 
-import { saveTemplateAction } from "../actions";
+import { saveTemplateAction, sendAnnouncementAction } from "../actions";
 
 const loadTemplatesPage = createServerFn({ method: "GET" }).handler(async () => {
   await guard("gamemaster");
@@ -26,6 +26,29 @@ function TemplatesPage() {
       <PageTitle sub="Felter i doble klammer, for eksempel {{grunn}}, fylles inn automatisk. Tom linje gir nytt avsnitt.">
         E-postmaler
       </PageTitle>
+      <Card title="Send kunngjøring">
+        <ActionForm
+          action={sendAnnouncementAction}
+          confirm="Sende e-posten nå?"
+          resetOnSuccess
+          className="space-y-4"
+        >
+          <Field label="Mottakere">
+            <select name="audience" required defaultValue="all" className={inputClass}>
+              <option value="all">Alle deltakere</option>
+              <option value="alive">Gjenværende deltakere</option>
+              <option value="out">Eliminerte deltakere</option>
+            </select>
+          </Field>
+          <Field label="Emne">
+            <input name="subject" required className={inputClass} />
+          </Field>
+          <Field label="Tekst">
+            <textarea name="body" required rows={5} className={inputClass} />
+          </Field>
+          <Button type="submit">Send</Button>
+        </ActionForm>
+      </Card>
       {rows.map((t) => (
         <Card key={t.key} title={t.label}>
           {t.custom && (

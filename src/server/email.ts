@@ -90,33 +90,57 @@ async function templateFor(tx: Tx | typeof db, key: TemplateKey) {
   };
 }
 
+function blocks(body: string, button: string | null): EmailBlock[] {
+  // Browsers submit textarea line breaks as CRLF.
+  const content: EmailBlock[] = body
+    .replace(/\r\n?/g, "\n")
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => ({ type: "text", content: p }));
+  if (button)
+    content.push({ type: "button", text: "Åpne Mordvember", url: `${env.appUrl}${button}` });
+  return content;
+}
+
+async function insertOutbox(
+  tx: Tx | typeof db,
+  to: readonly (string | null | undefined)[],
+  subject: string,
+  content: EmailBlock[],
+) {
+  const recipients = [...new Set(to.filter((t): t is string => !!t))];
+  if (!recipients.length) return 0;
+  await tx
+    .insert(emailOutbox)
+    .values(recipients.map((address) => ({ to: address, subject, content })));
+  return recipients.length;
+}
+
 export async function queueEmail(
   tx: Tx | typeof db,
   key: TemplateKey,
   to: readonly (string | null | undefined)[],
   vars: Record<string, string | number> = {},
 ) {
-  const recipients = [...new Set(to.filter((t): t is string => !!t))];
-  if (!recipients.length) return;
+  if (!to.some(Boolean)) return;
   const template = await templateFor(tx, key);
-  const content: EmailBlock[] = render(template.body, vars)
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .map((p) => ({ type: "text", content: p }));
-  if (template.button)
-    content.push({
-      type: "button",
-      text: "Åpne Mordvember",
-      url: `${env.appUrl}${template.button}`,
-    });
-  await tx.insert(emailOutbox).values(
-    recipients.map((address) => ({
-      to: address,
-      subject: render(template.subject, vars),
-      content,
-    })),
+  await insertOutbox(
+    tx,
+    to,
+    render(template.subject, vars),
+    blocks(render(template.body, vars), template.button),
   );
+}
+
+/** A one-off message written by a gamemaster, sent as is. Returns how many addresses it was queued for. */
+export async function queueCustomEmail(
+  tx: Tx | typeof db,
+  to: readonly (string | null | undefined)[],
+  subject: string,
+  body: string,
+) {
+  return insertOutbox(tx, to, subject, blocks(body, "/"));
 }
 
 async function sendViaPhoton(to: string, subject: string, content: EmailBlock[]) {

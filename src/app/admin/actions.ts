@@ -201,3 +201,9 @@ const saveTemplateActionRpc = createServerFn({ method: "POST" })
 export function saveTemplateAction(_state: ActionState, form: FormData) {
   return saveTemplateActionRpc({ data: form });
 }
+const sendAnnouncementActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.sendAnnouncementAction(null, data));
+export function sendAnnouncementAction(_state: ActionState, form: FormData) {
+  return sendAnnouncementActionRpc({ data: form });
+}

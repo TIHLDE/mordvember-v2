@@ -6,6 +6,7 @@ import { redirect } from "@tanstack/react-router";
 import type { WeekRules } from "@/game/attendance";
 import { type ActionState, bioFrom, osloInput, run, text } from "@/lib/action";
 import {
+  type Audience,
   addStaff,
   createSeason,
   endEmergencyAccess,
@@ -13,6 +14,7 @@ import {
   resetGame,
   resetTemplate,
   saveTemplate,
+  sendAnnouncement,
   setPhase,
   setRules,
   startEmergencyAccess,
@@ -332,5 +334,17 @@ export async function saveTemplateAction(_: ActionState, form: FormData) {
       text(form, "subject"),
       text(form, "body"),
     );
+  });
+}
+
+export async function sendAnnouncementAction(_: ActionState, form: FormData) {
+  return run(async () => {
+    const count = await sendAnnouncement(
+      await requireGamemaster(),
+      text(form, "audience") as Audience,
+      text(form, "subject"),
+      text(form, "body"),
+    );
+    return `E-posten er sendt til ${count} ${count === 1 ? "deltaker" : "deltakere"}`;
   });
 }
