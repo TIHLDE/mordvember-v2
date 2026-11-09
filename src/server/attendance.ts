@@ -3,12 +3,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { and, asc, desc, eq, gte, isNull, lt, lte } from "drizzle-orm";
 import { db, type Tx } from "@/db";
-import { checkins, players, seasons } from "@/db/schema";
+import { checkins, kills, players, seasons } from "@/db/schema";
 import {
   type AttendanceSession,
   closeTimeFor,
   dayResults,
   distanceMeters,
+  evaluateWeek,
   GLOSHAUGEN,
 } from "@/game/attendance";
 import { qrCode, verifyQrCode } from "@/game/qr";
@@ -152,7 +153,8 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
   if (!viewer.season || !viewer.player) return null;
   const weekStart = weekStartOf(now);
   const today = osloDate(now);
-  const [rules, rows, [stale = null]] = await Promise.all([
+  const weekEnd = osloTime(addDays(weekStart, 7), "00:00");
+  const [rules, rows, [stale = null], killRows] = await Promise.all([
     rulesForWeek(viewer.season, weekStart),
     db
       .select()
@@ -161,7 +163,7 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
         and(
           eq(checkins.playerId, viewer.player.id),
           gte(checkins.checkInAt, osloTime(weekStart, "00:00")),
-          lt(checkins.checkInAt, osloTime(addDays(weekStart, 7), "00:00")),
+          lt(checkins.checkInAt, weekEnd),
         ),
       )
       .orderBy(asc(checkins.checkInAt)),
@@ -179,8 +181,29 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
       )
       .orderBy(desc(checkins.checkInAt))
       .limit(1),
+    // Same kills as the Friday list counts: confirmed ones from the whole game up to this week.
+    db
+      .select({ killedAt: kills.killedAt })
+      .from(kills)
+      .where(
+        and(
+          eq(kills.seasonId, viewer.season.id),
+          eq(kills.killerId, viewer.player.id),
+          eq(kills.status, "applied"),
+          lt(kills.killedAt, weekEnd),
+        ),
+      ),
   ]);
-  const days = dayResults(rows.map(toSession), weekStart, rules, now);
+  const sessions = rows.map(toSession);
+  const days = dayResults(sessions, weekStart, rules, now);
+  const evaluation = evaluateWeek({
+    weekStart,
+    requirementsFromWeek: viewer.player.requirementsFromWeek,
+    sessions,
+    killTimes: killRows.map((k) => k.killedAt),
+    rules,
+    now,
+  });
   const todays = rows.filter((r) => osloDate(r.checkInAt) === today);
   const open = todays.find((r) => !r.checkOutAt && !r.autoClosed) ?? null;
   return {
@@ -191,7 +214,9 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
     open,
     stale,
     required: rules.days,
-    counted: days.filter((d) => d.counts).length,
+    counted: evaluation.countingDays,
+    kills: evaluation.kills,
+    exempt: evaluation.exempt,
   };
 }
 
