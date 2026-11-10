@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { jobRuns, kills, players, weeklyReviews, users } from "@/db/schema";
 import { evaluateWeek, weeklyWarningDue, type WeekEvaluation } from "@/game/attendance";
+import { COUNTED_KILL_STATUSES } from "@/game/kills";
 import { fridayListDueAt, listWeekError } from "@/game/friday";
 import { addDays, osloTime } from "@/game/time";
 import { audit } from "./audit";
@@ -35,7 +36,7 @@ export async function evaluateSeasonWeek(season: Season, weekStart: string, now 
       .where(
         and(
           eq(kills.seasonId, season.id),
-          eq(kills.status, "applied"),
+          inArray(kills.status, COUNTED_KILL_STATUSES),
           lt(kills.killedAt, osloTime(addDays(weekStart, 7), "00:00")),
         ),
       ),

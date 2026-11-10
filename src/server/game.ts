@@ -451,12 +451,93 @@ export async function rejectKill(viewer: Viewer, killId: string, note: string) {
   });
 }
 
+/**
+ * Gives the killer the kill without eliminating the victim, for when a kill was valid by the
+ * rules but the gamemasters let the victim live (for example because a rule was unclear).
+ * The ring is left as it is; move the victim in the circle afterwards if needed.
+ */
+export async function creditKill(viewer: Viewer, killId: string, note: string) {
+  assertGamemaster(viewer);
+  const seasonId = viewer.season.id;
+  await db.transaction(async (tx) => {
+    const season = await lockSeason(tx, seasonId);
+    if (season.phase !== "running") throw new GameError("Spillet er ikke i gang");
+    const kill = await loadOpenKill(tx, seasonId, killId);
+    const now = new Date();
+    await tx
+      .update(kills)
+      .set({
+        status: "credited",
+        confirmedAt: kill.confirmedAt ?? now,
+        resolvedAt: now,
+        approvedBy: viewer.user.id,
+        resolutionNote: note || null,
+      })
+      .where(eq(kills.id, kill.id));
+    await tx
+      .update(players)
+      .set({ killCount: sql`${players.killCount} + 1` })
+      .where(eq(players.id, kill.killerId));
+    const [killer, victim] = await Promise.all([
+      userOfPlayer(tx, kill.killerId),
+      userOfPlayer(tx, kill.victimId),
+    ]);
+    await notify(tx, [
+      {
+        userId: killer.userId,
+        seasonId,
+        text: "Spillmesterne har gitt deg drapet, men offeret ditt lever videre.",
+        href: "/drap",
+      },
+      {
+        userId: victim.userId,
+        seasonId,
+        text: "Spillmesterne har latt deg leve videre etter en drapssak. Du er fortsatt med.",
+        href: "/drap",
+      },
+    ]);
+    await audit(tx, {
+      seasonId,
+      actorUserId: viewer.user.id,
+      action: "drap.kreditert",
+      details: { killId, note },
+    });
+  });
+}
+
 export async function undoKillAsGamemaster(viewer: Viewer, killId: string) {
   assertGamemaster(viewer);
   const seasonId = viewer.season.id;
   await db.transaction(async (tx) => {
     const season = await lockSeason(tx, seasonId);
     const kill = await lockKill(tx, seasonId, killId);
+    if (kill?.status === "credited") {
+      // Offeret ble aldri tatt ut, så bare drapet trekkes fra morderen.
+      await tx
+        .update(players)
+        .set({ killCount: sql`greatest(${players.killCount} - 1, 0)` })
+        .where(eq(players.id, kill.killerId));
+      await tx
+        .update(kills)
+        .set({ status: "undone", resolvedAt: new Date() })
+        .where(eq(kills.id, kill.id));
+      const killer = await userOfPlayer(tx, kill.killerId);
+      await notify(tx, [
+        {
+          userId: killer.userId,
+          seasonId,
+          text: "Et drap du ble gitt av spillmesterne er trukket tilbake.",
+          href: "/drap",
+        },
+      ]);
+      await audit(tx, {
+        seasonId,
+        actorUserId: viewer.user.id,
+        action: "drap.angret",
+        details: { killId, kreditert: true },
+      });
+      return;
+    }
     if (!kill || kill.status !== "applied")
       throw new GameError("Bare gjennomførte drap kan angres");
     const before = await lockRing(tx, seasonId);

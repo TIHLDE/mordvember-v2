@@ -27,6 +27,7 @@ import { DEFAULT_TEMPLATES, type TemplateKey } from "@/server/email";
 import {
   addPlayerAsGamemaster,
   approveKill,
+  creditKill,
   disqualify,
   GameError,
   generateCircle,
@@ -85,6 +86,13 @@ export async function rejectKillAction(_: ActionState, form: FormData) {
   return run(
     async () => rejectKill(await requireGamemaster(), text(form, "killId"), text(form, "note")),
     "Drapet er avvist",
+  );
+}
+
+export async function creditKillAction(_: ActionState, form: FormData) {
+  return run(
+    async () => creditKill(await requireGamemaster(), text(form, "killId"), text(form, "note")),
+    "Drapet er gitt til morderen, og offeret lever videre",
   );
 }
 

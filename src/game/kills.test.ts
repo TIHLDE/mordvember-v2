@@ -89,6 +89,22 @@ describe("kollisjoner", () => {
     );
   });
 
+  it("et kreditert drap viser at morderen levde, men ikke at offeret døde", () => {
+    const credited = kill({
+      id: "k1",
+      killerId: "b",
+      victimId: "c",
+      killedAt: t(11),
+      status: "credited",
+    });
+    const earlier = kill({ id: "k2", killerId: "a", victimId: "b", killedAt: t(10) });
+    expect(findCollisions(earlier, [credited, earlier], start, now)).toContain(
+      "Offeret har meldt et eget drap etter sitt eget dødstidspunkt",
+    );
+    const onVictim = kill({ id: "k3", killerId: "d", victimId: "c", killedAt: t(12) });
+    expect(findCollisions(onVictim, [credited, onVictim], start, now)).toEqual([]);
+  });
+
   it("samme minutt regnes ikke som etter", () => {
     const death = kill({ id: "k1", killerId: "a", victimId: "b", killedAt: t(10) });
     const same = kill({ id: "k2", killerId: "b", victimId: "c", killedAt: t(10) });

@@ -1,7 +1,8 @@
 import "@tanstack/react-start/server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
-import { and, asc, desc, eq, gte, isNull, lt, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, lte } from "drizzle-orm";
+import { COUNTED_KILL_STATUSES } from "@/game/kills";
 import { db, type Tx } from "@/db";
 import { checkins, kills, players, seasons } from "@/db/schema";
 import {
@@ -189,7 +190,7 @@ export async function myAttendance(viewer: Viewer, now = new Date()) {
         and(
           eq(kills.seasonId, viewer.season.id),
           eq(kills.killerId, viewer.player.id),
-          eq(kills.status, "applied"),
+          inArray(kills.status, COUNTED_KILL_STATUSES),
           lt(kills.killedAt, weekEnd),
         ),
       ),

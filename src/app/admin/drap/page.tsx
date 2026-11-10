@@ -13,7 +13,7 @@ import { Badge, Button, Card, Empty, PageTitle } from "@/components/ui";
 import { isOverdue } from "@/game/kills";
 import { formatOslo } from "@/game/time";
 
-import { approveKillAction, rejectKillAction, undoKillAction } from "../actions";
+import { approveKillAction, creditKillAction, rejectKillAction, undoKillAction } from "../actions";
 
 const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
   const killer = alias(players, "killer");
@@ -28,14 +28,16 @@ const loadKillCases = createServerFn({ method: "GET" }).handler(async () => {
     .where(
       and(
         eq(kills.seasonId, viewer.season.id),
-        inArray(kills.status, ["pending", "escalated", "applied"]),
+        inArray(kills.status, ["pending", "escalated", "applied", "credited"]),
       ),
     )
     .orderBy(desc(kills.reportedAt));
   const now = new Date();
   const open = rows.filter((r) => r.kill.status === "escalated" || isOverdue(r.kill, now));
   const waiting = rows.filter((r) => r.kill.status === "pending" && !isOverdue(r.kill, now));
-  const applied = viewer.isGamemaster ? rows.filter((r) => r.kill.status === "applied") : [];
+  const applied = viewer.isGamemaster
+    ? rows.filter((r) => r.kill.status === "applied" || r.kill.status === "credited")
+    : [];
   return { viewer, open, waiting, applied };
 });
 
@@ -106,6 +108,26 @@ function KillCases() {
                       Avvis
                     </Button>
                   </ActionForm>
+                  <ActionForm
+                    action={creditKillAction}
+                    className="space-y-3 sm:col-span-2"
+                    confirm="Gi morderen drapet, men la offeret leve? Sirkelen endres ikke."
+                  >
+                    <input type="hidden" name="killId" value={kill.id} />
+                    <p className="text-xs text-zinc-500">
+                      Morderen får drapet, men offeret blir i spillet. Sirkelen endres ikke, så
+                      flytt offeret i sirkelen etterpå hvis morderen ikke skal ha samme offer.
+                    </p>
+                    <input
+                      name="note"
+                      aria-label="Notat"
+                      placeholder="Notat (valgfritt)"
+                      className={inputClass}
+                    />
+                    <Button type="submit" variant="ghost">
+                      Gi drapet, la offeret leve
+                    </Button>
+                  </ActionForm>
                 </div>
               </li>
             ))}
@@ -137,10 +159,17 @@ function KillCases() {
                   <span>
                     {killer} → {victim}{" "}
                     <span className="text-zinc-500">{formatOslo(kill.killedAt)}</span>
+                    {kill.status === "credited" && (
+                      <span className="text-zinc-500"> · gitt, offeret lever</span>
+                    )}
                   </span>
                   <ActionForm
                     action={undoKillAction}
-                    confirm="Angre drapet? Offeret settes tilbake i sirkelen."
+                    confirm={
+                      kill.status === "credited"
+                        ? "Trekke tilbake drapet fra morderen? Sirkelen endres ikke."
+                        : "Angre drapet? Offeret settes tilbake i sirkelen."
+                    }
                   >
                     <input type="hidden" name="killId" value={kill.id} />
                     <Button type="submit" variant="ghost" size="sm">

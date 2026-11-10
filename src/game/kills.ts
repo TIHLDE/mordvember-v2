@@ -1,6 +1,9 @@
 import { type Ring, targetOf } from "./ring";
 
-export type KillStatus = "pending" | "escalated" | "applied" | "rejected" | "undone";
+export type KillStatus = "pending" | "escalated" | "applied" | "rejected" | "undone" | "credited";
+
+/** Kills that count for the killer: normal ones, and ones credited while the victim lived on. */
+export const COUNTED_KILL_STATUSES = ["applied", "credited"] as const;
 
 export type KillCase = {
   id: string;
@@ -50,7 +53,9 @@ export function findCollisions(
   if (others.some((k) => k.victimId === kill.killerId && k.killedAt < kill.killedAt)) {
     reasons.push("Morderen er meldt drept før dette drapstidspunktet");
   }
-  if (others.some((k) => k.killerId === kill.victimId && k.killedAt > kill.killedAt)) {
+  // Et kreditert drap lot offeret leve, men viser fortsatt at morderen var i live og drepte da.
+  const actedLater = [...others, ...all.filter((k) => k.id !== kill.id && k.status === "credited")];
+  if (actedLater.some((k) => k.killerId === kill.victimId && k.killedAt > kill.killedAt)) {
     reasons.push("Offeret har meldt et eget drap etter sitt eget dødstidspunkt");
   }
   return reasons;

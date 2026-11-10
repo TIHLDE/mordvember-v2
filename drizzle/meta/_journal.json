@@ -43,6 +43,13 @@
       "when": 1792784942855,
       "tag": "0005_simplify_game",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794332456303,
+      "tag": "0006_kill_credited",
+      "breakpoints": true
     }
   ]
 }

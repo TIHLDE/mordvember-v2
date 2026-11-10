@@ -32,12 +32,15 @@ const loadKillsPage = createServerFn({ method: "GET" }).handler(async () => {
       and(
         eq(kills.seasonId, viewer.season.id),
         or(eq(kills.killerId, me), eq(kills.victimId, me)),
-        inArray(kills.status, ["pending", "escalated", "applied", "rejected"]),
+        inArray(kills.status, ["pending", "escalated", "applied", "rejected", "credited"]),
       ),
     )
     .orderBy(desc(kills.reportedAt));
   const open = mine.filter((m) => m.kill.status === "pending" || m.kill.status === "escalated");
-  const history = mine.filter((m) => m.kill.status === "applied" || m.kill.status === "rejected");
+  const history = mine.filter(
+    (m) =>
+      m.kill.status === "applied" || m.kill.status === "rejected" || m.kill.status === "credited",
+  );
   const running = viewer.season.phase === "running" && viewer.player!.status === "alive";
   const now = osloInputValue(new Date());
   return { viewer, me, open, history, running, now };
@@ -137,6 +140,7 @@ function KillsPage() {
                     : `Du tok ${victimName} ${formatOslo(kill.killedAt)}`}
                 </span>
                 {kill.status === "rejected" && <Badge>Avvist</Badge>}
+                {kill.status === "credited" && <Badge>Telt som drap, offeret lever videre</Badge>}
               </li>
             ))}
           </ul>

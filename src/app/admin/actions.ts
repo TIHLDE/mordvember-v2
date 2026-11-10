@@ -21,6 +21,12 @@ const rejectKillActionRpc = createServerFn({ method: "POST" })
 export function rejectKillAction(_state: ActionState, form: FormData) {
   return rejectKillActionRpc({ data: form });
 }
+const creditKillActionRpc = createServerFn({ method: "POST" })
+  .validator(validateForm)
+  .handler(async ({ data }) => serverActions.creditKillAction(null, data));
+export function creditKillAction(_state: ActionState, form: FormData) {
+  return creditKillActionRpc({ data: form });
+}
 const undoKillActionRpc = createServerFn({ method: "POST" })
   .validator(validateForm)
   .handler(async ({ data }) => serverActions.undoKillAction(null, data));

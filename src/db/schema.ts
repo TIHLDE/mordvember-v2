@@ -27,6 +27,7 @@ export const killStatusEnum = pgEnum("kill_status", [
   "applied",
   "rejected",
   "undone",
+  "credited",
 ]);
 export const reporterEnum = pgEnum("reporter", ["killer", "victim"]);
 export const reviewDecisionEnum = pgEnum("review_decision", [
